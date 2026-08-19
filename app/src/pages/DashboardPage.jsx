@@ -4,11 +4,11 @@ import { useAuth } from "../lib/AuthContext";
 
 const CARDS = [
   { table: "customers", label: "Clientes cadastrados", icon: "◎" },
-  { table: "suppliers", label: "Fornecedores cadastrados", icon: "◇" },
+  { table: "opportunities", label: "Oportunidades abertas", icon: "◈" },
+  { table: "quotes", label: "Orçamentos", icon: "▤" },
   { table: "products", label: "Produtos cadastrados", icon: "◆" },
   { table: "production_orders", label: "Ordens de produção", icon: "⚙" },
-  { table: "inventory_items", label: "Itens em estoque", icon: "▤" },
-  { table: "sales_orders", label: "Pedidos de venda", icon: "◈" },
+  { table: "sales_orders", label: "Pedidos de venda", icon: "◆" },
   { table: "financial_entries", label: "Lançamentos financeiros", icon: "$" },
 ];
 

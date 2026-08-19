@@ -10,6 +10,20 @@ const TYPE_LABEL = {
 };
 
 export default function ProdutosPage() {
+  const { company } = useAuth();
+  const [units, setUnits] = useState([]);
+
+  useEffect(() => {
+    if (!company?.id) return;
+    supabase
+      .from("units_of_measure")
+      .select("code, name")
+      .order("code")
+      .then(({ data }) => setUnits(data ?? []));
+  }, [company?.id]);
+
+  const unitOptions = units.map((u) => ({ value: u.code, label: `${u.code} — ${u.name}` }));
+
   return (
     <div>
       <ModulePage
@@ -27,7 +41,9 @@ export default function ProdutosPage() {
             required: true,
             options: ["acabado", "componente", "materia_prima"],
           },
-          { key: "unit", label: "Unidade", placeholder: "un, kg, m..." },
+          unitOptions.length > 0
+            ? { key: "unit", label: "Unidade", type: "select", options: unitOptions, required: true }
+            : { key: "unit", label: "Unidade", placeholder: "Cadastre em Cadastro → Unidades de Medida" },
           { key: "stock_quantity", label: "Estoque atual", type: "number" },
           { key: "cost", label: "Custo (R$)", type: "number" },
           { key: "sale_price", label: "Preço de venda (R$)", type: "number" },

@@ -27,10 +27,18 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: "Comercial",
+    items: [
+      { to: "/oportunidades", label: "Oportunidades", icon: "◈" },
+      { to: "/etapas-comercial", label: "Etapas", icon: "→" },
+      { to: "/orcamentos", label: "Orçamentos", icon: "▤" },
+      { to: "/pedidos-venda", label: "Pedidos de Venda", icon: "◆" },
+    ],
+  },
+  {
     label: "Operação",
     items: [
       { to: "/estoque", label: "Estoque", icon: "▤" },
-      { to: "/vendas", label: "Vendas", icon: "◈" },
       { to: "/financeiro", label: "Financeiro", icon: "$" },
     ],
   },
