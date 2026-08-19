@@ -40,6 +40,7 @@ const NAV_SECTIONS = [
     items: [
       { to: "/cotacoes", label: "Cotações", icon: "◐" },
       { to: "/pedidos-compra", label: "Pedidos de Compra", icon: "▼" },
+      { to: "/almoxarifado", label: "Almoxarifado", icon: "▥" },
     ],
   },
   {

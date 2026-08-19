@@ -44,6 +44,8 @@ export default function PedidosCompraPage() {
 function ReceivingWorkspace({ onReceived }) {
   const { company } = useAuth();
   const [orders, setOrders] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [receivingWarehouseId, setReceivingWarehouseId] = useState("");
   const [products, setProducts] = useState([]);
   const [orderId, setOrderId] = useState("");
   const [items, setItems] = useState([]);
@@ -74,7 +76,11 @@ function ReceivingWorkspace({ onReceived }) {
   }
 
   useEffect(() => {
-    if (company?.id) { loadOrders(); loadProducts(); }
+    if (company?.id) {
+      loadOrders();
+      loadProducts();
+      supabase.from("warehouses").select("id, name").order("name").then(({ data }) => setWarehouses(data ?? []));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id]);
 
@@ -109,7 +115,7 @@ function ReceivingWorkspace({ onReceived }) {
   }
 
   async function markAsReceived() {
-    if (items.length === 0) return;
+    if (items.length === 0 || !receivingWarehouseId) return;
     setReceiving(true);
     setError("");
 
@@ -122,6 +128,27 @@ function ReceivingWorkspace({ onReceived }) {
       const { data: product } = await supabase.from("products").select("stock_quantity").eq("id", item.product_id).single();
       const newStock = Number(product?.stock_quantity ?? 0) + pending;
       await supabase.from("products").update({ stock_quantity: newStock }).eq("id", item.product_id);
+
+      const { data: existingLevel } = await supabase
+        .from("stock_levels")
+        .select("id, quantity")
+        .eq("product_id", item.product_id)
+        .eq("warehouse_id", receivingWarehouseId)
+        .maybeSingle();
+
+      if (existingLevel) {
+        await supabase.from("stock_levels").update({
+          quantity: Number(existingLevel.quantity) + pending,
+          updated_at: new Date().toISOString(),
+        }).eq("id", existingLevel.id);
+      } else {
+        await supabase.from("stock_levels").insert({
+          company_id: company.id,
+          product_id: item.product_id,
+          warehouse_id: receivingWarehouseId,
+          quantity: pending,
+        });
+      }
     }
 
     await supabase.from("purchase_orders").update({ status: "recebido" }).eq("id", orderId);
@@ -211,9 +238,24 @@ function ReceivingWorkspace({ onReceived }) {
           )}
 
           {selectedOrder?.status === "aberto" && items.length > 0 && (
-            <button style={styles.receiveBtn} onClick={markAsReceived} disabled={receiving} type="button">
-              {receiving ? "Registrando..." : "Marcar pedido como recebido (atualiza estoque)"}
-            </button>
+            <>
+              {warehouses.length === 0 ? (
+                <div style={styles.error}>
+                  Nenhum almoxarifado cadastrado. Cadastre em Cadastro → Almoxarifados antes de receber este pedido.
+                </div>
+              ) : (
+                <label style={styles.field}>
+                  <span style={styles.fieldLabel}>Receber em qual almoxarifado?</span>
+                  <select style={styles.input} value={receivingWarehouseId} onChange={(e) => setReceivingWarehouseId(e.target.value)}>
+                    <option value="">Selecione...</option>
+                    {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                </label>
+              )}
+              <button style={styles.receiveBtn} onClick={markAsReceived} disabled={receiving || !receivingWarehouseId} type="button">
+                {receiving ? "Registrando..." : "Marcar pedido como recebido (atualiza estoque)"}
+              </button>
+            </>
           )}
           {selectedOrder?.status === "recebido" && (
             <p style={{ ...styles.dim, marginTop: 12 }}>Pedido já recebido — o estoque foi atualizado.</p>

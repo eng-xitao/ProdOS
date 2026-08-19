@@ -19,6 +19,7 @@ import CapacidadePage from "./pages/CapacidadePage";
 import EstoquePage from "./pages/EstoquePage";
 import CotacoesPage from "./pages/CotacoesPage";
 import PedidosCompraPage from "./pages/PedidosCompraPage";
+import AlmoxarifadoPage from "./pages/AlmoxarifadoPage";
 import OportunidadesPage from "./pages/OportunidadesPage";
 import EtapasComercialPage from "./pages/EtapasComercialPage";
 import OrcamentosPage from "./pages/OrcamentosPage";
@@ -55,6 +56,7 @@ function PrivateArea() {
         <Route path="/estoque" element={<EstoquePage />} />
         <Route path="/cotacoes" element={<CotacoesPage />} />
         <Route path="/pedidos-compra" element={<PedidosCompraPage />} />
+        <Route path="/almoxarifado" element={<AlmoxarifadoPage />} />
         <Route path="/oportunidades" element={<OportunidadesPage />} />
         <Route path="/etapas-comercial" element={<EtapasComercialPage />} />
         <Route path="/orcamentos" element={<OrcamentosPage />} />
