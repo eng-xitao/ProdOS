@@ -23,7 +23,7 @@ export default function DREPage() {
     setLoading(true);
     const { data } = await supabase
       .from("financial_entries")
-      .select("entry_type, amount, purchase_order_id, employee_id, cost_centers:cost_center_id (name)");
+      .select("entry_type, amount, purchase_order_id, employee_id, cost_centers:cost_center_id (name), chart_of_accounts:account_id (code, name)");
 
     let receita = 0;
     const despesaMap = {};
@@ -32,10 +32,12 @@ export default function DREPage() {
       if (e.entry_type === "receita") {
         receita += Number(e.amount);
       } else {
-        const label = e.cost_centers?.name
-          ?? (e.purchase_order_id ? "Compras / Materiais (sem centro de custo)"
-            : e.employee_id ? "Pessoal — Folha, 13º e Rescisões (sem centro de custo)"
-            : "Outras despesas (sem centro de custo)");
+        const accountLabel = e.chart_of_accounts ? `${e.chart_of_accounts.code ? e.chart_of_accounts.code + " — " : ""}${e.chart_of_accounts.name}` : null;
+        const label = accountLabel
+          ?? e.cost_centers?.name
+          ?? (e.purchase_order_id ? "Compras / Materiais (sem classificação)"
+            : e.employee_id ? "Pessoal — Folha, 13º e Rescisões (sem classificação)"
+            : "Outras despesas (sem classificação)");
         despesaMap[label] = (despesaMap[label] ?? 0) + Number(e.amount);
       }
     });
@@ -73,7 +75,7 @@ export default function DREPage() {
             </span>
           </div>
 
-          <div style={styles.sectionTitle}>Despesas por Centro de Custo</div>
+          <div style={styles.sectionTitle}>Despesas por Conta / Centro de Custo</div>
           {despesasByCostCenter.length === 0 ? (
             <p style={styles.dim}>Nenhuma despesa lançada ainda.</p>
           ) : (

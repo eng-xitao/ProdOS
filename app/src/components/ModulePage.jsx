@@ -73,6 +73,12 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
     else setRows((r) => r.map((row) => (row.id === id ? { ...row, [statusField.key]: !current } : row)));
   }
 
+  async function handleQuickEdit(id, key, value) {
+    const { error } = await supabase.from(table).update({ [key]: value }).eq("id", id);
+    if (error) setError(error.message);
+    else setRows((r) => r.map((row) => (row.id === id ? { ...row, [key]: value } : row)));
+  }
+
   return (
     <div>
       <header style={styles.header}>
@@ -145,7 +151,23 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
               {rows.map((row) => (
                 <tr key={row.id} style={styles.tr}>
                   {fields.map((f) => (
-                    <td key={f.key} style={styles.td}>{formatValue(row[f.key], f)}</td>
+                    <td key={f.key} style={styles.td}>
+                      {f.quickEdit && f.type === "select" ? (
+                        <select
+                          style={styles.inlineSelect}
+                          value={row[f.key] ?? ""}
+                          onChange={(e) => handleQuickEdit(row.id, f.key, e.target.value)}
+                        >
+                          {f.options.map((opt) => {
+                            const value = typeof opt === "string" ? opt : opt.value;
+                            const label = typeof opt === "string" ? opt : opt.label;
+                            return <option key={value} value={value}>{label}</option>;
+                          })}
+                        </select>
+                      ) : (
+                        formatValue(row[f.key], f)
+                      )}
+                    </td>
                   ))}
                   {statusField && (
                     <td style={styles.td}>
@@ -259,6 +281,14 @@ const styles = {
   },
   statusTrue: { background: "rgba(79,174,126,0.15)", color: "var(--green)" },
   statusFalse: { background: "rgba(232,163,61,0.15)", color: "var(--amber)" },
+  inlineSelect: {
+    background: "var(--panel-2)",
+    border: "1px solid var(--line)",
+    borderRadius: "var(--radius)",
+    padding: "5px 8px",
+    color: "var(--text)",
+    fontSize: 12.5,
+  },
   deleteBtn: {
     background: "transparent",
     border: "1px solid var(--line)",

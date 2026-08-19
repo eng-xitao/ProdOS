@@ -67,6 +67,7 @@ const NAV_SECTIONS = [
       { to: "/lancamentos", label: "Lançamentos Avulsos", icon: "$" },
       { to: "/fluxo-caixa", label: "Fluxo de Caixa", icon: "≈" },
       { to: "/dre", label: "DRE", icon: "▦" },
+      { to: "/plano-contas", label: "Plano de Contas", icon: "☰" },
     ],
   },
   {
@@ -78,6 +79,25 @@ const NAV_SECTIONS = [
       { to: "/decimo-terceiro", label: "13º Salário", icon: "◑" },
       { to: "/rescisao", label: "Rescisão", icon: "✕" },
       { to: "/beneficios", label: "Benefícios", icon: "◈" },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      { to: "/sac", label: "SAC — Atendimento", icon: "◈" },
+    ],
+  },
+  {
+    label: "Frotas",
+    items: [
+      { to: "/frotas", label: "Frotas e Equipamentos", icon: "▶" },
+    ],
+  },
+  {
+    label: "Relatórios",
+    items: [
+      { to: "/relatorio-vendas", label: "Vendas", icon: "▲" },
+      { to: "/relatorio-compras", label: "Compras", icon: "▼" },
     ],
   },
   {

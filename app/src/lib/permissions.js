@@ -5,11 +5,11 @@
  */
 export const ROLE_ACCESS = {
   admin: null,
-  gerente: ["Cadastro", "PCP", "Comercial", "Compras", "Logística", "Custos"],
-  vendas: ["Comercial"],
+  gerente: ["Cadastro", "PCP", "Comercial", "Compras", "Logística", "Custos", "CRM", "Frotas", "Relatórios"],
+  vendas: ["Comercial", "CRM"],
   compras: ["Compras"],
-  producao: ["PCP", "Logística"],
-  financeiro: ["Financeiro", "Custos"],
+  producao: ["PCP", "Logística", "Frotas"],
+  financeiro: ["Financeiro", "Custos", "Relatórios"],
   rh: ["RH"],
 };
 
