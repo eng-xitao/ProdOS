@@ -74,6 +74,9 @@ const NAV_SECTIONS = [
       { to: "/colaboradores", label: "Colaboradores", icon: "◎" },
       { to: "/ferias", label: "Férias", icon: "◐" },
       { to: "/folha-pagamento", label: "Folha de Pagamento", icon: "$" },
+      { to: "/decimo-terceiro", label: "13º Salário", icon: "◑" },
+      { to: "/rescisao", label: "Rescisão", icon: "✕" },
+      { to: "/beneficios", label: "Benefícios", icon: "◈" },
     ],
   },
   {
