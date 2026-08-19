@@ -66,8 +66,18 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
   }
 
+  async function refreshCompany() {
+    if (!profile?.company_id) return;
+    const { data: companyData } = await supabase
+      .from("companies")
+      .select("*")
+      .eq("id", profile.company_id)
+      .single();
+    setCompany(companyData ?? null);
+  }
+
   return (
-    <AuthContext.Provider value={{ session, profile, company, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, profile, company, loading, signUp, signIn, signOut, refreshCompany }}>
       {children}
     </AuthContext.Provider>
   );

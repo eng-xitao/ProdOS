@@ -68,6 +68,18 @@ const NAV_SECTIONS = [
       { to: "/dre", label: "DRE", icon: "▦" },
     ],
   },
+  {
+    label: "RH",
+    items: [
+      { to: "/colaboradores", label: "Colaboradores", icon: "◎" },
+    ],
+  },
+  {
+    label: "Configurações",
+    items: [
+      { to: "/empresa", label: "Dados da Empresa", icon: "▣" },
+    ],
+  },
 ];
 
 export default function Layout() {

@@ -22,6 +22,8 @@ import ExpedicaoPage from "./pages/ExpedicaoPage";
 import TransferenciasPage from "./pages/TransferenciasPage";
 import ContasReceberPage from "./pages/ContasReceberPage";
 import CustosPage from "./pages/CustosPage";
+import ColaboradoresPage from "./pages/ColaboradoresPage";
+import EmpresaPage from "./pages/EmpresaPage";
 import ContasPagarPage from "./pages/ContasPagarPage";
 import LancamentosPage from "./pages/LancamentosPage";
 import FluxoCaixaPage from "./pages/FluxoCaixaPage";
@@ -74,6 +76,8 @@ function PrivateArea() {
         <Route path="/pedidos-venda" element={<PedidosVendaPage />} />
         <Route path="/contas-receber" element={<ContasReceberPage />} />
         <Route path="/custos-margem" element={<CustosPage />} />
+        <Route path="/colaboradores" element={<ColaboradoresPage />} />
+        <Route path="/empresa" element={<EmpresaPage />} />
         <Route path="/contas-pagar" element={<ContasPagarPage />} />
         <Route path="/lancamentos" element={<LancamentosPage />} />
         <Route path="/fluxo-caixa" element={<FluxoCaixaPage />} />
