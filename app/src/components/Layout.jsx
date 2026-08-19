@@ -98,6 +98,9 @@ const NAV_SECTIONS = [
     items: [
       { to: "/relatorio-vendas", label: "Vendas", icon: "▲" },
       { to: "/relatorio-compras", label: "Compras", icon: "▼" },
+      { to: "/relatorio-estoque", label: "Estoque", icon: "▤" },
+      { to: "/relatorio-almoxarifado", label: "Almoxarifado", icon: "▥" },
+      { to: "/relatorio-producao", label: "Produção", icon: "⚙" },
     ],
   },
   {

@@ -36,6 +36,9 @@ import SACPage from "./pages/SACPage";
 import FrotasPage from "./pages/FrotasPage";
 import RelatorioVendasPage from "./pages/RelatorioVendasPage";
 import RelatorioComprasPage from "./pages/RelatorioComprasPage";
+import RelatorioEstoquePage from "./pages/RelatorioEstoquePage";
+import RelatorioAlmoxarifadoPage from "./pages/RelatorioAlmoxarifadoPage";
+import RelatorioProducaoPage from "./pages/RelatorioProducaoPage";
 import ContasPagarPage from "./pages/ContasPagarPage";
 import LancamentosPage from "./pages/LancamentosPage";
 import FluxoCaixaPage from "./pages/FluxoCaixaPage";
@@ -101,6 +104,9 @@ function PrivateArea() {
         <Route path="/frotas" element={<FrotasPage />} />
         <Route path="/relatorio-vendas" element={<RelatorioVendasPage />} />
         <Route path="/relatorio-compras" element={<RelatorioComprasPage />} />
+        <Route path="/relatorio-estoque" element={<RelatorioEstoquePage />} />
+        <Route path="/relatorio-almoxarifado" element={<RelatorioAlmoxarifadoPage />} />
+        <Route path="/relatorio-producao" element={<RelatorioProducaoPage />} />
         <Route path="/contas-pagar" element={<ContasPagarPage />} />
         <Route path="/lancamentos" element={<LancamentosPage />} />
         <Route path="/fluxo-caixa" element={<FluxoCaixaPage />} />
