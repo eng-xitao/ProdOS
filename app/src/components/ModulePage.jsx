@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import PrintHeader from "./PrintHeader";
 
 /**
  * Página genérica de módulo: lista + formulário de criação + exclusão.
@@ -81,20 +82,27 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
 
   return (
     <div>
-      <header style={styles.header}>
+      <PrintHeader title={title} />
+
+      <header style={styles.header} className="no-print">
         <div>
           <h1 style={styles.title}>{title}</h1>
           <p style={styles.subtitle}>{subtitle}</p>
         </div>
-        <button style={styles.addBtn} onClick={() => setFormOpen((v) => !v)} type="button">
-          {formOpen ? "Cancelar" : "+ Novo"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button style={styles.printBtn} onClick={() => window.print()} type="button">
+            Imprimir
+          </button>
+          <button style={styles.addBtn} onClick={() => setFormOpen((v) => !v)} type="button">
+            {formOpen ? "Cancelar" : "+ Novo"}
+          </button>
+        </div>
       </header>
 
       {error && <div style={styles.error}>{error}</div>}
 
       {formOpen && (
-        <form onSubmit={handleCreate} style={styles.form}>
+        <form onSubmit={handleCreate} style={styles.form} className="no-print">
           {fields.map((f) => (
             <label key={f.key} style={styles.field}>
               <span style={styles.fieldLabel}>{f.label}</span>
@@ -209,6 +217,17 @@ const styles = {
   header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 },
   title: { fontFamily: "var(--font-display)", fontSize: 22, margin: 0, letterSpacing: "0.02em" },
   subtitle: { color: "var(--text-dim)", fontSize: 13, margin: "6px 0 0" },
+  printBtn: {
+    background: "transparent",
+    color: "var(--text-dim)",
+    border: "1px solid var(--line)",
+    borderRadius: "var(--radius)",
+    padding: "9px 16px",
+    fontWeight: 600,
+    fontSize: 13,
+    cursor: "pointer",
+    flexShrink: 0,
+  },
   addBtn: {
     background: "var(--amber)",
     color: "#1A1400",

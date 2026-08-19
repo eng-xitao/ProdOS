@@ -149,7 +149,7 @@ export default function Layout() {
 
   return (
     <div style={styles.shell}>
-      <aside style={styles.sidebar}>
+      <aside className="no-print" style={styles.sidebar}>
         <div style={styles.brand}>
           <span style={{ color: "var(--amber)" }}>■</span> PRODOS
         </div>

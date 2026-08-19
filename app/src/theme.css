@@ -55,3 +55,34 @@ a { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* =========================================================
+   Impressão — layout limpo em preto e branco, escondendo
+   menu, botões e o que não faz sentido no papel.
+   ========================================================= */
+.print-only { display: none; }
+
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+
+  body, #root {
+    background: #fff !important;
+  }
+
+  * {
+    color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  table, th, td {
+    border: 1px solid #999 !important;
+  }
+  table { border-collapse: collapse !important; width: 100% !important; }
+  th, td { padding: 6px 8px !important; }
+
+  button { display: none !important; }
+
+  main { padding: 0 !important; }
+}
