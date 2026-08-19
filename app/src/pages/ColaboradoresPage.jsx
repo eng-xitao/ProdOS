@@ -18,16 +18,29 @@ export default function ColaboradoresPage() {
     <ModulePage
       table="employees"
       title="Colaboradores"
-      subtitle="Equipe da empresa — pode ser vinculada a um Centro de Trabalho"
+      subtitle="Dados de admissão, contrato e informações usadas por Férias e Folha de Pagamento"
       emptyLabel="Nenhum colaborador cadastrado ainda."
       fields={[
         { key: "full_name", label: "Nome completo", placeholder: "Nome do colaborador", required: true },
         { key: "role", label: "Cargo", placeholder: "Ex: Soldador, Vendedor, Analista" },
+        { key: "status", label: "Status", type: "select", options: ["ativo", "inativo"] },
+        { key: "contract_type", label: "Tipo de contrato", type: "select", options: ["clt", "pj", "estagio", "temporario", "terceirizado"] },
+        { key: "work_schedule", label: "Jornada", placeholder: "Ex: 44h semanais" },
+        { key: "base_salary", label: "Salário base (R$)", type: "number" },
+        { key: "hire_date", label: "Data de admissão", type: "date" },
+        { key: "work_center_id", label: "Centro de Trabalho", type: "select", options: workCenterOptions },
         { key: "email", label: "E-mail", type: "email" },
         { key: "phone", label: "Telefone", placeholder: "(11) 90000-0000" },
-        { key: "hire_date", label: "Data de admissão", type: "date" },
-        { key: "status", label: "Status", type: "select", options: ["ativo", "inativo"] },
-        { key: "work_center_id", label: "Centro de Trabalho", type: "select", options: workCenterOptions },
+        { key: "cpf", label: "CPF", placeholder: "000.000.000-00" },
+        { key: "rg", label: "RG" },
+        { key: "pis", label: "PIS/PASEP" },
+        { key: "ctps", label: "CTPS" },
+        { key: "birth_date", label: "Data de nascimento", type: "date" },
+        { key: "dependents_count", label: "Nº de dependentes", type: "number" },
+        { key: "address", label: "Endereço" },
+        { key: "bank_name", label: "Banco" },
+        { key: "bank_agency", label: "Agência" },
+        { key: "bank_account", label: "Conta" },
       ]}
     />
   );

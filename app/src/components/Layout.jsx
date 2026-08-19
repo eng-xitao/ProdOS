@@ -72,6 +72,8 @@ const NAV_SECTIONS = [
     label: "RH",
     items: [
       { to: "/colaboradores", label: "Colaboradores", icon: "◎" },
+      { to: "/ferias", label: "Férias", icon: "◐" },
+      { to: "/folha-pagamento", label: "Folha de Pagamento", icon: "$" },
     ],
   },
   {
