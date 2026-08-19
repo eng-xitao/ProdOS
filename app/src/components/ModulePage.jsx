@@ -94,9 +94,11 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel 
                   required={f.required}
                 >
                   <option value="" disabled>Selecione...</option>
-                  {f.options.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
+                  {f.options.map((opt) => {
+                    const value = typeof opt === "string" ? opt : opt.value;
+                    const label = typeof opt === "string" ? opt : opt.label;
+                    return <option key={value} value={value}>{label}</option>;
+                  })}
                 </select>
               ) : (
                 <input
@@ -156,6 +158,10 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel 
 function formatValue(value, field) {
   if (value == null || value === "") return "—";
   if (field.type === "number") return Number(value).toLocaleString("pt-BR");
+  if (field.type === "select" && Array.isArray(field.options)) {
+    const match = field.options.find((opt) => (typeof opt === "string" ? opt : opt.value) === value);
+    if (match) return typeof match === "string" ? match : match.label;
+  }
   return String(value);
 }
 
