@@ -83,6 +83,10 @@ function BomEditor() {
   async function addComponent(e) {
     e.preventDefault();
     setError("");
+    if (!company?.id) {
+      setError("Não foi possível identificar sua empresa. Saia e entre novamente.");
+      return;
+    }
     if (!newComponentId || !newQuantity) return;
     if (newComponentId === parentId) {
       setError("Um produto não pode ser componente de si mesmo.");

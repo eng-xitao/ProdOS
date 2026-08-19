@@ -42,6 +42,13 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel 
     e.preventDefault();
     setSaving(true);
     setError("");
+
+    if (!company?.id) {
+      setError("Não foi possível identificar sua empresa. Saia e entre novamente; se persistir, contate o suporte.");
+      setSaving(false);
+      return;
+    }
+
     const payload = { ...form, company_id: company.id };
     const { error } = await supabase.from(table).insert(payload);
     if (error) {
