@@ -14,6 +14,8 @@ import CondicoesPagamentoPage from "./pages/CondicoesPagamentoPage";
 import CentrosCustoPage from "./pages/CentrosCustoPage";
 import TransportadorasPage from "./pages/TransportadorasPage";
 import ProducaoPage from "./pages/ProducaoPage";
+import NecessidadeMateriaisPage from "./pages/NecessidadeMateriaisPage";
+import CapacidadePage from "./pages/CapacidadePage";
 import EstoquePage from "./pages/EstoquePage";
 import VendasPage from "./pages/VendasPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
@@ -43,6 +45,8 @@ function PrivateArea() {
         <Route path="/centros-custo" element={<CentrosCustoPage />} />
         <Route path="/transportadoras" element={<TransportadorasPage />} />
         <Route path="/producao" element={<ProducaoPage />} />
+        <Route path="/mrp/materiais" element={<NecessidadeMateriaisPage />} />
+        <Route path="/mrp/capacidade" element={<CapacidadePage />} />
         <Route path="/estoque" element={<EstoquePage />} />
         <Route path="/vendas" element={<VendasPage />} />
         <Route path="/financeiro" element={<FinanceiroPage />} />

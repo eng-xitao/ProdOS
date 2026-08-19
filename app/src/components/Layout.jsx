@@ -19,9 +19,16 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: "PCP",
+    items: [
+      { to: "/producao", label: "Ordens de Produção", icon: "⚙" },
+      { to: "/mrp/materiais", label: "Necessidade de Materiais", icon: "▼" },
+      { to: "/mrp/capacidade", label: "Capacidade", icon: "▲" },
+    ],
+  },
+  {
     label: "Operação",
     items: [
-      { to: "/producao", label: "Produção", icon: "⚙" },
       { to: "/estoque", label: "Estoque", icon: "▤" },
       { to: "/vendas", label: "Vendas", icon: "◈" },
       { to: "/financeiro", label: "Financeiro", icon: "$" },

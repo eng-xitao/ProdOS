@@ -28,6 +28,7 @@ export default function ProdutosPage() {
             options: ["acabado", "componente", "materia_prima"],
           },
           { key: "unit", label: "Unidade", placeholder: "un, kg, m..." },
+          { key: "stock_quantity", label: "Estoque atual", type: "number" },
           { key: "cost", label: "Custo (R$)", type: "number" },
           { key: "sale_price", label: "Preço de venda (R$)", type: "number" },
           { key: "lead_time_days", label: "Lead time (dias)", type: "number" },
