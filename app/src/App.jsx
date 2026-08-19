@@ -3,6 +3,9 @@ import { AuthProvider, useAuth } from "./lib/AuthContext";
 import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
+import ClientesPage from "./pages/ClientesPage";
+import FornecedoresPage from "./pages/FornecedoresPage";
+import ProdutosPage from "./pages/ProdutosPage";
 import ProducaoPage from "./pages/ProducaoPage";
 import EstoquePage from "./pages/EstoquePage";
 import VendasPage from "./pages/VendasPage";
@@ -22,6 +25,9 @@ function PrivateArea() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<DashboardPage />} />
+        <Route path="/clientes" element={<ClientesPage />} />
+        <Route path="/fornecedores" element={<FornecedoresPage />} />
+        <Route path="/produtos" element={<ProdutosPage />} />
         <Route path="/producao" element={<ProducaoPage />} />
         <Route path="/estoque" element={<EstoquePage />} />
         <Route path="/vendas" element={<VendasPage />} />

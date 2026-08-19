@@ -3,6 +3,9 @@ import { useAuth } from "../lib/AuthContext";
 
 const NAV_ITEMS = [
   { to: "/", label: "Painel", icon: "◧", end: true },
+  { to: "/clientes", label: "Clientes", icon: "◎" },
+  { to: "/fornecedores", label: "Fornecedores", icon: "◇" },
+  { to: "/produtos", label: "Produtos", icon: "◆" },
   { to: "/producao", label: "Produção", icon: "⚙" },
   { to: "/estoque", label: "Estoque", icon: "▤" },
   { to: "/vendas", label: "Vendas", icon: "◈" },

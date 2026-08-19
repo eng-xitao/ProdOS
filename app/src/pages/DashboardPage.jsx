@@ -3,6 +3,9 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 
 const CARDS = [
+  { table: "customers", label: "Clientes cadastrados", icon: "◎" },
+  { table: "suppliers", label: "Fornecedores cadastrados", icon: "◇" },
+  { table: "products", label: "Produtos cadastrados", icon: "◆" },
   { table: "production_orders", label: "Ordens de produção", icon: "⚙" },
   { table: "inventory_items", label: "Itens em estoque", icon: "▤" },
   { table: "sales_orders", label: "Pedidos de venda", icon: "◈" },
