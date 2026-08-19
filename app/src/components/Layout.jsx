@@ -53,6 +53,12 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: "Custos",
+    items: [
+      { to: "/custos-margem", label: "Custo Padrão & Margem", icon: "%" },
+    ],
+  },
+  {
     label: "Financeiro",
     items: [
       { to: "/contas-receber", label: "Contas a Receber", icon: "◈" },
