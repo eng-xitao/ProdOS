@@ -17,6 +17,9 @@ import ProducaoPage from "./pages/ProducaoPage";
 import NecessidadeMateriaisPage from "./pages/NecessidadeMateriaisPage";
 import CapacidadePage from "./pages/CapacidadePage";
 import EstoquePage from "./pages/EstoquePage";
+import RecebimentoProducaoPage from "./pages/RecebimentoProducaoPage";
+import ExpedicaoPage from "./pages/ExpedicaoPage";
+import TransferenciasPage from "./pages/TransferenciasPage";
 import CotacoesPage from "./pages/CotacoesPage";
 import PedidosCompraPage from "./pages/PedidosCompraPage";
 import AlmoxarifadoPage from "./pages/AlmoxarifadoPage";
@@ -54,6 +57,9 @@ function PrivateArea() {
         <Route path="/mrp/materiais" element={<NecessidadeMateriaisPage />} />
         <Route path="/mrp/capacidade" element={<CapacidadePage />} />
         <Route path="/estoque" element={<EstoquePage />} />
+        <Route path="/recebimento-producao" element={<RecebimentoProducaoPage />} />
+        <Route path="/expedicao" element={<ExpedicaoPage />} />
+        <Route path="/transferencias" element={<TransferenciasPage />} />
         <Route path="/cotacoes" element={<CotacoesPage />} />
         <Route path="/pedidos-compra" element={<PedidosCompraPage />} />
         <Route path="/almoxarifado" element={<AlmoxarifadoPage />} />

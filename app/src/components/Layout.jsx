@@ -44,6 +44,14 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: "Logística",
+    items: [
+      { to: "/recebimento-producao", label: "Recebimento de Produção", icon: "◆" },
+      { to: "/expedicao", label: "Expedição", icon: "▶" },
+      { to: "/transferencias", label: "Transferências", icon: "⇄" },
+    ],
+  },
+  {
     label: "Operação",
     items: [
       { to: "/estoque", label: "Estoque", icon: "▤" },
