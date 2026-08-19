@@ -20,6 +20,11 @@ import EstoquePage from "./pages/EstoquePage";
 import RecebimentoProducaoPage from "./pages/RecebimentoProducaoPage";
 import ExpedicaoPage from "./pages/ExpedicaoPage";
 import TransferenciasPage from "./pages/TransferenciasPage";
+import ContasReceberPage from "./pages/ContasReceberPage";
+import ContasPagarPage from "./pages/ContasPagarPage";
+import LancamentosPage from "./pages/LancamentosPage";
+import FluxoCaixaPage from "./pages/FluxoCaixaPage";
+import DREPage from "./pages/DREPage";
 import CotacoesPage from "./pages/CotacoesPage";
 import PedidosCompraPage from "./pages/PedidosCompraPage";
 import AlmoxarifadoPage from "./pages/AlmoxarifadoPage";
@@ -27,7 +32,6 @@ import OportunidadesPage from "./pages/OportunidadesPage";
 import EtapasComercialPage from "./pages/EtapasComercialPage";
 import OrcamentosPage from "./pages/OrcamentosPage";
 import PedidosVendaPage from "./pages/PedidosVendaPage";
-import FinanceiroPage from "./pages/FinanceiroPage";
 import "./theme.css";
 
 function PrivateArea() {
@@ -67,7 +71,11 @@ function PrivateArea() {
         <Route path="/etapas-comercial" element={<EtapasComercialPage />} />
         <Route path="/orcamentos" element={<OrcamentosPage />} />
         <Route path="/pedidos-venda" element={<PedidosVendaPage />} />
-        <Route path="/financeiro" element={<FinanceiroPage />} />
+        <Route path="/contas-receber" element={<ContasReceberPage />} />
+        <Route path="/contas-pagar" element={<ContasPagarPage />} />
+        <Route path="/lancamentos" element={<LancamentosPage />} />
+        <Route path="/fluxo-caixa" element={<FluxoCaixaPage />} />
+        <Route path="/dre" element={<DREPage />} />
       </Route>
     </Routes>
   );

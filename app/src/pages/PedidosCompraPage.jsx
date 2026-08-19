@@ -32,9 +32,142 @@ export default function PedidosCompraPage() {
         ]}
       />
       <ReceivingWorkspace onReceived={() => setRefreshKey((k) => k + 1)} />
+      <GeneratePayablesPanel onGenerated={() => setRefreshKey((k) => k + 1)} />
     </div>
   );
 }
+
+/**
+ * Gera as parcelas de Contas a Pagar a partir de um Pedido de
+ * Compra recebido, conforme a Condição de Pagamento escolhida.
+ */
+function GeneratePayablesPanel({ onGenerated }) {
+  const { company } = useAuth();
+  const [orders, setOrders] = useState([]);
+  const [paymentTerms, setPaymentTerms] = useState([]);
+  const [orderId, setOrderId] = useState("");
+  const [paymentTermId, setPaymentTermId] = useState("");
+  const [error, setError] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  async function loadData() {
+    const [ordersRes, termsRes] = await Promise.all([
+      supabase.from("purchase_orders").select("id, code, total_value, supplier_id, order_date").eq("status", "recebido").eq("payable_generated", false),
+      supabase.from("payment_terms").select("id, name, installments, days_between").order("name"),
+    ]);
+    setOrders(ordersRes.data ?? []);
+    setPaymentTerms(termsRes.data ?? []);
+  }
+
+  useEffect(() => {
+    if (company?.id) loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [company?.id]);
+
+  async function generate() {
+    const order = orders.find((o) => o.id === orderId);
+    const term = paymentTerms.find((t) => t.id === paymentTermId);
+    if (!order || !term || !company?.id) return;
+    setGenerating(true);
+    setError("");
+    setSuccess(false);
+
+    const installments = Math.max(1, term.installments);
+    const amountPerInstallment = Number(order.total_value) / installments;
+    const baseDate = new Date(order.order_date + "T00:00:00");
+
+    const entries = Array.from({ length: installments }, (_, i) => {
+      const dueDate = new Date(baseDate);
+      dueDate.setDate(dueDate.getDate() + term.days_between * (i + 1));
+      return {
+        company_id: company.id,
+        description: `Pedido ${order.code} — parcela ${i + 1}/${installments}`,
+        entry_type: "despesa",
+        amount: amountPerInstallment,
+        due_date: dueDate.toISOString().slice(0, 10),
+        supplier_id: order.supplier_id,
+        purchase_order_id: order.id,
+        installment_number: i + 1,
+        total_installments: installments,
+        paid: false,
+      };
+    });
+
+    const { error: insertError } = await supabase.from("financial_entries").insert(entries);
+    if (insertError) {
+      setError(insertError.message);
+      setGenerating(false);
+      return;
+    }
+
+    await supabase.from("purchase_orders").update({ payable_generated: true }).eq("id", order.id);
+    setGenerating(false);
+    setSuccess(true);
+    setOrderId(""); setPaymentTermId("");
+    loadData();
+    onGenerated();
+  }
+
+  if (orders.length === 0) return null;
+
+  return (
+    <div style={panelStyles.wrap}>
+      <h2 style={panelStyles.title}>Gerar Contas a Pagar</h2>
+      <p style={panelStyles.subtitle}>
+        Escolha um pedido recebido e a condição de pagamento — as parcelas são criadas automaticamente.
+      </p>
+
+      {error && <div style={panelStyles.error}>{error}</div>}
+      {success && <div style={panelStyles.success}>Parcelas geradas com sucesso em Financeiro → Contas a Pagar.</div>}
+
+      <div style={panelStyles.form}>
+        <label style={panelStyles.field}>
+          <span style={panelStyles.fieldLabel}>Pedido recebido</span>
+          <select style={panelStyles.input} value={orderId} onChange={(e) => setOrderId(e.target.value)}>
+            <option value="">Selecione...</option>
+            {orders.map((o) => <option key={o.id} value={o.id}>{o.code} — R$ {Number(o.total_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</option>)}
+          </select>
+        </label>
+        <label style={panelStyles.field}>
+          <span style={panelStyles.fieldLabel}>Condição de pagamento</span>
+          <select style={panelStyles.input} value={paymentTermId} onChange={(e) => setPaymentTermId(e.target.value)}>
+            <option value="">Selecione...</option>
+            {paymentTerms.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.installments}x)</option>)}
+          </select>
+        </label>
+        <button style={panelStyles.btn} onClick={generate} disabled={generating || !orderId || !paymentTermId} type="button">
+          {generating ? "Gerando..." : "Gerar Parcelas"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const panelStyles = {
+  wrap: { marginTop: 36, paddingTop: 28, borderTop: "1px solid var(--line)" },
+  title: { fontFamily: "var(--font-display)", fontSize: 18, margin: 0 },
+  subtitle: { color: "var(--text-dim)", fontSize: 13, margin: "6px 0 18px", maxWidth: 620, lineHeight: 1.5 },
+  form: { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 12, alignItems: "end", maxWidth: 640 },
+  field: { display: "flex", flexDirection: "column", gap: 6 },
+  fieldLabel: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" },
+  input: {
+    background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
+    padding: "9px 10px", color: "var(--text)", fontSize: 13,
+  },
+  btn: {
+    background: "var(--amber)", color: "#1A1400", border: "none", borderRadius: "var(--radius)",
+    padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",
+  },
+  error: {
+    background: "rgba(217,105,95,0.12)", border: "1px solid var(--red)", color: "var(--red)",
+    borderRadius: "var(--radius)", padding: "10px 12px", fontSize: 13, marginBottom: 16, maxWidth: 620,
+  },
+  success: {
+    background: "rgba(79,174,126,0.12)", border: "1px solid var(--green)", color: "var(--green)",
+    borderRadius: "var(--radius)", padding: "10px 12px", fontSize: 13, marginBottom: 16, maxWidth: 620,
+  },
+};
 
 /**
  * Gerencia os itens de um pedido de compra e o recebimento —

@@ -53,9 +53,13 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    label: "Operação",
+    label: "Financeiro",
     items: [
-      { to: "/financeiro", label: "Financeiro", icon: "$" },
+      { to: "/contas-receber", label: "Contas a Receber", icon: "◈" },
+      { to: "/contas-pagar", label: "Contas a Pagar", icon: "◑" },
+      { to: "/lancamentos", label: "Lançamentos Avulsos", icon: "$" },
+      { to: "/fluxo-caixa", label: "Fluxo de Caixa", icon: "≈" },
+      { to: "/dre", label: "DRE", icon: "▦" },
     ],
   },
 ];

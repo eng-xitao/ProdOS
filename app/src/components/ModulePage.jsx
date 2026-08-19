@@ -9,7 +9,7 @@ import { useAuth } from "../lib/AuthContext";
  * fields: [{ key, label, type: 'text'|'number'|'date'|'select', options?, placeholder? }]
  * columns: quais fields aparecem na tabela (por padrão, todos)
  */
-export default function ModulePage({ table, title, subtitle, fields, emptyLabel }) {
+export default function ModulePage({ table, title, subtitle, fields, emptyLabel, filterRows, extraValues }) {
   const { company } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +25,7 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel 
       .select("*")
       .order("created_at", { ascending: false });
     if (error) setError(error.message);
-    else setRows(data ?? []);
+    else setRows(filterRows ? filterRows(data ?? []) : (data ?? []));
     setLoading(false);
   }
 
@@ -49,7 +49,7 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel 
       return;
     }
 
-    const payload = { ...form, company_id: company.id };
+    const payload = { ...form, ...(extraValues ?? {}), company_id: company.id };
     const { error } = await supabase.from(table).insert(payload);
     if (error) {
       setError(error.message);
