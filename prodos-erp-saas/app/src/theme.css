@@ -1,0 +1,57 @@
+/* =========================================================
+   Design tokens — identidade "painel de chão de fábrica"
+   Paleta: grafite + âmbar industrial (sinalização de máquina),
+   não o azul-corporativo genérico de SaaS.
+   ========================================================= */
+:root {
+  --ink: #14181C;          /* fundo principal, quase preto-grafite */
+  --panel: #1C2128;        /* superfícies elevadas */
+  --panel-2: #242A32;      /* superfícies mais elevadas ainda */
+  --line: #2E3540;         /* divisórias */
+  --text: #E9EDF1;         /* texto principal */
+  --text-dim: #9AA4B2;     /* texto secundário */
+  --amber: #E8A33D;        /* acento — sinalização/alerta industrial */
+  --amber-dim: #6B5324;
+  --green: #4FAE7E;        /* status positivo */
+  --red: #D9695F;          /* status negativo */
+  --radius: 6px;
+  --font-display: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+a { color: inherit; }
+
+::selection { background: var(--amber-dim); color: var(--text); }
+
+/* Scrollbar discreta */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+
+/* Foco visível para acessibilidade */
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
