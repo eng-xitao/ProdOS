@@ -29,6 +29,7 @@ import DecimoTerceiroPage from "./pages/DecimoTerceiroPage";
 import RescisaoPage from "./pages/RescisaoPage";
 import BeneficiosPage from "./pages/BeneficiosPage";
 import EmpresaPage from "./pages/EmpresaPage";
+import UsuariosPage from "./pages/UsuariosPage";
 import ContasPagarPage from "./pages/ContasPagarPage";
 import LancamentosPage from "./pages/LancamentosPage";
 import FluxoCaixaPage from "./pages/FluxoCaixaPage";
@@ -88,6 +89,7 @@ function PrivateArea() {
         <Route path="/rescisao" element={<RescisaoPage />} />
         <Route path="/beneficios" element={<BeneficiosPage />} />
         <Route path="/empresa" element={<EmpresaPage />} />
+        <Route path="/usuarios" element={<UsuariosPage />} />
         <Route path="/contas-pagar" element={<ContasPagarPage />} />
         <Route path="/lancamentos" element={<LancamentosPage />} />
         <Route path="/fluxo-caixa" element={<FluxoCaixaPage />} />

@@ -9,7 +9,7 @@ import { useAuth } from "../lib/AuthContext";
  * fields: [{ key, label, type: 'text'|'number'|'date'|'select', options?, placeholder? }]
  * columns: quais fields aparecem na tabela (por padrão, todos)
  */
-export default function ModulePage({ table, title, subtitle, fields, emptyLabel, filterRows, extraValues }) {
+export default function ModulePage({ table, title, subtitle, fields, emptyLabel, filterRows, extraValues, statusField }) {
   const { company } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +65,12 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
     const { error } = await supabase.from(table).delete().eq("id", id);
     if (error) setError(error.message);
     else setRows((r) => r.filter((row) => row.id !== id));
+  }
+
+  async function handleToggleStatus(id, current) {
+    const { error } = await supabase.from(table).update({ [statusField.key]: !current }).eq("id", id);
+    if (error) setError(error.message);
+    else setRows((r) => r.map((row) => (row.id === id ? { ...row, [statusField.key]: !current } : row)));
   }
 
   return (
@@ -131,6 +137,7 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
                 {fields.map((f) => (
                   <th key={f.key} style={styles.th}>{f.label}</th>
                 ))}
+                {statusField && <th style={styles.th}>{statusField.label ?? "Status"}</th>}
                 <th style={styles.th}></th>
               </tr>
             </thead>
@@ -140,6 +147,17 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
                   {fields.map((f) => (
                     <td key={f.key} style={styles.td}>{formatValue(row[f.key], f)}</td>
                   ))}
+                  {statusField && (
+                    <td style={styles.td}>
+                      <button
+                        style={{ ...styles.statusBtn, ...(row[statusField.key] ? styles.statusTrue : styles.statusFalse) }}
+                        onClick={() => handleToggleStatus(row.id, row[statusField.key])}
+                        type="button"
+                      >
+                        {row[statusField.key] ? (statusField.trueLabel ?? "Concluído") : (statusField.falseLabel ?? "Pendente")}
+                      </button>
+                    </td>
+                  )}
                   <td style={{ ...styles.td, textAlign: "right" }}>
                     <button style={styles.deleteBtn} onClick={() => handleDelete(row.id)} type="button">
                       Excluir
@@ -231,6 +249,16 @@ const styles = {
   },
   tr: { borderBottom: "1px solid var(--line)" },
   td: { padding: "10px 14px", fontSize: 13.5, background: "var(--panel)" },
+  statusBtn: {
+    border: "none",
+    borderRadius: "var(--radius)",
+    padding: "5px 12px",
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  statusTrue: { background: "rgba(79,174,126,0.15)", color: "var(--green)" },
+  statusFalse: { background: "rgba(232,163,61,0.15)", color: "var(--amber)" },
   deleteBtn: {
     background: "transparent",
     border: "1px solid var(--line)",

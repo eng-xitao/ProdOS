@@ -64,6 +64,10 @@ export default function AuthPage() {
         <form onSubmit={handleSubmit} style={styles.form}>
           {mode === "signup" && (
             <>
+              <p style={styles.inviteHint}>
+                Foi convidado por e-mail? Cadastre-se normalmente usando o mesmo e-mail do
+                convite — o campo "Nome da empresa" abaixo será ignorado nesse caso.
+              </p>
               <Field label="Nome da empresa">
                 <input
                   style={styles.input}
@@ -177,6 +181,16 @@ const styles = {
     lineHeight: 1.5,
     marginTop: 8,
     marginBottom: 24,
+  },
+  inviteHint: {
+    fontSize: 12,
+    color: "var(--text-dim)",
+    lineHeight: 1.5,
+    background: "var(--panel-2)",
+    border: "1px solid var(--line)",
+    borderRadius: "var(--radius)",
+    padding: "10px 12px",
+    marginBottom: 4,
   },
   tabs: {
     display: "flex",

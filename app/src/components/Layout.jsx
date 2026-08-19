@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
+import { hasAccess, ROLE_LABEL } from "../lib/permissions";
 
 const NAV_SECTIONS = [
   {
@@ -83,6 +84,7 @@ const NAV_SECTIONS = [
     label: "Configurações",
     items: [
       { to: "/empresa", label: "Dados da Empresa", icon: "▣" },
+      { to: "/usuarios", label: "Usuários", icon: "◎" },
     ],
   },
 ];
@@ -90,6 +92,13 @@ const NAV_SECTIONS = [
 export default function Layout() {
   const { profile, company, signOut } = useAuth();
   const location = useLocation();
+
+  const visibleSections = NAV_SECTIONS.filter((s) => hasAccess(profile?.role, s.label));
+
+  // Descobre se a rota atual pertence a uma seção que o papel do
+  // usuário não tem permissão de ver — bloqueia mesmo por URL direta.
+  const currentSection = NAV_SECTIONS.find((s) => s.items.some((i) => i.to === location.pathname));
+  const isBlocked = currentSection && !hasAccess(profile?.role, currentSection.label);
 
   const [openSections, setOpenSections] = useState(() => {
     const initial = {};
@@ -136,7 +145,7 @@ export default function Layout() {
             Painel
           </NavLink>
 
-          {NAV_SECTIONS.map((section) => {
+          {visibleSections.map((section) => {
             const isOpen = !!openSections[section.label];
             return (
               <div key={section.label} style={styles.section}>
@@ -174,7 +183,9 @@ export default function Layout() {
 
         <div style={styles.sidebarFooter}>
           <div style={styles.companyName}>{company?.name ?? "—"}</div>
-          <div style={styles.userName}>{profile?.full_name ?? ""}</div>
+          <div style={styles.userName}>
+            {profile?.full_name ?? ""}{profile?.role && ` · ${ROLE_LABEL[profile.role] ?? profile.role}`}
+          </div>
           <button style={styles.signOut} onClick={signOut} type="button">
             Sair
           </button>
@@ -182,7 +193,17 @@ export default function Layout() {
       </aside>
 
       <main style={styles.main}>
-        <Outlet />
+        {isBlocked ? (
+          <div style={styles.blocked}>
+            <h1 style={styles.blockedTitle}>Acesso não permitido</h1>
+            <p style={styles.blockedText}>
+              Seu perfil ({ROLE_LABEL[profile?.role] ?? profile?.role}) não tem acesso a esta área.
+              Fale com o administrador da sua empresa se precisar de acesso.
+            </p>
+          </div>
+        ) : (
+          <Outlet />
+        )}
       </main>
     </div>
   );
@@ -281,4 +302,7 @@ const styles = {
     overflowY: "auto",
     minWidth: 0,
   },
+  blocked: { maxWidth: 480, marginTop: 60 },
+  blockedTitle: { fontFamily: "var(--font-display)", fontSize: 20, color: "var(--red)", margin: 0 },
+  blockedText: { color: "var(--text-dim)", fontSize: 14, lineHeight: 1.6, marginTop: 12 },
 };
