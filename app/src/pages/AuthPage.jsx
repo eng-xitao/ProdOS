@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useAuth } from "../lib/AuthContext";
 
 export default function AuthPage() {
-  const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState("signup"); // "signup" | "login"
+  const { signIn, signUp, requestPasswordReset } = useAuth();
+  const [mode, setMode] = useState("signup"); // "signup" | "login" | "forgot"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -28,9 +28,16 @@ export default function AuthPage() {
         setNotice("Conta criada. Verifique seu e-mail para confirmar o acesso, depois entre com login.");
         setMode("login");
       }
-    } else {
+    } else if (mode === "login") {
       const { error } = await signIn({ email, password });
       if (error) setError(traduzErro(error.message));
+    } else if (mode === "forgot") {
+      const { error } = await requestPasswordReset(email);
+      if (error) {
+        setError(traduzErro(error.message));
+      } else {
+        setNotice("Se esse e-mail estiver cadastrado, você vai receber um link para redefinir a senha em instantes.");
+      }
     }
 
     setLoading(false);
@@ -44,22 +51,31 @@ export default function AuthPage() {
         </div>
         <p style={styles.tagline}>Sistema operacional da produção — produção, estoque, vendas e financeiro num só lugar, para qualquer segmento.</p>
 
-        <div style={styles.tabs}>
-          <button
-            style={{ ...styles.tab, ...(mode === "signup" ? styles.tabActive : {}) }}
-            onClick={() => setMode("signup")}
-            type="button"
-          >
-            Criar conta
-          </button>
-          <button
-            style={{ ...styles.tab, ...(mode === "login" ? styles.tabActive : {}) }}
-            onClick={() => setMode("login")}
-            type="button"
-          >
-            Entrar
-          </button>
-        </div>
+        {mode !== "forgot" && (
+          <div style={styles.tabs}>
+            <button
+              style={{ ...styles.tab, ...(mode === "signup" ? styles.tabActive : {}) }}
+              onClick={() => { setMode("signup"); setError(""); setNotice(""); }}
+              type="button"
+            >
+              Criar conta
+            </button>
+            <button
+              style={{ ...styles.tab, ...(mode === "login" ? styles.tabActive : {}) }}
+              onClick={() => { setMode("login"); setError(""); setNotice(""); }}
+              type="button"
+            >
+              Entrar
+            </button>
+          </div>
+        )}
+
+        {mode === "forgot" && (
+          <div style={styles.forgotHeader}>
+            <span style={styles.forgotTitle}>Redefinir senha</span>
+            <p style={styles.forgotSubtitle}>Informe seu e-mail e enviaremos um link para você criar uma nova senha.</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={styles.form}>
           {mode === "signup" && (
@@ -108,24 +124,46 @@ export default function AuthPage() {
             />
           </Field>
 
-          <Field label="Senha">
-            <input
-              style={styles.input}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-              minLength={6}
-              required
-            />
-          </Field>
+          {mode !== "forgot" && (
+            <Field label="Senha">
+              <input
+                style={styles.input}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                minLength={6}
+                required
+              />
+            </Field>
+          )}
+
+          {mode === "login" && (
+            <button
+              type="button"
+              onClick={() => { setMode("forgot"); setError(""); setNotice(""); }}
+              style={styles.forgotLink}
+            >
+              Esqueci minha senha
+            </button>
+          )}
 
           {error && <div style={styles.error}>{error}</div>}
           {notice && <div style={styles.notice}>{notice}</div>}
 
           <button style={styles.submit} type="submit" disabled={loading}>
-            {loading ? "Aguarde..." : mode === "signup" ? "Criar minha conta" : "Entrar"}
+            {loading ? "Aguarde..." : mode === "signup" ? "Criar minha conta" : mode === "forgot" ? "Enviar link de redefinição" : "Entrar"}
           </button>
+
+          {mode === "forgot" && (
+            <button
+              type="button"
+              onClick={() => { setMode("login"); setError(""); setNotice(""); }}
+              style={styles.backLink}
+            >
+              ← Voltar para o login
+            </button>
+          )}
         </form>
       </div>
     </div>
@@ -192,6 +230,9 @@ const styles = {
     padding: "10px 12px",
     marginBottom: 4,
   },
+  forgotHeader: { marginBottom: 20 },
+  forgotTitle: { fontSize: 16, fontWeight: 700, color: "var(--text)" },
+  forgotSubtitle: { fontSize: 13, color: "var(--text-dim)", lineHeight: 1.5, marginTop: 6 },
   tabs: {
     display: "flex",
     gap: 4,
@@ -225,6 +266,25 @@ const styles = {
     padding: "10px 12px",
     color: "var(--text)",
     fontSize: 14,
+  },
+  forgotLink: {
+    background: "none",
+    border: "none",
+    color: "var(--amber)",
+    fontSize: 12.5,
+    cursor: "pointer",
+    textAlign: "right",
+    padding: 0,
+    marginTop: -6,
+  },
+  backLink: {
+    background: "none",
+    border: "none",
+    color: "var(--text-dim)",
+    fontSize: 12.5,
+    cursor: "pointer",
+    textAlign: "center",
+    padding: 0,
   },
   submit: {
     marginTop: 8,

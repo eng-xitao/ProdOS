@@ -76,8 +76,20 @@ export function AuthProvider({ children }) {
     setCompany(companyData ?? null);
   }
 
+  async function requestPasswordReset(email) {
+    return supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-senha`,
+    });
+  }
+
+  async function updatePassword(newPassword) {
+    return supabase.auth.updateUser({ password: newPassword });
+  }
+
   return (
-    <AuthContext.Provider value={{ session, profile, company, loading, signUp, signIn, signOut, refreshCompany }}>
+    <AuthContext.Provider
+      value={{ session, profile, company, loading, signUp, signIn, signOut, refreshCompany, requestPasswordReset, updatePassword }}
+    >
       {children}
     </AuthContext.Provider>
   );

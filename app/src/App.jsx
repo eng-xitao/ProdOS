@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/AuthContext";
 import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
+import ResetSenhaPage from "./pages/ResetSenhaPage";
 import DashboardPage from "./pages/DashboardPage";
 import ClientesPage from "./pages/ClientesPage";
 import FornecedoresPage from "./pages/FornecedoresPage";
@@ -108,6 +109,7 @@ function RootRoutes() {
         path="/login"
         element={!loading && session ? <Navigate to="/" replace /> : <AuthPage />}
       />
+      <Route path="/reset-senha" element={<ResetSenhaPage />} />
       <Route path="/*" element={<PrivateArea />} />
     </Routes>
   );
