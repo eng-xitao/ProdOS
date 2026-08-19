@@ -49,12 +49,12 @@ const NAV_SECTIONS = [
       { to: "/recebimento-producao", label: "Recebimento de Produção", icon: "◆" },
       { to: "/expedicao", label: "Expedição", icon: "▶" },
       { to: "/transferencias", label: "Transferências", icon: "⇄" },
+      { to: "/estoque", label: "Estoque", icon: "▤" },
     ],
   },
   {
     label: "Operação",
     items: [
-      { to: "/estoque", label: "Estoque", icon: "▤" },
       { to: "/financeiro", label: "Financeiro", icon: "$" },
     ],
   },
