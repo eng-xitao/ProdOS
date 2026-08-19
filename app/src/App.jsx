@@ -6,6 +6,13 @@ import DashboardPage from "./pages/DashboardPage";
 import ClientesPage from "./pages/ClientesPage";
 import FornecedoresPage from "./pages/FornecedoresPage";
 import ProdutosPage from "./pages/ProdutosPage";
+import EtapasPage from "./pages/EtapasPage";
+import CentrosTrabalhoPage from "./pages/CentrosTrabalhoPage";
+import AlmoxarifadosPage from "./pages/AlmoxarifadosPage";
+import UnidadesMedidaPage from "./pages/UnidadesMedidaPage";
+import CondicoesPagamentoPage from "./pages/CondicoesPagamentoPage";
+import CentrosCustoPage from "./pages/CentrosCustoPage";
+import TransportadorasPage from "./pages/TransportadorasPage";
 import ProducaoPage from "./pages/ProducaoPage";
 import EstoquePage from "./pages/EstoquePage";
 import VendasPage from "./pages/VendasPage";
@@ -28,6 +35,13 @@ function PrivateArea() {
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/fornecedores" element={<FornecedoresPage />} />
         <Route path="/produtos" element={<ProdutosPage />} />
+        <Route path="/etapas" element={<EtapasPage />} />
+        <Route path="/centros-trabalho" element={<CentrosTrabalhoPage />} />
+        <Route path="/almoxarifados" element={<AlmoxarifadosPage />} />
+        <Route path="/unidades-medida" element={<UnidadesMedidaPage />} />
+        <Route path="/condicoes-pagamento" element={<CondicoesPagamentoPage />} />
+        <Route path="/centros-custo" element={<CentrosCustoPage />} />
+        <Route path="/transportadoras" element={<TransportadorasPage />} />
         <Route path="/producao" element={<ProducaoPage />} />
         <Route path="/estoque" element={<EstoquePage />} />
         <Route path="/vendas" element={<VendasPage />} />
