@@ -9,6 +9,7 @@ const CARDS = [
   { table: "products", label: "Produtos cadastrados", icon: "◆" },
   { table: "production_orders", label: "Ordens de produção", icon: "⚙" },
   { table: "sales_orders", label: "Pedidos de venda", icon: "◆" },
+  { table: "purchase_orders", label: "Pedidos de compra", icon: "▼" },
   { table: "financial_entries", label: "Lançamentos financeiros", icon: "$" },
 ];
 

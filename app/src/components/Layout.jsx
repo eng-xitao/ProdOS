@@ -36,6 +36,13 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: "Compras",
+    items: [
+      { to: "/cotacoes", label: "Cotações", icon: "◐" },
+      { to: "/pedidos-compra", label: "Pedidos de Compra", icon: "▼" },
+    ],
+  },
+  {
     label: "Operação",
     items: [
       { to: "/estoque", label: "Estoque", icon: "▤" },

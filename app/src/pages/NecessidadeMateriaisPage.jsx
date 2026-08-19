@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 /**
  * MRP I — explode a estrutura (BOM) de cada ordem de produção aberta,
@@ -9,9 +10,11 @@ import { useAuth } from "../lib/AuthContext";
  */
 export default function NecessidadeMateriaisPage() {
   const { company } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [ordersWithoutBom, setOrdersWithoutBom] = useState(0);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     if (company?.id) calculate();
@@ -82,14 +85,50 @@ export default function NecessidadeMateriaisPage() {
     setLoading(false);
   }
 
+  async function generateQuote() {
+    const toBuyRows = rows.filter((r) => r.toBuy > 0);
+    if (toBuyRows.length === 0 || !company?.id) return;
+    setGenerating(true);
+
+    const code = `COT-MRP-${new Date().toISOString().slice(0, 10)}`;
+    const { data: quote, error: quoteError } = await supabase
+      .from("purchase_quotes")
+      .insert({ company_id: company.id, code, notes: "Gerada a partir da Necessidade de Materiais (MRP I)" })
+      .select("id")
+      .single();
+
+    if (quoteError) {
+      setGenerating(false);
+      return;
+    }
+
+    const items = toBuyRows.map((r) => ({
+      company_id: company.id,
+      quote_id: quote.id,
+      product_id: r.id,
+      quantity: r.toBuy,
+    }));
+    await supabase.from("purchase_quote_items").insert(items);
+
+    setGenerating(false);
+    navigate("/cotacoes");
+  }
+
   return (
     <div>
-      <header style={{ marginBottom: 20 }}>
-        <h1 style={styles.title}>Necessidade de Materiais (MRP I)</h1>
-        <p style={styles.subtitle}>
-          Calculado a partir das ordens de produção abertas, da estrutura (BOM) de cada produto
-          e do estoque atual. Mostra o que falta comprar ou produzir para atender a demanda.
-        </p>
+      <header style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <h1 style={styles.title}>Necessidade de Materiais (MRP I)</h1>
+          <p style={styles.subtitle}>
+            Calculado a partir das ordens de produção abertas, da estrutura (BOM) de cada produto
+            e do estoque atual. Mostra o que falta comprar ou produzir para atender a demanda.
+          </p>
+        </div>
+        {rows.some((r) => r.toBuy > 0) && (
+          <button style={styles.generateBtn} onClick={generateQuote} disabled={generating} type="button">
+            {generating ? "Gerando..." : "Gerar Cotação com itens sugeridos"}
+          </button>
+        )}
       </header>
 
       {ordersWithoutBom > 0 && (
@@ -145,6 +184,10 @@ export default function NecessidadeMateriaisPage() {
 const styles = {
   title: { fontFamily: "var(--font-display)", fontSize: 22, margin: 0 },
   subtitle: { color: "var(--text-dim)", fontSize: 13, margin: "6px 0 0", maxWidth: 640, lineHeight: 1.5 },
+  generateBtn: {
+    background: "var(--amber)", color: "#1A1400", border: "none", borderRadius: "var(--radius)",
+    padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+  },
   notice: {
     background: "rgba(232,163,61,0.1)",
     border: "1px solid var(--amber)",
