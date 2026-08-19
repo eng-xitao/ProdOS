@@ -20,7 +20,7 @@ export default function LancamentosPage() {
       title="Lançamentos Avulsos"
       subtitle="Despesas e receitas que não vêm de um Pedido de Venda ou Compra (ex: aluguel, folha de pagamento)"
       emptyLabel="Nenhum lançamento avulso cadastrado ainda."
-      filterRows={(rows) => rows.filter((r) => !r.sales_order_id && !r.purchase_order_id)}
+      filterRows={(rows) => rows.filter((r) => !r.sales_order_id && !r.purchase_order_id && !r.employee_id)}
       fields={[
         { key: "description", label: "Descrição", placeholder: "Ex: Aluguel do galpão", required: true },
         { key: "entry_type", label: "Tipo", type: "select", required: true, options: ["receita", "despesa"] },

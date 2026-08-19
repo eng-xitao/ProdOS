@@ -23,7 +23,7 @@ export default function DREPage() {
     setLoading(true);
     const { data } = await supabase
       .from("financial_entries")
-      .select("entry_type, amount, cost_centers:cost_center_id (name)");
+      .select("entry_type, amount, purchase_order_id, employee_id, cost_centers:cost_center_id (name)");
 
     let receita = 0;
     const despesaMap = {};
@@ -32,7 +32,10 @@ export default function DREPage() {
       if (e.entry_type === "receita") {
         receita += Number(e.amount);
       } else {
-        const label = e.cost_centers?.name ?? "Sem centro de custo";
+        const label = e.cost_centers?.name
+          ?? (e.purchase_order_id ? "Compras / Materiais (sem centro de custo)"
+            : e.employee_id ? "Pessoal — Folha, 13º e Rescisões (sem centro de custo)"
+            : "Outras despesas (sem centro de custo)");
         despesaMap[label] = (despesaMap[label] ?? 0) + Number(e.amount);
       }
     });

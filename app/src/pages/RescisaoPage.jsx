@@ -71,6 +71,7 @@ export default function RescisaoPage() {
         entry_type: "despesa",
         amount: totalAmount,
         due_date: terminationDate,
+        employee_id: employeeId,
         paid: false,
       })
       .select("id")

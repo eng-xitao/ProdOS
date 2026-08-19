@@ -50,6 +50,7 @@ export default function DecimoTerceiroPage() {
         entry_type: "despesa",
         amount: netAmount,
         due_date: installment === "1" ? `${referenceYear}-11-30` : `${referenceYear}-12-20`,
+        employee_id: employeeId,
         paid: false,
       })
       .select("id")

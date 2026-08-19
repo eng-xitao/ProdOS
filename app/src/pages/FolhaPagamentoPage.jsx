@@ -68,6 +68,7 @@ export default function FolhaPagamentoPage() {
         entry_type: "despesa",
         amount: netSalary,
         due_date: referenceMonth,
+        employee_id: employeeId,
         paid: false,
       })
       .select("id")

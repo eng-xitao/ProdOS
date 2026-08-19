@@ -11,9 +11,14 @@ export default function ContasPagarPage() {
     setLoading(true);
     const { data } = await supabase
       .from("financial_entries")
-      .select("id, description, amount, due_date, paid, installment_number, total_installments, suppliers:supplier_id (name), purchase_orders:purchase_order_id (code)")
+      .select(`
+        id, description, amount, due_date, paid, installment_number, total_installments,
+        purchase_order_id, employee_id,
+        suppliers:supplier_id (name),
+        employees:employee_id (full_name),
+        purchase_orders:purchase_order_id (code)
+      `)
       .eq("entry_type", "despesa")
-      .not("purchase_order_id", "is", null)
       .order("due_date", { ascending: true });
     setEntries(data ?? []);
     setLoading(false);
@@ -36,7 +41,8 @@ export default function ContasPagarPage() {
       <header style={{ marginBottom: 20 }}>
         <h1 style={styles.title}>Contas a Pagar</h1>
         <p style={styles.subtitle}>
-          Parcelas geradas a partir de Pedidos de Compra recebidos. Total em aberto:{" "}
+          Tudo que a empresa precisa pagar — materiais/compras, folha de pagamento, 13º,
+          rescisões e lançamentos avulsos, juntos num só lugar. Total em aberto:{" "}
           <strong style={{ color: "var(--amber)" }}>R$ {totalPending.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
         </p>
       </header>
@@ -44,17 +50,15 @@ export default function ContasPagarPage() {
       {loading ? (
         <p style={styles.dim}>Carregando...</p>
       ) : entries.length === 0 ? (
-        <p style={styles.dim}>
-          Nenhuma conta a pagar ainda. Gere parcelas a partir de um Pedido de Compra recebido
-          em Compras → Pedidos de Compra.
-        </p>
+        <p style={styles.dim}>Nenhuma conta a pagar ainda.</p>
       ) : (
         <div style={styles.tableWrap}>
           <table style={styles.table}>
             <thead>
               <tr>
                 <th style={styles.th}>Descrição</th>
-                <th style={styles.th}>Fornecedor</th>
+                <th style={styles.th}>Origem</th>
+                <th style={styles.th}>Fornecedor/Colaborador</th>
                 <th style={styles.th}>Parcela</th>
                 <th style={styles.th}>Valor</th>
                 <th style={styles.th}>Vencimento</th>
@@ -65,7 +69,10 @@ export default function ContasPagarPage() {
               {entries.map((e) => (
                 <tr key={e.id}>
                   <td style={styles.td}>{e.description}</td>
-                  <td style={styles.td}>{e.suppliers?.name ?? "—"}</td>
+                  <td style={styles.td}>
+                    <span style={{ ...styles.badge, ...badgeStyle(originOf(e)) }}>{originOf(e)}</span>
+                  </td>
+                  <td style={styles.td}>{e.suppliers?.name ?? e.employees?.full_name ?? "—"}</td>
                   <td style={styles.td}>{e.installment_number ? `${e.installment_number}/${e.total_installments}` : "—"}</td>
                   <td style={styles.td}>R$ {Number(e.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
                   <td style={styles.td}>{e.due_date ? new Date(e.due_date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
@@ -88,17 +95,30 @@ export default function ContasPagarPage() {
   );
 }
 
+function originOf(entry) {
+  if (entry.purchase_order_id) return "Compras";
+  if (entry.employee_id) return "Pessoal";
+  return "Avulso";
+}
+
+function badgeStyle(origin) {
+  if (origin === "Compras") return { background: "rgba(232,163,61,0.15)", color: "var(--amber)" };
+  if (origin === "Pessoal") return { background: "rgba(79,174,126,0.15)", color: "var(--green)" };
+  return { background: "rgba(154,164,178,0.15)", color: "var(--text-dim)" };
+}
+
 const styles = {
   title: { fontFamily: "var(--font-display)", fontSize: 22, margin: 0 },
-  subtitle: { color: "var(--text-dim)", fontSize: 13, margin: "6px 0 0", maxWidth: 640, lineHeight: 1.5 },
+  subtitle: { color: "var(--text-dim)", fontSize: 13, margin: "6px 0 0", maxWidth: 660, lineHeight: 1.5 },
   dim: { color: "var(--text-dim)", fontSize: 14, maxWidth: 500 },
-  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden" },
+  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
     textAlign: "left", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em",
-    color: "var(--text-dim)", padding: "10px 14px", background: "var(--panel)", borderBottom: "1px solid var(--line)",
+    color: "var(--text-dim)", padding: "10px 14px", background: "var(--panel)", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap",
   },
-  td: { padding: "10px 14px", fontSize: 13.5, background: "var(--panel)", borderBottom: "1px solid var(--line)" },
+  td: { padding: "10px 14px", fontSize: 13.5, background: "var(--panel)", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" },
+  badge: { padding: "3px 10px", borderRadius: 20, fontSize: 11.5, fontWeight: 700 },
   statusBtn: {
     border: "none", borderRadius: "var(--radius)", padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer",
   },
