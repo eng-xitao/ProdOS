@@ -22,9 +22,11 @@ import EstoquePage from "./pages/EstoquePage";
 import RecebimentoProducaoPage from "./pages/RecebimentoProducaoPage";
 import ExpedicaoPage from "./pages/ExpedicaoPage";
 import TransferenciasPage from "./pages/TransferenciasPage";
+import HistoricoMovimentacoesPage from "./pages/HistoricoMovimentacoesPage";
 import ContasReceberPage from "./pages/ContasReceberPage";
 import CustosPage from "./pages/CustosPage";
 import ColaboradoresPage from "./pages/ColaboradoresPage";
+import JornadasTrabalhoPage from "./pages/JornadasTrabalhoPage";
 import FeriasPage from "./pages/FeriasPage";
 import FolhaPagamentoPage from "./pages/FolhaPagamentoPage";
 import DecimoTerceiroPage from "./pages/DecimoTerceiroPage";
@@ -85,6 +87,7 @@ function PrivateArea() {
         <Route path="/recebimento-producao" element={<RecebimentoProducaoPage />} />
         <Route path="/expedicao" element={<ExpedicaoPage />} />
         <Route path="/transferencias" element={<TransferenciasPage />} />
+        <Route path="/historico-movimentacoes" element={<HistoricoMovimentacoesPage />} />
         <Route path="/cotacoes" element={<CotacoesPage />} />
         <Route path="/pedidos-compra" element={<PedidosCompraPage />} />
         <Route path="/almoxarifado" element={<AlmoxarifadoPage />} />
@@ -95,6 +98,7 @@ function PrivateArea() {
         <Route path="/contas-receber" element={<ContasReceberPage />} />
         <Route path="/custos-margem" element={<CustosPage />} />
         <Route path="/colaboradores" element={<ColaboradoresPage />} />
+        <Route path="/jornadas-trabalho" element={<JornadasTrabalhoPage />} />
         <Route path="/ferias" element={<FeriasPage />} />
         <Route path="/folha-pagamento" element={<FolhaPagamentoPage />} />
         <Route path="/decimo-terceiro" element={<DecimoTerceiroPage />} />

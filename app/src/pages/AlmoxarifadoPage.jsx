@@ -86,6 +86,21 @@ export default function AlmoxarifadoPage() {
       if (error) setError(error.message);
     }
 
+    // Mantém o total do Produto (usado pelo MRP) coerente com o ajuste
+    const { data: product } = await supabase.from("products").select("stock_quantity").eq("id", adjustProductId).single();
+    const newTotal = Math.max(0, Number(product?.stock_quantity ?? 0) + delta);
+    await supabase.from("products").update({ stock_quantity: newTotal }).eq("id", adjustProductId);
+
+    await supabase.from("stock_movements").insert({
+      company_id: company.id,
+      product_id: adjustProductId,
+      warehouse_id: warehouseId,
+      movement_type: adjustType,
+      quantity: Number(adjustQty),
+      reference_type: "ajuste",
+      notes: "Ajuste manual",
+    });
+
     setAdjustProductId(""); setAdjustQty("");
     loadLevels(warehouseId);
   }

@@ -6,13 +6,16 @@ import ModulePage from "../components/ModulePage";
 export default function ColaboradoresPage() {
   const { company } = useAuth();
   const [workCenters, setWorkCenters] = useState([]);
+  const [schedules, setSchedules] = useState([]);
 
   useEffect(() => {
     if (!company?.id) return;
     supabase.from("work_centers").select("id, name").order("name").then(({ data }) => setWorkCenters(data ?? []));
+    supabase.from("work_schedules").select("id, name").order("name").then(({ data }) => setSchedules(data ?? []));
   }, [company?.id]);
 
   const workCenterOptions = workCenters.map((w) => ({ value: w.id, label: w.name }));
+  const scheduleOptions = schedules.map((s) => ({ value: s.id, label: s.name }));
 
   return (
     <ModulePage
@@ -25,7 +28,8 @@ export default function ColaboradoresPage() {
         { key: "role", label: "Cargo", placeholder: "Ex: Soldador, Vendedor, Analista" },
         { key: "status", label: "Status", type: "select", options: ["ativo", "inativo"], quickEdit: true },
         { key: "contract_type", label: "Tipo de contrato", type: "select", options: ["clt", "pj", "estagio", "temporario", "terceirizado"] },
-        { key: "work_schedule", label: "Jornada", placeholder: "Ex: 44h semanais" },
+        { key: "work_schedule", label: "Jornada (texto livre)", placeholder: "Ex: 44h semanais" },
+        { key: "work_schedule_id", label: "Jornada configurada", type: "select", options: scheduleOptions },
         { key: "base_salary", label: "Salário base (R$)", type: "number" },
         { key: "hire_date", label: "Data de admissão", type: "date" },
         { key: "work_center_id", label: "Centro de Trabalho", type: "select", options: workCenterOptions },

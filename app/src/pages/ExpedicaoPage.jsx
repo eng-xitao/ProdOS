@@ -125,6 +125,16 @@ export default function ExpedicaoPage() {
       const { data: product } = await supabase.from("products").select("stock_quantity").eq("id", item.product_id).single();
       const newStock = Math.max(0, Number(product?.stock_quantity ?? 0) - Number(item.quantity));
       await supabase.from("products").update({ stock_quantity: newStock }).eq("id", item.product_id);
+
+      await supabase.from("stock_movements").insert({
+        company_id: company.id,
+        product_id: item.product_id,
+        warehouse_id: selectedShipment.warehouse_id,
+        movement_type: "saida",
+        quantity: item.quantity,
+        reference_type: "venda",
+        reference_code: selectedShipment.code,
+      });
     }
 
     await supabase.from("shipments").update({ status: "em_transito" }).eq("id", shipmentId);

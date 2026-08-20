@@ -51,6 +51,7 @@ const NAV_SECTIONS = [
       { to: "/recebimento-producao", label: "Recebimento de Produção", icon: "◆" },
       { to: "/expedicao", label: "Expedição", icon: "▶" },
       { to: "/transferencias", label: "Transferências", icon: "⇄" },
+      { to: "/historico-movimentacoes", label: "Histórico de Movimentações", icon: "◷" },
       { to: "/estoque", label: "Estoque", icon: "▤" },
     ],
   },
@@ -75,6 +76,7 @@ const NAV_SECTIONS = [
     label: "RH",
     items: [
       { to: "/colaboradores", label: "Colaboradores", icon: "◎" },
+      { to: "/jornadas-trabalho", label: "Jornadas de Trabalho", icon: "◷" },
       { to: "/ferias", label: "Férias", icon: "◐" },
       { to: "/folha-pagamento", label: "Folha de Pagamento", icon: "$" },
       { to: "/decimo-terceiro", label: "13º Salário", icon: "◑" },

@@ -78,6 +78,16 @@ export default function RecebimentoProducaoPage() {
       });
     }
 
+    await supabase.from("stock_movements").insert({
+      company_id: company.id,
+      product_id: order.product_id,
+      warehouse_id: warehouseId,
+      movement_type: "entrada",
+      quantity: order.quantity,
+      reference_type: "producao",
+      reference_code: order.code,
+    });
+
     await supabase.from("production_orders").update({
       stock_entry_done: true,
       stock_entry_at: new Date().toISOString(),

@@ -282,6 +282,16 @@ function ReceivingWorkspace({ onReceived }) {
           quantity: pending,
         });
       }
+
+      await supabase.from("stock_movements").insert({
+        company_id: company.id,
+        product_id: item.product_id,
+        warehouse_id: receivingWarehouseId,
+        movement_type: "entrada",
+        quantity: pending,
+        reference_type: "compra",
+        reference_code: selectedOrder?.code,
+      });
     }
 
     await supabase.from("purchase_orders").update({ status: "recebido" }).eq("id", orderId);

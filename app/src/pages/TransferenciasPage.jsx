@@ -74,6 +74,19 @@ export default function TransferenciasPage() {
       company_id: company.id, product_id: productId, from_warehouse_id: fromWarehouseId, to_warehouse_id: toWarehouseId, quantity: qty,
     });
 
+    await supabase.from("stock_movements").insert([
+      {
+        company_id: company.id, product_id: productId, warehouse_id: fromWarehouseId,
+        movement_type: "saida", quantity: qty, reference_type: "transferencia",
+        notes: "Transferência para outro almoxarifado",
+      },
+      {
+        company_id: company.id, product_id: productId, warehouse_id: toWarehouseId,
+        movement_type: "entrada", quantity: qty, reference_type: "transferencia",
+        notes: "Transferência recebida de outro almoxarifado",
+      },
+    ]);
+
     setProductId(""); setFromWarehouseId(""); setToWarehouseId(""); setQuantity("");
     setSaving(false);
     loadTransfers();
