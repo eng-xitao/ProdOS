@@ -23,6 +23,7 @@ const NAV_SECTIONS = [
     label: "PCP",
     items: [
       { to: "/producao", label: "Ordens de Produção", icon: "⚙" },
+      { to: "/apontamento-producao", label: "Apontamento de Produção", icon: "◷" },
       { to: "/mrp/materiais", label: "Necessidade de Materiais", icon: "▼" },
       { to: "/mrp/capacidade", label: "Capacidade", icon: "▲" },
     ],

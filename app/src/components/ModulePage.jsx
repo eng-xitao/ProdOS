@@ -10,7 +10,7 @@ import PrintHeader from "./PrintHeader";
  * fields: [{ key, label, type: 'text'|'number'|'date'|'select', options?, placeholder? }]
  * columns: quais fields aparecem na tabela (por padrão, todos)
  */
-export default function ModulePage({ table, title, subtitle, fields, emptyLabel, filterRows, extraValues, statusField }) {
+export default function ModulePage({ table, title, subtitle, fields, emptyLabel, filterRows, extraValues, statusField, autoGenerateCode }) {
   const { company } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +18,17 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
   const [error, setError] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState({});
+
+  // Ao abrir o formulário de criação, pré-preenche o código
+  // sequencial automático (ex: OP-0001), se configurado.
+  useEffect(() => {
+    if (formOpen && autoGenerateCode && company?.id) {
+      supabase.rpc(autoGenerateCode.rpc, { p_company_id: company.id }).then(({ data }) => {
+        if (data) setForm((f) => ({ ...f, [autoGenerateCode.field]: data }));
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formOpen]);
 
   async function load() {
     setLoading(true);

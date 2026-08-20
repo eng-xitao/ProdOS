@@ -8,6 +8,7 @@ export default function ProducaoPage() {
   const { company } = useAuth();
   const [stages, setStages] = useState([]);
   const [products, setProducts] = useState([]);
+  const [salesOrders, setSalesOrders] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -15,15 +16,18 @@ export default function ProducaoPage() {
     Promise.all([
       supabase.from("production_stages").select("id, name").order("sort_order", { ascending: true }),
       supabase.from("products").select("id, sku, name").order("name"),
-    ]).then(([stagesRes, productsRes]) => {
+      supabase.from("sales_orders").select("id, code").order("code"),
+    ]).then(([stagesRes, productsRes, salesOrdersRes]) => {
       setStages(stagesRes.data ?? []);
       setProducts(productsRes.data ?? []);
+      setSalesOrders(salesOrdersRes.data ?? []);
       setLoaded(true);
     });
   }, [company?.id]);
 
   const stageOptions = stages.map((s) => ({ value: s.id, label: s.name }));
   const productOptions = products.map((p) => ({ value: p.id, label: `${p.sku} — ${p.name}` }));
+  const salesOrderOptions = salesOrders.map((o) => ({ value: o.id, label: o.code }));
 
   if (loaded && stages.length === 0) {
     return (
@@ -49,11 +53,13 @@ export default function ProducaoPage() {
       title="Produção"
       subtitle="Ordens de produção e etapa atual"
       emptyLabel="Nenhuma ordem de produção cadastrada ainda."
+      autoGenerateCode={{ field: "code", rpc: "next_production_order_code" }}
       fields={[
-        { key: "code", label: "Código", placeholder: "OP-0001", required: true },
+        { key: "code", label: "Código", placeholder: "Gerado automaticamente", required: true },
         { key: "product_id", label: "Produto", type: "select", required: true, options: productOptions },
         { key: "quantity", label: "Quantidade", type: "number", required: true },
-        { key: "stage_id", label: "Etapa", type: "select", required: true, options: stageOptions },
+        { key: "stage_id", label: "Etapa", type: "select", required: true, options: stageOptions, quickEdit: true },
+        { key: "sales_order_id", label: "Pedido de Venda relacionado", type: "select", options: salesOrderOptions },
         { key: "due_date", label: "Prazo", type: "date" },
       ]}
     />
