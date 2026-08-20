@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
-import PrintHeader from "./PrintHeader";
 
 /**
  * Página genérica de módulo: lista + formulário de criação + exclusão.
@@ -93,21 +92,14 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
 
   return (
     <div>
-      <PrintHeader title={title} />
-
-      <header style={styles.header} className="no-print">
+      <header style={styles.header}>
         <div>
           <h1 style={styles.title}>{title}</h1>
           <p style={styles.subtitle}>{subtitle}</p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button style={styles.printBtn} onClick={() => window.print()} type="button">
-            Imprimir
-          </button>
-          <button style={styles.addBtn} onClick={() => setFormOpen((v) => !v)} type="button">
-            {formOpen ? "Cancelar" : "+ Novo"}
-          </button>
-        </div>
+        <button style={styles.addBtn} onClick={() => setFormOpen((v) => !v)} type="button">
+          {formOpen ? "Cancelar" : "+ Novo"}
+        </button>
       </header>
 
       {error && <div style={styles.error}>{error}</div>}

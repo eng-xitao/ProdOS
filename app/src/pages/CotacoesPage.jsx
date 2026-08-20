@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ModulePage from "../components/ModulePage";
+import { openPrintWindow, brandHeader, currency, formatDate } from "../lib/printDocument";
 
 export default function CotacoesPage() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -47,7 +48,7 @@ function QuoteWorkspace({ onClosed }) {
   const [winningSupplier, setWinningSupplier] = useState("");
 
   async function loadQuotes() {
-    const { data } = await supabase.from("purchase_quotes").select("id, code, status").order("created_at", { ascending: false });
+    const { data } = await supabase.from("purchase_quotes").select("id, code, status, winning_supplier_id").order("created_at", { ascending: false });
     setQuotes(data ?? []);
   }
 
@@ -202,6 +203,55 @@ function QuoteWorkspace({ onClosed }) {
     navigate("/pedidos-compra");
   }
 
+  function printQuote() {
+    if (!selectedQuote) return;
+
+    const itemsRows = items.map((it) =>
+      `<tr><td>${it.products?.sku ?? ""}</td><td>${it.products?.name ?? ""}</td><td>${it.quantity}</td></tr>`
+    ).join("");
+
+    const pricesRows = prices.map((p) =>
+      `<tr><td>${p.suppliers?.name ?? ""}</td><td>${p.products?.sku ?? ""} — ${p.products?.name ?? ""}</td><td>${currency(p.unit_price)}</td></tr>`
+    ).join("");
+
+    const comparisonRows = Object.entries(totalsBySupplier).map(([supplierId, info]) => {
+      const isWinner = supplierId === selectedQuote.winning_supplier_id;
+      return `<tr ${isWinner ? 'style="background:#fdf1e0;font-weight:700;"' : ""}>
+        <td>${info.name}${isWinner ? " ★ Vencedor" : ""}</td>
+        <td>${info.itemsQuoted} de ${items.length}</td>
+        <td>${currency(info.total)}</td>
+      </tr>`;
+    }).join("");
+
+    const html = `
+      ${brandHeader(company, "COTAÇÃO DE COMPRA", [
+        ["Nº", selectedQuote.code],
+        ["Status", selectedQuote.status === "aberta" ? "Aberta" : "Fechada"],
+      ])}
+      <div class="section-title">Itens Necessários</div>
+      <table>
+        <thead><tr><th>SKU</th><th>Produto</th><th>Quantidade</th></tr></thead>
+        <tbody>${itemsRows}</tbody>
+      </table>
+      <div class="section-title">Preços Informados por Fornecedor</div>
+      <table>
+        <thead><tr><th>Fornecedor</th><th>Produto</th><th>Preço unit.</th></tr></thead>
+        <tbody>${pricesRows}</tbody>
+      </table>
+      <div class="section-title">Comparação e Fechamento</div>
+      <table>
+        <thead><tr><th>Fornecedor</th><th>Itens cotados</th><th>Total estimado</th></tr></thead>
+        <tbody>${comparisonRows}</tbody>
+      </table>
+      <div class="signatures">
+        <div class="signature-line">Responsável pela Cotação</div>
+        <div class="signature-line">Aprovação</div>
+      </div>
+    `;
+
+    openPrintWindow(`Cotação ${selectedQuote.code}`, html);
+  }
+
   return (
     <div style={styles.wrap}>
       <h2 style={styles.title}>Itens e preços da cotação</h2>
@@ -222,6 +272,10 @@ function QuoteWorkspace({ onClosed }) {
 
       {quoteId && (
         <>
+          <button style={styles.printBtn} onClick={printQuote} type="button" disabled={items.length === 0}>
+            🖨 Imprimir Cotação
+          </button>
+
           {error && <div style={styles.error}>{error}</div>}
 
           {selectedQuote?.status === "aberta" && (
@@ -386,6 +440,11 @@ const styles = {
   addBtn: {
     background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",
+  },
+  printBtn: {
+    background: "transparent", color: "var(--text-dim)", border: "1px solid var(--line)",
+    borderRadius: "var(--radius)", padding: "9px 16px", fontWeight: 600, fontSize: 13,
+    cursor: "pointer", marginBottom: 16,
   },
   convertBtn: {
     background: "var(--amber)", color: "#1A1400", border: "none", borderRadius: "var(--radius)",
