@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ModulePage from "../components/ModulePage";
-import { openPrintWindow, brandHeader, currency, formatDate } from "../lib/printDocument";
+import { openPrintWindow, brandHeader, currency, formatDate, openMailto } from "../lib/printDocument";
 
 export default function CotacoesPage() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -46,6 +46,9 @@ function QuoteWorkspace({ onClosed }) {
   const [newPriceValue, setNewPriceValue] = useState("");
 
   const [winningSupplier, setWinningSupplier] = useState("");
+  const [emailSupplierId, setEmailSupplierId] = useState("");
+  const [supplierContacts, setSupplierContacts] = useState([]);
+  const [selectedContactId, setSelectedContactId] = useState("");
 
   async function loadQuotes() {
     const { data } = await supabase.from("purchase_quotes").select("id, code, status, winning_supplier_id").order("created_at", { ascending: false });
@@ -252,6 +255,27 @@ function QuoteWorkspace({ onClosed }) {
     openPrintWindow(`Cotação ${selectedQuote.code}`, html);
   }
 
+  async function loadSupplierContacts(supplierId) {
+    if (!supplierId) { setSupplierContacts([]); return; }
+    const { data } = await supabase
+      .from("contacts")
+      .select("id, name, department, email")
+      .eq("supplier_id", supplierId);
+    setSupplierContacts(data ?? []);
+    setSelectedContactId("");
+  }
+
+  function sendEmail() {
+    const contact = supplierContacts.find((c) => c.id === selectedContactId);
+    const supplierName = Object.values(totalsBySupplier).find((_, i) => Object.keys(totalsBySupplier)[i] === emailSupplierId)?.name;
+    if (!contact?.email || !selectedQuote) return;
+    openMailto(
+      contact.email,
+      `Cotação ${selectedQuote.code} — ${company?.name ?? ""}`,
+      `Olá ${contact.name},\n\nSegue em anexo a Cotação ${selectedQuote.code} para ${supplierName ?? "sua empresa"}.\n\n(Lembre-se de anexar o PDF gerado na impressão antes de enviar.)\n\nAtenciosamente,\n${company?.name ?? ""}`
+    );
+  }
+
   return (
     <div style={styles.wrap}>
       <h2 style={styles.title}>Itens e preços da cotação</h2>
@@ -396,6 +420,41 @@ function QuoteWorkspace({ onClosed }) {
                 </table>
               </div>
 
+              <div style={styles.emailRow}>
+                <label style={styles.field}>
+                  <span style={styles.fieldLabel}>Enviar cotação para</span>
+                  <select
+                    style={styles.input}
+                    value={emailSupplierId}
+                    onChange={(e) => { setEmailSupplierId(e.target.value); loadSupplierContacts(e.target.value); }}
+                  >
+                    <option value="">Selecione o fornecedor...</option>
+                    {Object.entries(totalsBySupplier).map(([supplierId, info]) => (
+                      <option key={supplierId} value={supplierId}>{info.name}</option>
+                    ))}
+                  </select>
+                </label>
+                {supplierContacts.length > 0 && (
+                  <>
+                    <label style={styles.field}>
+                      <span style={styles.fieldLabel}>Contato</span>
+                      <select style={styles.input} value={selectedContactId} onChange={(e) => setSelectedContactId(e.target.value)}>
+                        <option value="">Escolha o contato...</option>
+                        {supplierContacts.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}{c.department ? ` — ${c.department}` : ""}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <button style={styles.printBtn} onClick={sendEmail} type="button" disabled={!selectedContactId}>
+                      ✉ Enviar por E-mail
+                    </button>
+                  </>
+                )}
+                {emailSupplierId && supplierContacts.length === 0 && (
+                  <p style={styles.dim}>Esse fornecedor ainda não tem contato cadastrado.</p>
+                )}
+              </div>
+
               {selectedQuote?.status === "aberta" && (
                 <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "end" }}>
                   <label style={styles.field}>
@@ -446,6 +505,7 @@ const styles = {
     borderRadius: "var(--radius)", padding: "9px 16px", fontWeight: 600, fontSize: 13,
     cursor: "pointer", marginBottom: 16,
   },
+  emailRow: { display: "flex", gap: 12, alignItems: "end", marginTop: 16, flexWrap: "wrap", maxWidth: 760 },
   convertBtn: {
     background: "var(--amber)", color: "#1A1400", border: "none", borderRadius: "var(--radius)",
     padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",

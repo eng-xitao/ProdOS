@@ -9,6 +9,7 @@ const NAV_SECTIONS = [
     items: [
       { to: "/clientes", label: "Clientes", icon: "◎" },
       { to: "/fornecedores", label: "Fornecedores", icon: "◇" },
+      { to: "/contatos", label: "Contatos", icon: "◈" },
       { to: "/produtos", label: "Produtos", icon: "◆" },
       { to: "/etapas", label: "Etapas", icon: "→" },
       { to: "/centros-trabalho", label: "Centros de Trabalho", icon: "▣" },

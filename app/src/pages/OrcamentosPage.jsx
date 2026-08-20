@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ModulePage from "../components/ModulePage";
-import { openPrintWindow, brandHeader, currency, formatDate } from "../lib/printDocument";
+import { openPrintWindow, brandHeader, currency, formatDate, openMailto } from "../lib/printDocument";
 
 const STATUS_LABEL = {
   rascunho: "Rascunho",
@@ -75,6 +75,8 @@ function QuoteItemsEditor({ onQuoteConverted }) {
   const [products, setProducts] = useState([]);
   const [quoteId, setQuoteId] = useState("");
   const [quoteDetails, setQuoteDetails] = useState(null);
+  const [customerContacts, setCustomerContacts] = useState([]);
+  const [selectedContactId, setSelectedContactId] = useState("");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -108,13 +110,24 @@ function QuoteItemsEditor({ onQuoteConverted }) {
   }
 
   async function loadQuoteDetails(qid) {
-    if (!qid) { setQuoteDetails(null); return; }
+    if (!qid) { setQuoteDetails(null); setCustomerContacts([]); return; }
     const { data } = await supabase
       .from("quotes")
-      .select("code, valid_until, notes, created_at, customers:customer_id (name, document, email, phone, address), payment_terms:payment_term_id (name)")
+      .select("code, valid_until, notes, created_at, customer_id, customers:customer_id (name, document, email, phone, address), payment_terms:payment_term_id (name)")
       .eq("id", qid)
       .single();
     setQuoteDetails(data);
+    setSelectedContactId("");
+
+    if (data?.customer_id) {
+      const { data: contacts } = await supabase
+        .from("contacts")
+        .select("id, name, department, email")
+        .eq("customer_id", data.customer_id);
+      setCustomerContacts(contacts ?? []);
+    } else {
+      setCustomerContacts([]);
+    }
   }
 
   useEffect(() => {
@@ -273,6 +286,16 @@ function QuoteItemsEditor({ onQuoteConverted }) {
     openPrintWindow(`Orçamento ${selectedQuote.code}`, html);
   }
 
+  function sendEmail() {
+    const contact = customerContacts.find((c) => c.id === selectedContactId);
+    if (!contact?.email || !selectedQuote) return;
+    openMailto(
+      contact.email,
+      `Orçamento ${selectedQuote.code} — ${company?.name ?? ""}`,
+      `Olá ${contact.name},\n\nSegue em anexo o Orçamento ${selectedQuote.code}.\n\n(Lembre-se de anexar o PDF gerado na impressão antes de enviar.)\n\nAtenciosamente,\n${company?.name ?? ""}`
+    );
+  }
+
   return (
     <div style={styles.wrap}>
       <h2 style={styles.title}>Itens do orçamento</h2>
@@ -293,9 +316,24 @@ function QuoteItemsEditor({ onQuoteConverted }) {
 
       {quoteId && (
         <>
-          <button style={styles.printBtn} onClick={printQuote} type="button" disabled={!quoteDetails || items.length === 0}>
-            🖨 Imprimir Orçamento
-          </button>
+          <div style={styles.actionsRow}>
+            <button style={styles.printBtn} onClick={printQuote} type="button" disabled={!quoteDetails || items.length === 0}>
+              🖨 Imprimir Orçamento
+            </button>
+            {customerContacts.length > 0 && (
+              <>
+                <select style={styles.contactSelect} value={selectedContactId} onChange={(e) => setSelectedContactId(e.target.value)}>
+                  <option value="">Escolha o contato...</option>
+                  {customerContacts.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}{c.department ? ` — ${c.department}` : ""}</option>
+                  ))}
+                </select>
+                <button style={styles.printBtn} onClick={sendEmail} type="button" disabled={!selectedContactId}>
+                  ✉ Enviar por E-mail
+                </button>
+              </>
+            )}
+          </div>
 
           {error && <div style={styles.error}>{error}</div>}
 
@@ -431,6 +469,11 @@ const styles = {
     background: "transparent", color: "var(--text-dim)", border: "1px solid var(--line)",
     borderRadius: "var(--radius)", padding: "9px 16px", fontWeight: 600, fontSize: 13,
     cursor: "pointer", marginBottom: 16,
+  },
+  actionsRow: { display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" },
+  contactSelect: {
+    background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
+    padding: "9px 10px", color: "var(--text)", fontSize: 13,
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },
   tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", maxWidth: 800 },

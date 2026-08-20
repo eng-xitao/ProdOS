@@ -85,4 +85,10 @@ function formatDate(d) {
   return new Date(d.length === 10 ? d + "T00:00:00" : d).toLocaleDateString("pt-BR");
 }
 
-export { openPrintWindow, brandHeader, currency, formatDate };
+function openMailto(email, subject, body) {
+  if (!email) return;
+  const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = url;
+}
+
+export { openPrintWindow, brandHeader, currency, formatDate, openMailto };

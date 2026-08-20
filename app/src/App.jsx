@@ -6,6 +6,7 @@ import ResetSenhaPage from "./pages/ResetSenhaPage";
 import DashboardPage from "./pages/DashboardPage";
 import ClientesPage from "./pages/ClientesPage";
 import FornecedoresPage from "./pages/FornecedoresPage";
+import ContatosPage from "./pages/ContatosPage";
 import ProdutosPage from "./pages/ProdutosPage";
 import EtapasPage from "./pages/EtapasPage";
 import CentrosTrabalhoPage from "./pages/CentrosTrabalhoPage";
@@ -71,6 +72,7 @@ function PrivateArea() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/fornecedores" element={<FornecedoresPage />} />
+        <Route path="/contatos" element={<ContatosPage />} />
         <Route path="/produtos" element={<ProdutosPage />} />
         <Route path="/etapas" element={<EtapasPage />} />
         <Route path="/centros-trabalho" element={<CentrosTrabalhoPage />} />

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import ModulePage from "../components/ModulePage";
+import { openPrintWindow, brandHeader, currency, formatDate, openMailto } from "../lib/printDocument";
 
 export default function PedidosCompraPage() {
   const { company } = useAuth();
@@ -181,6 +182,9 @@ function ReceivingWorkspace({ onReceived }) {
   const [receivingWarehouseId, setReceivingWarehouseId] = useState("");
   const [products, setProducts] = useState([]);
   const [orderId, setOrderId] = useState("");
+  const [orderDetails, setOrderDetails] = useState(null);
+  const [supplierContacts, setSupplierContacts] = useState([]);
+  const [selectedContactId, setSelectedContactId] = useState("");
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [receiving, setReceiving] = useState(false);
@@ -219,10 +223,88 @@ function ReceivingWorkspace({ onReceived }) {
 
   useEffect(() => {
     loadItems(orderId);
+    loadOrderDetails(orderId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
+  async function loadOrderDetails(oid) {
+    if (!oid) { setOrderDetails(null); setSupplierContacts([]); return; }
+    const { data } = await supabase
+      .from("purchase_orders")
+      .select("code, order_date, status, total_value, supplier_id, suppliers:supplier_id (name, document, email, phone, address)")
+      .eq("id", oid)
+      .single();
+    setOrderDetails(data);
+    setSelectedContactId("");
+
+    if (data?.supplier_id) {
+      const { data: contacts } = await supabase
+        .from("contacts")
+        .select("id, name, department, email")
+        .eq("supplier_id", data.supplier_id);
+      setSupplierContacts(contacts ?? []);
+    } else {
+      setSupplierContacts([]);
+    }
+  }
+
   const selectedOrder = orders.find((o) => o.id === orderId);
+
+  function printOrder() {
+    if (!orderDetails) return;
+    const supplier = orderDetails.suppliers;
+
+    const rows = items.map((it) => `
+      <tr>
+        <td>${it.products?.sku ?? ""}</td>
+        <td>${it.products?.name ?? ""}</td>
+        <td>${it.quantity} ${it.products?.unit ?? ""}</td>
+        <td>${currency(it.unit_price)}</td>
+        <td>${currency(Number(it.quantity) * Number(it.unit_price))}</td>
+      </tr>
+    `).join("");
+
+    const html = `
+      ${brandHeader(company, "PEDIDO DE COMPRA", [
+        ["Nº", orderDetails.code],
+        ["Data", formatDate(orderDetails.order_date)],
+        ["Status", orderDetails.status],
+      ])}
+      <div class="section-title">Fornecedor</div>
+      <div class="info-grid">
+        <div><strong>Nome:</strong> ${supplier?.name ?? "—"}</div>
+        <div><strong>CNPJ:</strong> ${supplier?.document ?? "—"}</div>
+        <div><strong>E-mail:</strong> ${supplier?.email ?? "—"}</div>
+        <div><strong>Telefone:</strong> ${supplier?.phone ?? "—"}</div>
+      </div>
+      <div class="section-title">Itens</div>
+      <table>
+        <thead><tr><th>SKU</th><th>Produto</th><th>Qtd.</th><th>Preço unit.</th><th>Total</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="totals-box">
+        <div class="totals-inner">
+          <div class="total-row-final"><span>Total do Pedido</span><span>${currency(orderDetails.total_value)}</span></div>
+        </div>
+      </div>
+      <div class="signatures">
+        <div class="signature-line">${company?.name ?? "Empresa"}</div>
+        <div class="signature-line">${supplier?.name ?? "Fornecedor"}</div>
+      </div>
+    `;
+
+    openPrintWindow(`Pedido de Compra ${orderDetails.code}`, html);
+  }
+
+  function sendEmail() {
+    const contact = supplierContacts.find((c) => c.id === selectedContactId);
+    if (!contact?.email || !orderDetails) return;
+    openMailto(
+      contact.email,
+      `Pedido de Compra ${orderDetails.code} — ${company?.name ?? ""}`,
+      `Olá ${contact.name},\n\nSegue em anexo o Pedido de Compra ${orderDetails.code}.\n\n(Lembre-se de anexar o PDF gerado na impressão antes de enviar.)\n\nAtenciosamente,\n${company?.name ?? ""}`
+    );
+  }
 
   async function addItem(e) {
     e.preventDefault();
@@ -322,6 +404,25 @@ function ReceivingWorkspace({ onReceived }) {
 
       {orderId && (
         <>
+          <div style={styles.actionsRow}>
+            <button style={styles.printBtn} onClick={printOrder} type="button" disabled={!orderDetails}>
+              🖨 Imprimir Pedido de Compra
+            </button>
+            {supplierContacts.length > 0 && (
+              <>
+                <select style={styles.contactSelect} value={selectedContactId} onChange={(e) => setSelectedContactId(e.target.value)}>
+                  <option value="">Escolha o contato...</option>
+                  {supplierContacts.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}{c.department ? ` — ${c.department}` : ""}</option>
+                  ))}
+                </select>
+                <button style={styles.printBtn} onClick={sendEmail} type="button" disabled={!selectedContactId}>
+                  ✉ Enviar por E-mail
+                </button>
+              </>
+            )}
+          </div>
+
           {error && <div style={styles.error}>{error}</div>}
 
           {selectedOrder?.status === "aberto" && (
@@ -427,6 +528,15 @@ const styles = {
   addBtn: {
     background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38,
+  },
+  actionsRow: { display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" },
+  printBtn: {
+    background: "transparent", color: "var(--text-dim)", border: "1px solid var(--line)",
+    borderRadius: "var(--radius)", padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap",
+  },
+  contactSelect: {
+    background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
+    padding: "9px 10px", color: "var(--text)", fontSize: 13,
   },
   receiveBtn: {
     marginTop: 16, background: "var(--amber)", color: "#1A1400", border: "none",
