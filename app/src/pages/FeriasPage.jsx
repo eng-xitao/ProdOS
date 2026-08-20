@@ -28,7 +28,7 @@ export default function FeriasPage() {
         { key: "start_date", label: "Início do gozo (se agendado)", type: "date" },
         { key: "end_date", label: "Fim do gozo (se agendado)", type: "date" },
         { key: "days_taken", label: "Dias", type: "number" },
-        { key: "status", label: "Status", type: "select", options: ["pendente", "agendada", "concluida"] },
+        { key: "status", label: "Status", type: "select", options: ["pendente", "agendada", "concluida"], quickEdit: true },
       ]}
     />
   );

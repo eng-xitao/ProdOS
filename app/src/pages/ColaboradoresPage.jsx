@@ -23,7 +23,7 @@ export default function ColaboradoresPage() {
       fields={[
         { key: "full_name", label: "Nome completo", placeholder: "Nome do colaborador", required: true },
         { key: "role", label: "Cargo", placeholder: "Ex: Soldador, Vendedor, Analista" },
-        { key: "status", label: "Status", type: "select", options: ["ativo", "inativo"] },
+        { key: "status", label: "Status", type: "select", options: ["ativo", "inativo"], quickEdit: true },
         { key: "contract_type", label: "Tipo de contrato", type: "select", options: ["clt", "pj", "estagio", "temporario", "terceirizado"] },
         { key: "work_schedule", label: "Jornada", placeholder: "Ex: 44h semanais" },
         { key: "base_salary", label: "Salário base (R$)", type: "number" },

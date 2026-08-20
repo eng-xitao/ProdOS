@@ -33,6 +33,7 @@ export default function PedidosVendaPage() {
             type: "select",
             required: true,
             options: ["aberto", "faturado", "entregue", "cancelado"],
+            quickEdit: true,
           },
           { key: "order_date", label: "Data do pedido", type: "date" },
         ]}
