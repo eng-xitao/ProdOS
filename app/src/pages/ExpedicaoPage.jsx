@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import { openPrintWindow, brandHeader, formatDate } from "../lib/printDocument";
 
 const STATUS_LABEL = { preparando: "Preparando", em_transito: "Em trânsito", entregue: "Entregue" };
 
@@ -11,6 +12,7 @@ export default function ExpedicaoPage() {
   const [carriers, setCarriers] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [shipmentId, setShipmentId] = useState("");
+  const [shipmentDetails, setShipmentDetails] = useState(null);
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
@@ -56,8 +58,19 @@ export default function ExpedicaoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id]);
 
+  async function loadShipmentDetails(sid) {
+    if (!sid) { setShipmentDetails(null); return; }
+    const { data } = await supabase
+      .from("shipments")
+      .select("code, created_at, status, driver_name, vehicle_plate, carriers:carrier_id (name), warehouses:warehouse_id (name), sales_orders:sales_order_id (code, customers:customer_id (name, address, phone))")
+      .eq("id", sid)
+      .single();
+    setShipmentDetails(data);
+  }
+
   useEffect(() => {
     loadItems(shipmentId);
+    loadShipmentDetails(shipmentId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shipmentId]);
 
@@ -152,6 +165,53 @@ export default function ExpedicaoPage() {
     loadShipments();
   }
 
+  function printShipment() {
+    if (!selectedShipment || !shipmentDetails) return;
+    const customer = shipmentDetails.sales_orders?.customers;
+
+    const rows = items.map((it) => `
+      <tr>
+        <td>${it.products?.sku ?? ""}</td>
+        <td>${it.products?.name ?? ""}</td>
+        <td>${it.quantity} ${it.products?.unit ?? ""}</td>
+      </tr>
+    `).join("");
+
+    const html = `
+      ${brandHeader(company, "ROMANEIO DE EXPEDIÇÃO", [
+        ["Nº", selectedShipment.code],
+        ["Data", formatDate(shipmentDetails.created_at)],
+        ["Situação", STATUS_LABEL[shipmentDetails.status]],
+      ])}
+      <div class="section-title">Transporte</div>
+      <div class="info-grid">
+        <div><strong>Transportadora:</strong> ${shipmentDetails.carriers?.name ?? "—"}</div>
+        <div><strong>Almoxarifado de saída:</strong> ${shipmentDetails.warehouses?.name ?? "—"}</div>
+        <div><strong>Motorista:</strong> ${shipmentDetails.driver_name ?? "—"}</div>
+        <div><strong>Placa do veículo:</strong> ${shipmentDetails.vehicle_plate ?? "—"}</div>
+      </div>
+      <div class="section-title">Destinatário</div>
+      <div class="info-grid">
+        <div><strong>Cliente:</strong> ${customer?.name ?? "—"}</div>
+        <div><strong>Telefone:</strong> ${customer?.phone ?? "—"}</div>
+        <div style="grid-column: 1 / -1;"><strong>Endereço:</strong> ${customer?.address ?? "—"}</div>
+        <div><strong>Pedido de origem:</strong> ${shipmentDetails.sales_orders?.code ?? "—"}</div>
+      </div>
+      <div class="section-title">Carga</div>
+      <table>
+        <thead><tr><th>SKU</th><th>Produto</th><th>Quantidade</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="notes-box"><strong>Observações da entrega:</strong></div>
+      <div class="signatures">
+        <div class="signature-line">Motorista</div>
+        <div class="signature-line">Recebedor (nome legível e assinatura)</div>
+      </div>
+    `;
+
+    openPrintWindow(`Romaneio ${selectedShipment.code}`, html);
+  }
+
   return (
     <div>
       <header style={{ marginBottom: 20 }}>
@@ -222,21 +282,26 @@ export default function ExpedicaoPage() {
         </label>
 
         {shipmentId && items.length > 0 && (
-          <div style={styles.tableWrap}>
-            <table style={styles.table}>
-              <thead>
-                <tr><th style={styles.th}>Produto</th><th style={styles.th}>Quantidade</th></tr>
-              </thead>
-              <tbody>
-                {items.map((it) => (
-                  <tr key={it.id}>
-                    <td style={styles.td}>{it.products?.sku} — {it.products?.name}</td>
-                    <td style={styles.td}>{it.quantity} {it.products?.unit}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <button style={styles.printBtn} onClick={printShipment} type="button" disabled={!shipmentDetails}>
+              🖨 Imprimir Romaneio
+            </button>
+            <div style={styles.tableWrap}>
+              <table style={styles.table}>
+                <thead>
+                  <tr><th style={styles.th}>Produto</th><th style={styles.th}>Quantidade</th></tr>
+                </thead>
+                <tbody>
+                  {items.map((it) => (
+                    <tr key={it.id}>
+                      <td style={styles.td}>{it.products?.sku} — {it.products?.name}</td>
+                      <td style={styles.td}>{it.quantity} {it.products?.unit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {selectedShipment?.status === "preparando" && (
@@ -275,6 +340,11 @@ const styles = {
   addBtn: {
     background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38,
+  },
+  printBtn: {
+    background: "transparent", color: "var(--text-dim)", border: "1px solid var(--line)",
+    borderRadius: "var(--radius)", padding: "9px 16px", fontWeight: 600, fontSize: 13,
+    cursor: "pointer", marginBottom: 12,
   },
   actionBtn: {
     marginTop: 8, background: "var(--amber)", color: "#1A1400", border: "none",

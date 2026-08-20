@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ModulePage from "../components/ModulePage";
+import { openPrintWindow, brandHeader, currency, formatDate } from "../lib/printDocument";
 
 const STATUS_LABEL = {
   rascunho: "Rascunho",
@@ -73,6 +74,7 @@ function QuoteItemsEditor({ onQuoteConverted }) {
   const [quotes, setQuotes] = useState([]);
   const [products, setProducts] = useState([]);
   const [quoteId, setQuoteId] = useState("");
+  const [quoteDetails, setQuoteDetails] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -105,6 +107,16 @@ function QuoteItemsEditor({ onQuoteConverted }) {
     setLoading(false);
   }
 
+  async function loadQuoteDetails(qid) {
+    if (!qid) { setQuoteDetails(null); return; }
+    const { data } = await supabase
+      .from("quotes")
+      .select("code, valid_until, notes, created_at, customers:customer_id (name, document, email, phone, address), payment_terms:payment_term_id (name)")
+      .eq("id", qid)
+      .single();
+    setQuoteDetails(data);
+  }
+
   useEffect(() => {
     if (company?.id) { loadQuotes(); loadProducts(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,6 +124,7 @@ function QuoteItemsEditor({ onQuoteConverted }) {
 
   useEffect(() => {
     loadItems(quoteId);
+    loadQuoteDetails(quoteId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quoteId]);
 
@@ -206,6 +219,60 @@ function QuoteItemsEditor({ onQuoteConverted }) {
     navigate("/pedidos-venda");
   }
 
+  function printQuote() {
+    if (!selectedQuote || !quoteDetails) return;
+    const customer = quoteDetails.customers;
+
+    const rows = items.map((it) => {
+      const line = Number(it.quantity) * Number(it.unit_price) * (1 - Number(it.discount_percent) / 100);
+      return `<tr>
+        <td>${it.products?.sku ?? ""}</td>
+        <td>${it.products?.name ?? ""}</td>
+        <td>${it.quantity}</td>
+        <td>${currency(it.unit_price)}</td>
+        <td>${it.discount_percent}%</td>
+        <td>${currency(line)}</td>
+      </tr>`;
+    }).join("");
+
+    const html = `
+      ${brandHeader(company, "ORÇAMENTO", [
+        ["Nº", selectedQuote.code],
+        ["Emitido em", formatDate(quoteDetails.created_at)],
+        ["Válido até", formatDate(quoteDetails.valid_until)],
+      ])}
+      <div class="section-title">Dados do Cliente</div>
+      <div class="info-grid">
+        <div><strong>Cliente:</strong> ${customer?.name ?? "—"}</div>
+        <div><strong>CPF/CNPJ:</strong> ${customer?.document ?? "—"}</div>
+        <div><strong>E-mail:</strong> ${customer?.email ?? "—"}</div>
+        <div><strong>Telefone:</strong> ${customer?.phone ?? "—"}</div>
+        <div style="grid-column: 1 / -1;"><strong>Endereço:</strong> ${customer?.address ?? "—"}</div>
+      </div>
+      <div class="section-title">Itens</div>
+      <table>
+        <thead><tr><th>SKU</th><th>Produto</th><th>Qtd.</th><th>Preço unit.</th><th>Desc.</th><th>Subtotal</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="totals-box">
+        <div class="totals-inner">
+          <div class="total-row-final"><span>Total Geral</span><span>${currency(total)}</span></div>
+        </div>
+      </div>
+      <div class="section-title">Condições</div>
+      <div class="info-grid">
+        <div><strong>Forma de pagamento:</strong> ${quoteDetails.payment_terms?.name ?? "A combinar"}</div>
+      </div>
+      ${quoteDetails.notes ? `<div class="notes-box"><strong>Observações:</strong><br/>${quoteDetails.notes}</div>` : ""}
+      <div class="signatures">
+        <div class="signature-line">${company?.name ?? "Empresa"}</div>
+        <div class="signature-line">${customer?.name ?? "Cliente"}</div>
+      </div>
+    `;
+
+    openPrintWindow(`Orçamento ${selectedQuote.code}`, html);
+  }
+
   return (
     <div style={styles.wrap}>
       <h2 style={styles.title}>Itens do orçamento</h2>
@@ -226,6 +293,10 @@ function QuoteItemsEditor({ onQuoteConverted }) {
 
       {quoteId && (
         <>
+          <button style={styles.printBtn} onClick={printQuote} type="button" disabled={!quoteDetails || items.length === 0}>
+            🖨 Imprimir Orçamento
+          </button>
+
           {error && <div style={styles.error}>{error}</div>}
 
           <div style={styles.statusRow}>
@@ -355,6 +426,11 @@ const styles = {
   convertBtn: {
     marginTop: 16, background: "var(--amber)", color: "#1A1400", border: "none",
     borderRadius: "var(--radius)", padding: "12px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer",
+  },
+  printBtn: {
+    background: "transparent", color: "var(--text-dim)", border: "1px solid var(--line)",
+    borderRadius: "var(--radius)", padding: "9px 16px", fontWeight: 600, fontSize: 13,
+    cursor: "pointer", marginBottom: 16,
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },
   tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", maxWidth: 800 },

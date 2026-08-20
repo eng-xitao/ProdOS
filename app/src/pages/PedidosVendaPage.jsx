@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import ModulePage from "../components/ModulePage";
+import { openPrintWindow, brandHeader, currency, formatDate } from "../lib/printDocument";
 
 export default function PedidosVendaPage() {
   const { company } = useAuth();
@@ -185,6 +186,7 @@ function OrderItemsViewer() {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [orderId, setOrderId] = useState("");
+  const [orderDetails, setOrderDetails] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -216,6 +218,16 @@ function OrderItemsViewer() {
     setLoading(false);
   }
 
+  async function loadOrderDetails(oid) {
+    if (!oid) { setOrderDetails(null); return; }
+    const { data } = await supabase
+      .from("sales_orders")
+      .select("code, order_date, status, total_value, customers:customer_id (name, document, email, phone, address)")
+      .eq("id", oid)
+      .single();
+    setOrderDetails(data);
+  }
+
   useEffect(() => {
     if (company?.id) { loadOrders(); loadProducts(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -223,6 +235,7 @@ function OrderItemsViewer() {
 
   useEffect(() => {
     loadItems(orderId);
+    loadOrderDetails(orderId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
@@ -230,6 +243,56 @@ function OrderItemsViewer() {
     const line = Number(it.quantity) * Number(it.unit_price) * (1 - Number(it.discount_percent) / 100);
     return sum + line;
   }, 0);
+
+  function printOrder() {
+    if (!orderDetails) return;
+    const customer = orderDetails.customers;
+
+    const rows = items.map((it) => {
+      const line = Number(it.quantity) * Number(it.unit_price) * (1 - Number(it.discount_percent) / 100);
+      return `<tr>
+        <td>${it.products?.sku ?? ""}</td>
+        <td>${it.products?.name ?? ""}</td>
+        <td>${it.quantity}</td>
+        <td>${currency(it.unit_price)}</td>
+        <td>${it.discount_percent}%</td>
+        <td>${currency(line)}</td>
+      </tr>`;
+    }).join("");
+
+    const html = `
+      ${brandHeader(company, "CONFIRMAÇÃO DE PEDIDO", [
+        ["Nº", orderDetails.code],
+        ["Data", formatDate(orderDetails.order_date)],
+        ["Status", orderDetails.status],
+      ])}
+      <div class="disclaimer">Este documento não é uma nota fiscal — apenas uma confirmação do pedido de venda</div>
+      <div class="section-title">Dados do Cliente</div>
+      <div class="info-grid">
+        <div><strong>Cliente:</strong> ${customer?.name ?? "—"}</div>
+        <div><strong>CPF/CNPJ:</strong> ${customer?.document ?? "—"}</div>
+        <div><strong>E-mail:</strong> ${customer?.email ?? "—"}</div>
+        <div><strong>Telefone:</strong> ${customer?.phone ?? "—"}</div>
+        <div style="grid-column: 1 / -1;"><strong>Endereço:</strong> ${customer?.address ?? "—"}</div>
+      </div>
+      <div class="section-title">Itens</div>
+      <table>
+        <thead><tr><th>SKU</th><th>Produto</th><th>Qtd.</th><th>Preço unit.</th><th>Desc.</th><th>Subtotal</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="totals-box">
+        <div class="totals-inner">
+          <div class="total-row-final"><span>Total do Pedido</span><span>${currency(orderDetails.total_value)}</span></div>
+        </div>
+      </div>
+      <div class="signatures">
+        <div class="signature-line">${company?.name ?? "Empresa"}</div>
+        <div class="signature-line">${customer?.name ?? "Cliente"}</div>
+      </div>
+    `;
+
+    openPrintWindow(`Pedido ${orderDetails.code}`, html);
+  }
 
   function handleProductChange(id) {
     setNewProductId(id);
@@ -279,6 +342,10 @@ function OrderItemsViewer() {
 
       {orderId && (
         <>
+          <button style={styles.printBtn} onClick={printOrder} type="button" disabled={!orderDetails || items.length === 0}>
+            🖨 Imprimir Confirmação de Pedido
+          </button>
+
           {error && <div style={styles.error}>{error}</div>}
 
           <form onSubmit={addItem} style={styles.form}>
@@ -374,6 +441,11 @@ const styles = {
   addBtn: {
     background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38,
+  },
+  printBtn: {
+    background: "transparent", color: "var(--text-dim)", border: "1px solid var(--line)",
+    borderRadius: "var(--radius)", padding: "9px 16px", fontWeight: 600, fontSize: 13,
+    cursor: "pointer", marginBottom: 16,
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },
   tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", maxWidth: 800 },
