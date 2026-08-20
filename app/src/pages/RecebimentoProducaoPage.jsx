@@ -6,11 +6,13 @@ import { Link } from "react-router-dom";
 /**
  * Quando uma ordem de produção fica pronta, o produto acabado
  * precisa entrar no estoque — sem isso, o sistema "esquece" que
- * o item foi produzido. Esta tela faz esse lançamento.
+ * o item foi produzido. Esta tela faz esse lançamento, e mantém
+ * um histórico de tudo que já foi recebido (nada desaparece).
  */
 export default function RecebimentoProducaoPage() {
   const { company } = useAuth();
   const [orders, setOrders] = useState([]);
+  const [history, setHistory] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [warehouseByOrder, setWarehouseByOrder] = useState({});
   const [error, setError] = useState("");
@@ -25,13 +27,23 @@ export default function RecebimentoProducaoPage() {
     setOrders((data ?? []).filter((o) => o.product_id));
   }
 
+  async function loadHistory() {
+    const { data } = await supabase
+      .from("production_orders")
+      .select("id, code, quantity, stock_entry_at, products:product_id (sku, name, unit), warehouses:stock_entry_warehouse_id (name)")
+      .eq("stock_entry_done", true)
+      .order("stock_entry_at", { ascending: false })
+      .limit(50);
+    setHistory(data ?? []);
+  }
+
   async function loadWarehouses() {
     const { data } = await supabase.from("warehouses").select("id, name").order("name");
     setWarehouses(data ?? []);
   }
 
   useEffect(() => {
-    if (company?.id) { loadOrders(); loadWarehouses(); }
+    if (company?.id) { loadOrders(); loadHistory(); loadWarehouses(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id]);
 
@@ -66,10 +78,15 @@ export default function RecebimentoProducaoPage() {
       });
     }
 
-    await supabase.from("production_orders").update({ stock_entry_done: true }).eq("id", order.id);
+    await supabase.from("production_orders").update({
+      stock_entry_done: true,
+      stock_entry_at: new Date().toISOString(),
+      stock_entry_warehouse_id: warehouseId,
+    }).eq("id", order.id);
 
     setProcessing("");
     loadOrders();
+    loadHistory();
   }
 
   if (warehouses.length === 0) {
@@ -134,13 +151,47 @@ export default function RecebimentoProducaoPage() {
           </table>
         </div>
       )}
+
+      <div style={styles.wrap}>
+        <h2 style={styles.title2}>Histórico de recebimentos</h2>
+        {history.length === 0 ? (
+          <p style={styles.dim}>Nenhum recebimento confirmado ainda.</p>
+        ) : (
+          <div style={styles.tableWrap}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Ordem</th>
+                  <th style={styles.th}>Produto</th>
+                  <th style={styles.th}>Quantidade</th>
+                  <th style={styles.th}>Almoxarifado</th>
+                  <th style={styles.th}>Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((o) => (
+                  <tr key={o.id}>
+                    <td style={styles.td}>{o.code}</td>
+                    <td style={styles.td}>{o.products?.sku} — {o.products?.name}</td>
+                    <td style={styles.td}>{o.quantity} {o.products?.unit}</td>
+                    <td style={styles.td}>{o.warehouses?.name ?? "—"}</td>
+                    <td style={styles.td}>{o.stock_entry_at ? new Date(o.stock_entry_at).toLocaleString("pt-BR") : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 const styles = {
   title: { fontFamily: "var(--font-display)", fontSize: 22, margin: 0 },
+  title2: { fontFamily: "var(--font-display)", fontSize: 18, margin: 0 },
   subtitle: { color: "var(--text-dim)", fontSize: 13, margin: "6px 0 0", maxWidth: 640, lineHeight: 1.5 },
+  wrap: { marginTop: 36, paddingTop: 28, borderTop: "1px solid var(--line)" },
   notice: {
     background: "rgba(232,163,61,0.1)", border: "1px solid var(--amber)", color: "var(--text)",
     borderRadius: "var(--radius)", padding: "14px 16px", fontSize: 13.5, lineHeight: 1.5, maxWidth: 620,

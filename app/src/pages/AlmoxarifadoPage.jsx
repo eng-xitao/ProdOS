@@ -34,12 +34,25 @@ export default function AlmoxarifadoPage() {
   async function loadLevels(wid) {
     if (!wid) { setLevels([]); return; }
     setLoading(true);
-    const { data, error } = await supabase
-      .from("stock_levels")
-      .select("id, quantity, product_id, products:product_id (sku, name, unit)")
-      .eq("warehouse_id", wid);
-    if (error) setError(error.message);
-    setLevels(data ?? []);
+
+    const [{ data: allProducts, error: productsError }, { data: existingLevels, error: levelsError }] = await Promise.all([
+      supabase.from("products").select("id, sku, name, unit").order("name"),
+      supabase.from("stock_levels").select("id, quantity, product_id").eq("warehouse_id", wid),
+    ]);
+
+    if (productsError) setError(productsError.message);
+    if (levelsError) setError(levelsError.message);
+
+    const levelByProduct = Object.fromEntries((existingLevels ?? []).map((l) => [l.product_id, l]));
+
+    const merged = (allProducts ?? []).map((p) => ({
+      id: levelByProduct[p.id]?.id ?? `empty-${p.id}`,
+      product_id: p.id,
+      quantity: levelByProduct[p.id]?.quantity ?? 0,
+      products: p,
+    }));
+
+    setLevels(merged);
     setLoading(false);
   }
 
@@ -59,10 +72,11 @@ export default function AlmoxarifadoPage() {
     if (!company?.id || !warehouseId || !adjustProductId || !adjustQty) return;
 
     const existing = levels.find((l) => l.product_id === adjustProductId);
+    const hasRealRow = existing && !String(existing.id).startsWith("empty-");
     const delta = adjustType === "entrada" ? Number(adjustQty) : -Number(adjustQty);
     const newQuantity = Math.max(0, Number(existing?.quantity ?? 0) + delta);
 
-    if (existing) {
+    if (hasRealRow) {
       const { error } = await supabase.from("stock_levels").update({ quantity: newQuantity, updated_at: new Date().toISOString() }).eq("id", existing.id);
       if (error) setError(error.message);
     } else {
@@ -133,7 +147,7 @@ export default function AlmoxarifadoPage() {
           {loading ? (
             <p style={styles.dim}>Carregando...</p>
           ) : levels.length === 0 ? (
-            <p style={styles.dim}>Nenhum produto com estoque registrado neste almoxarifado ainda.</p>
+            <p style={styles.dim}>Nenhum produto cadastrado ainda.</p>
           ) : (
             <div style={styles.tableWrap}>
               <table style={styles.table}>
@@ -141,7 +155,7 @@ export default function AlmoxarifadoPage() {
                   <tr><th style={styles.th}>SKU</th><th style={styles.th}>Produto</th><th style={styles.th}>Quantidade</th></tr>
                 </thead>
                 <tbody>
-                  {levels.filter((l) => Number(l.quantity) > 0).map((l) => (
+                  {levels.map((l) => (
                     <tr key={l.id}>
                       <td style={styles.td}>{l.products?.sku}</td>
                       <td style={styles.td}>{l.products?.name}</td>
