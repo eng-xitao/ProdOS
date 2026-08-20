@@ -4,7 +4,7 @@ import { useAuth } from "../lib/AuthContext";
 import { ROLE_LABEL } from "../lib/permissions";
 
 export default function UsuariosPage() {
-  const { session, profile } = useAuth();
+  const { session, profile, company } = useAuth();
   const [members, setMembers] = useState([]);
   const [invites, setInvites] = useState([]);
   const [error, setError] = useState("");
@@ -49,13 +49,32 @@ export default function UsuariosPage() {
 
     if (error) {
       setError(error.message);
-    } else {
-      setSuccess(
-        `Convite criado. Peça para ${inviteEmail} se cadastrar no ProdOS usando exatamente esse e-mail — a pessoa vai entrar direto na sua empresa como ${ROLE_LABEL[inviteRole]}.`
-      );
-      setInviteEmail("");
-      loadInvites();
+      setSaving(false);
+      return;
     }
+
+    // Tenta mandar o e-mail automaticamente. Se falhar (ex: função
+    // ainda não configurada), o convite continua válido mesmo assim —
+    // só avisa que precisa comunicar manualmente.
+    const { error: emailError } = await supabase.functions.invoke("send-invite-email", {
+      body: {
+        to: inviteEmail.trim().toLowerCase(),
+        inviterName: profile.full_name,
+        companyName: company?.name,
+        role: inviteRole,
+      },
+    });
+
+    if (emailError) {
+      setSuccess(
+        `Convite criado, mas o e-mail automático não pôde ser enviado agora. Peça para ${inviteEmail} se cadastrar no ProdOS usando exatamente esse e-mail — a pessoa vai entrar direto na sua empresa como ${ROLE_LABEL[inviteRole]}.`
+      );
+    } else {
+      setSuccess(`Convite criado e e-mail enviado para ${inviteEmail}.`);
+    }
+
+    setInviteEmail("");
+    loadInvites();
     setSaving(false);
   }
 
