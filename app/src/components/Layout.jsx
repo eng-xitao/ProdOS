@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import logoFull from "../assets/logo-full.png";
 import { hasAccess, ROLE_LABEL } from "../lib/permissions";
@@ -114,6 +114,7 @@ const NAV_SECTIONS = [
     items: [
       { to: "/empresa", label: "Dados da Empresa", icon: "▣" },
       { to: "/usuarios", label: "Usuários", icon: "◎" },
+      { to: "/assinatura", label: "Assinatura", icon: "◈" },
     ],
   },
   {
@@ -129,9 +130,16 @@ export default function Layout() {
   const { profile, company, signOut } = useAuth();
   const location = useLocation();
 
+  const planFeatures = company?.plans?.features ?? [];
+  const isPlatformAdmin = !!profile?.is_platform_admin;
+
   const visibleSections = NAV_SECTIONS.filter((s) => {
-    if (s.platformAdminOnly) return !!profile?.is_platform_admin;
-    return hasAccess(profile?.role, s.label);
+    if (s.platformAdminOnly) return isPlatformAdmin;
+    if (!hasAccess(profile?.role, s.label)) return false;
+    // Configurações nunca trava por plano — senão a empresa fica
+    // presa sem conseguir nem acessar a tela de Assinatura pra corrigir
+    if (s.label === "Configurações") return true;
+    return planFeatures.includes(s.label);
   });
 
   // Descobre se a rota atual pertence a uma seção que o papel do
@@ -140,8 +148,15 @@ export default function Layout() {
   const isBlocked = currentSection
     ? currentSection.platformAdminOnly
       ? !profile?.is_platform_admin
-      : !hasAccess(profile?.role, currentSection.label)
+      : !hasAccess(profile?.role, currentSection.label) ||
+        (currentSection.label !== "Configurações" && !planFeatures.includes(currentSection.label))
     : false;
+
+  // Trava o sistema inteiro (exceto a própria tela de Assinatura)
+  // se o teste acabou ou a assinatura foi cancelada.
+  const trialExpired = company?.subscription_status === "trial" && company?.trial_ends_at && new Date(company.trial_ends_at) < new Date();
+  const isCanceled = company?.subscription_status === "canceled";
+  const billingBlocked = (trialExpired || isCanceled) && location.pathname !== "/assinatura";
 
   const [openSections, setOpenSections] = useState(() => {
     const initial = {};
@@ -237,7 +252,19 @@ export default function Layout() {
       </aside>
 
       <main style={styles.main}>
-        {isBlocked ? (
+        {billingBlocked ? (
+          <div style={styles.blocked}>
+            <h1 style={styles.blockedTitle}>
+              {isCanceled ? "Assinatura cancelada" : "Seu período de teste acabou"}
+            </h1>
+            <p style={styles.blockedText}>
+              {isCanceled
+                ? "A assinatura desta empresa foi cancelada. Escolha um plano pra continuar usando o ProdOS."
+                : "Os 14 dias de teste grátis chegaram ao fim. Escolha um plano pra continuar usando o ProdOS."}
+            </p>
+            <Link to="/assinatura" style={styles.blockedBtn}>Ver planos e assinar</Link>
+          </div>
+        ) : isBlocked ? (
           <div style={styles.blocked}>
             <h1 style={styles.blockedTitle}>Acesso não permitido</h1>
             <p style={styles.blockedText}>
@@ -350,4 +377,8 @@ const styles = {
   blocked: { maxWidth: 480, marginTop: 60 },
   blockedTitle: { fontFamily: "var(--font-display)", fontSize: 20, color: "var(--red)", margin: 0 },
   blockedText: { color: "var(--text-dim)", fontSize: 14, lineHeight: 1.6, marginTop: 12 },
+  blockedBtn: {
+    display: "inline-block", marginTop: 20, background: "var(--amber)", color: "#FFFFFF",
+    borderRadius: "var(--radius)", padding: "12px 24px", fontWeight: 700, fontSize: 14, textDecoration: "none",
+  },
 };

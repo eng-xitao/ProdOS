@@ -36,6 +36,7 @@ import BeneficiosPage from "./pages/BeneficiosPage";
 import EmpresaPage from "./pages/EmpresaPage";
 import UsuariosPage from "./pages/UsuariosPage";
 import PlanosAdminPage from "./pages/PlanosAdminPage";
+import AssinaturaPage from "./pages/AssinaturaPage";
 import PlanoContasPage from "./pages/PlanoContasPage";
 import SACPage from "./pages/SACPage";
 import FrotasPage from "./pages/FrotasPage";
@@ -110,6 +111,7 @@ function PrivateArea() {
         <Route path="/empresa" element={<EmpresaPage />} />
         <Route path="/usuarios" element={<UsuariosPage />} />
         <Route path="/admin/planos" element={<PlanosAdminPage />} />
+        <Route path="/assinatura" element={<AssinaturaPage />} />
         <Route path="/plano-contas" element={<PlanoContasPage />} />
         <Route path="/sac" element={<SACPage />} />
         <Route path="/frotas" element={<FrotasPage />} />
