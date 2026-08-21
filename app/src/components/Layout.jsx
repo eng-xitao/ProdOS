@@ -54,7 +54,7 @@ const NAV_SECTIONS = [
       { to: "/expedicao", label: "Expedição", icon: "▶" },
       { to: "/transferencias", label: "Transferências", icon: "⇄" },
       { to: "/historico-movimentacoes", label: "Histórico de Movimentações", icon: "◷" },
-      { to: "/estoque", label: "Estoque", icon: "▤" },
+      { to: "/estoque", label: "Estoque (Produto Acabado)", icon: "▤" },
     ],
   },
   {
@@ -106,7 +106,8 @@ const NAV_SECTIONS = [
     items: [
       { to: "/relatorio-vendas", label: "Vendas", icon: "▲" },
       { to: "/relatorio-compras", label: "Compras", icon: "▼" },
-      { to: "/relatorio-estoque", label: "Estoque", icon: "▤" },
+      { to: "/relatorio-estoque-acabado", label: "Estoque — Produto Acabado", icon: "▤" },
+      { to: "/relatorio-estoque-materiais", label: "Estoque — Materiais em Geral", icon: "▥" },
       { to: "/relatorio-almoxarifado", label: "Almoxarifado", icon: "▥" },
       { to: "/relatorio-producao", label: "Produção", icon: "⚙" },
       { to: "/curva-abc", label: "Curva ABC", icon: "%" },

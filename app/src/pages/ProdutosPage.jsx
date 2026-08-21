@@ -7,7 +7,11 @@ const TYPE_LABEL = {
   acabado: "Produto acabado",
   componente: "Componente",
   materia_prima: "Matéria-prima",
+  insumo: "Insumo",
+  maquina: "Máquina",
 };
+
+const TYPE_OPTIONS = Object.entries(TYPE_LABEL).map(([value, label]) => ({ value, label }));
 
 export default function ProdutosPage() {
   const { company } = useAuth();
@@ -29,22 +33,23 @@ export default function ProdutosPage() {
       <ModulePage
         table="products"
         title="Produtos"
-        subtitle="Cadastro de produtos, componentes e matérias-primas"
+        subtitle="Cadastro de produtos acabados, componentes, matérias-primas, insumos e máquinas"
         emptyLabel="Nenhum produto cadastrado ainda."
         fields={[
           { key: "sku", label: "SKU", placeholder: "Ex: PRD-001", required: true },
           { key: "name", label: "Nome", placeholder: "Ex: Portão basculante 3x2m", required: true },
           {
             key: "type",
-            label: "Tipo",
+            label: "Classe",
             type: "select",
             required: true,
-            options: ["acabado", "componente", "materia_prima"],
+            options: TYPE_OPTIONS,
           },
           unitOptions.length > 0
             ? { key: "unit", label: "Unidade", type: "select", options: unitOptions, required: true }
             : { key: "unit", label: "Unidade", placeholder: "Cadastre em Cadastro → Unidades de Medida" },
           { key: "stock_quantity", label: "Estoque atual", type: "number" },
+          { key: "min_stock", label: "Estoque mínimo", type: "number" },
           { key: "cost", label: "Custo", type: "currency" },
           { key: "sale_price", label: "Preço de venda", type: "currency" },
           { key: "lead_time_days", label: "Lead time (dias)", type: "number" },

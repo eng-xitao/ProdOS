@@ -116,6 +116,12 @@ export default function ExpedicaoPage() {
     setShipmentId(shipment.id);
   }
 
+  async function updateItemQuantity(itemId, newQty) {
+    const qty = Math.max(Number(newQty) || 0, 0);
+    await supabase.from("shipment_items").update({ quantity: qty }).eq("id", itemId);
+    setItems((prev) => prev.map((it) => (it.id === itemId ? { ...it, quantity: qty } : it)));
+  }
+
   async function confirmDeparture() {
     if (!selectedShipment || items.length === 0) return;
     setProcessing(true);
@@ -286,16 +292,40 @@ export default function ExpedicaoPage() {
             <button style={styles.printBtn} onClick={printShipment} type="button" disabled={!shipmentDetails}>
               🖨 Imprimir Romaneio
             </button>
+            {selectedShipment?.status === "preparando" && (
+              <p style={styles.hint}>
+                Ajuste a quantidade sendo entregue em cada item antes de confirmar a saída — útil
+                pra entregas parciais do mesmo pedido.
+              </p>
+            )}
             <div style={styles.tableWrap}>
               <table style={styles.table}>
                 <thead>
-                  <tr><th style={styles.th}>Produto</th><th style={styles.th}>Quantidade</th></tr>
+                  <tr><th style={styles.th}>Produto</th><th style={styles.th}>Quantidade sendo entregue</th></tr>
                 </thead>
                 <tbody>
                   {items.map((it) => (
                     <tr key={it.id}>
                       <td style={styles.td}>{it.products?.sku} — {it.products?.name}</td>
-                      <td style={styles.td}>{it.quantity} {it.products?.unit}</td>
+                      <td style={styles.td}>
+                        {selectedShipment?.status === "preparando" ? (
+                          <div style={styles.qtyEditRow}>
+                            <input
+                              style={styles.qtyInput}
+                              type="number"
+                              step="any"
+                              min="0"
+                              defaultValue={it.quantity}
+                              onBlur={(e) => {
+                                if (Number(e.target.value) !== Number(it.quantity)) updateItemQuantity(it.id, e.target.value);
+                              }}
+                            />
+                            <span>{it.products?.unit}</span>
+                          </div>
+                        ) : (
+                          `${it.quantity} ${it.products?.unit ?? ""}`
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -345,6 +375,12 @@ const styles = {
     background: "transparent", color: "var(--text-dim)", border: "1px solid var(--line)",
     borderRadius: "var(--radius)", padding: "9px 16px", fontWeight: 600, fontSize: 13,
     cursor: "pointer", marginBottom: 12,
+  },
+  hint: { color: "var(--text-dim)", fontSize: 12.5, lineHeight: 1.5, marginBottom: 10, maxWidth: 560 },
+  qtyEditRow: { display: "flex", alignItems: "center", gap: 8 },
+  qtyInput: {
+    width: 90, background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
+    padding: "5px 8px", color: "var(--text)", fontSize: 13,
   },
   actionBtn: {
     marginTop: 8, background: "var(--amber)", color: "#FFFFFF", border: "none",

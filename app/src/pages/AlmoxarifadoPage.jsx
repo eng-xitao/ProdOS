@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { Link } from "react-router-dom";
+import CurrencyInput from "../components/CurrencyInput";
+
+const MATERIAL_TYPE_LABEL = {
+  materia_prima: "Matéria-prima",
+  insumo: "Insumo",
+  maquina: "Máquina",
+  componente: "Componente",
+};
 
 /**
  * Mostra e ajusta a quantidade de cada produto em cada almoxarifado
@@ -20,6 +28,14 @@ export default function AlmoxarifadoPage() {
   const [adjustProductId, setAdjustProductId] = useState("");
   const [adjustType, setAdjustType] = useState("entrada");
   const [adjustQty, setAdjustQty] = useState("");
+
+  const [showNewItemForm, setShowNewItemForm] = useState(false);
+  const [newItemSku, setNewItemSku] = useState("");
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemType, setNewItemType] = useState("materia_prima");
+  const [newItemUnit, setNewItemUnit] = useState("");
+  const [newItemCost, setNewItemCost] = useState(0);
+  const [newItemSaving, setNewItemSaving] = useState(false);
 
   async function loadWarehouses() {
     const { data } = await supabase.from("warehouses").select("id, name").order("name");
@@ -105,6 +121,32 @@ export default function AlmoxarifadoPage() {
     loadLevels(warehouseId);
   }
 
+  async function createMaterialItem(e) {
+    e.preventDefault();
+    if (!company?.id || !newItemSku || !newItemName) return;
+    setNewItemSaving(true);
+    setError("");
+
+    const { error } = await supabase.from("products").insert({
+      company_id: company.id,
+      sku: newItemSku,
+      name: newItemName,
+      type: newItemType,
+      unit: newItemUnit || null,
+      cost: newItemCost,
+      stock_quantity: 0,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setNewItemSku(""); setNewItemName(""); setNewItemType("materia_prima"); setNewItemUnit(""); setNewItemCost(0);
+      setShowNewItemForm(false);
+      await loadProducts();
+    }
+    setNewItemSaving(false);
+  }
+
   if (warehouses.length === 0) {
     return (
       <div style={styles.notice}>
@@ -125,6 +167,42 @@ export default function AlmoxarifadoPage() {
         </p>
       </header>
 
+      <button style={styles.addItemBtn} onClick={() => setShowNewItemForm((v) => !v)} type="button">
+        {showNewItemForm ? "Cancelar" : "+ Cadastrar matéria-prima / insumo / máquina"}
+      </button>
+
+      {error && <div style={styles.error}>{error}</div>}
+
+      {showNewItemForm && (
+        <form onSubmit={createMaterialItem} style={styles.form}>
+          <label style={styles.field}>
+            <span style={styles.fieldLabel}>SKU</span>
+            <input style={styles.input} value={newItemSku} onChange={(e) => setNewItemSku(e.target.value)} placeholder="Ex: MP-001" required />
+          </label>
+          <label style={styles.field}>
+            <span style={styles.fieldLabel}>Nome</span>
+            <input style={styles.input} value={newItemName} onChange={(e) => setNewItemName(e.target.value)} placeholder="Ex: Chapa de aço 2mm" required />
+          </label>
+          <label style={styles.field}>
+            <span style={styles.fieldLabel}>Classe</span>
+            <select style={styles.input} value={newItemType} onChange={(e) => setNewItemType(e.target.value)}>
+              {Object.entries(MATERIAL_TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </label>
+          <label style={styles.field}>
+            <span style={styles.fieldLabel}>Unidade</span>
+            <input style={styles.input} value={newItemUnit} onChange={(e) => setNewItemUnit(e.target.value)} placeholder="un, kg, m..." />
+          </label>
+          <label style={styles.field}>
+            <span style={styles.fieldLabel}>Custo</span>
+            <CurrencyInput value={newItemCost} onChange={setNewItemCost} />
+          </label>
+          <button style={styles.addBtn} type="submit" disabled={newItemSaving}>
+            {newItemSaving ? "Salvando..." : "Cadastrar"}
+          </button>
+        </form>
+      )}
+
       <label style={styles.field}>
         <span style={styles.fieldLabel}>Almoxarifado</span>
         <select style={styles.input} value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
@@ -135,8 +213,6 @@ export default function AlmoxarifadoPage() {
 
       {warehouseId && (
         <>
-          {error && <div style={styles.error}>{error}</div>}
-
           <form onSubmit={applyAdjustment} style={styles.form}>
             <label style={styles.field}>
               <span style={styles.fieldLabel}>Produto</span>
@@ -209,6 +285,10 @@ const styles = {
   addBtn: {
     background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38,
+  },
+  addItemBtn: {
+    background: "transparent", color: "var(--amber)", border: "1px solid var(--amber)", borderRadius: "var(--radius)",
+    padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", marginTop: 4,
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },
   tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", overflowX: "auto", maxWidth: 640 },
