@@ -185,7 +185,7 @@ const styles = {
   title: { fontFamily: "var(--font-display)", fontSize: 22, margin: 0 },
   subtitle: { color: "var(--text-dim)", fontSize: 13, margin: "6px 0 0", maxWidth: 640, lineHeight: 1.5 },
   generateBtn: {
-    background: "var(--amber)", color: "#1A1400", border: "none", borderRadius: "var(--radius)",
+    background: "var(--amber)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
   },
   notice: {

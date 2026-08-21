@@ -157,7 +157,7 @@ const panelStyles = {
     padding: "9px 10px", color: "var(--text)", fontSize: 13,
   },
   btn: {
-    background: "var(--amber)", color: "#1A1400", border: "none", borderRadius: "var(--radius)",
+    background: "var(--amber)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",
   },
   error: {
@@ -526,7 +526,7 @@ const styles = {
     padding: 16, marginBottom: 18, maxWidth: 720,
   },
   addBtn: {
-    background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
+    background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38,
   },
   actionsRow: { display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" },
@@ -539,7 +539,7 @@ const styles = {
     padding: "9px 10px", color: "var(--text)", fontSize: 13,
   },
   receiveBtn: {
-    marginTop: 16, background: "var(--amber)", color: "#1A1400", border: "none",
+    marginTop: 16, background: "var(--amber)", color: "#FFFFFF", border: "none",
     borderRadius: "var(--radius)", padding: "12px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer",
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },

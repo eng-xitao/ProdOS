@@ -338,7 +338,7 @@ const styles = {
     background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "var(--radius)", padding: 16, marginBottom: 12,
   },
   addBtn: {
-    background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
+    background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38,
   },
   printBtn: {
@@ -347,7 +347,7 @@ const styles = {
     cursor: "pointer", marginBottom: 12,
   },
   actionBtn: {
-    marginTop: 8, background: "var(--amber)", color: "#1A1400", border: "none",
+    marginTop: 8, background: "var(--amber)", color: "#FFFFFF", border: "none",
     borderRadius: "var(--radius)", padding: "12px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer",
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },

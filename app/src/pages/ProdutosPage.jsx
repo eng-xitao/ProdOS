@@ -253,7 +253,7 @@ const styles = {
   },
   addBtn: {
     background: "var(--green)",
-    color: "#052014",
+    color: "#FFFFFF",
     border: "none",
     borderRadius: "var(--radius)",
     padding: "9px 16px",

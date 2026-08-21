@@ -233,7 +233,7 @@ const styles = {
   },
   addBtn: {
     background: "var(--amber)",
-    color: "#1A1400",
+    color: "#FFFFFF",
     border: "none",
     borderRadius: "var(--radius)",
     padding: "9px 16px",
@@ -265,7 +265,7 @@ const styles = {
   },
   submitBtn: {
     background: "var(--green)",
-    color: "#052014",
+    color: "#FFFFFF",
     border: "none",
     borderRadius: "var(--radius)",
     padding: "10px 0",

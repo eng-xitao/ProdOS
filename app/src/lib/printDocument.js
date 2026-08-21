@@ -8,7 +8,7 @@
 const CSS = `
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; color: #111; padding: 36px; margin: 0; }
-  .bar { height: 6px; background: #C0602A; margin-bottom: 20px; }
+  .bar { height: 6px; background: #2563EB; margin-bottom: 20px; }
   .head-row { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 14px; margin-bottom: 20px; }
   .company-name { font-weight: 700; font-size: 17px; }
   .detail { font-size: 11px; color: #333; }

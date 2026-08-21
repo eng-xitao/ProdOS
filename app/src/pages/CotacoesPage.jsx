@@ -497,7 +497,7 @@ const styles = {
   formItems: { display: "grid", gridTemplateColumns: "2fr 1fr auto", gap: 12, alignItems: "end", maxWidth: 640, marginBottom: 12 },
   formPrices: { display: "grid", gridTemplateColumns: "1.5fr 1.5fr 1fr auto", gap: 12, alignItems: "end", maxWidth: 720, marginBottom: 12 },
   addBtn: {
-    background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
+    background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",
   },
   printBtn: {
@@ -507,7 +507,7 @@ const styles = {
   },
   emailRow: { display: "flex", gap: 12, alignItems: "end", marginTop: 16, flexWrap: "wrap", maxWidth: 760 },
   convertBtn: {
-    background: "var(--amber)", color: "#1A1400", border: "none", borderRadius: "var(--radius)",
+    background: "var(--amber)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },

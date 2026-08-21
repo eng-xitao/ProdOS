@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
+import Logo from "../components/Logo";
 
 /**
  * Página para onde o link de "esqueci minha senha" (enviado por
@@ -46,7 +47,7 @@ export default function ResetSenhaPage() {
     <div style={styles.wrap}>
       <div style={styles.panel}>
         <div style={styles.brand}>
-          <span style={styles.brandMark}>■</span> PRODOS
+          <Logo size={32} />
         </div>
         <p style={styles.title}>Defina sua nova senha</p>
 
@@ -92,7 +93,7 @@ export default function ResetSenhaPage() {
 const styles = {
   wrap: {
     minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
-    background: "radial-gradient(circle at 20% 20%, #1C2128 0%, #14181C 60%)",
+    background: "radial-gradient(circle at 20% 20%, #FFFFFF 0%, #F7F5F1 60%)",
   },
   panel: {
     width: "100%", maxWidth: 420, background: "var(--panel)", border: "1px solid var(--line)",
@@ -112,7 +113,7 @@ const styles = {
     padding: "10px 12px", color: "var(--text)", fontSize: 14,
   },
   submit: {
-    marginTop: 8, background: "var(--amber)", color: "#1A1400", border: "none",
+    marginTop: 8, background: "var(--amber)", color: "#FFFFFF", border: "none",
     borderRadius: "var(--radius)", padding: "12px 0", fontWeight: 700, fontSize: 14, cursor: "pointer",
   },
   error: {

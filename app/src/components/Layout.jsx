@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
+import Logo from "./Logo";
 import { hasAccess, ROLE_LABEL } from "../lib/permissions";
 
 const NAV_SECTIONS = [
@@ -156,7 +157,7 @@ export default function Layout() {
     <div style={styles.shell}>
       <aside className="no-print" style={styles.sidebar}>
         <div style={styles.brand}>
-          <span style={{ color: "var(--amber)" }}>■</span> PRODOS
+          <Logo size={28} />
         </div>
 
         <nav style={styles.nav}>

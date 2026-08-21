@@ -220,7 +220,7 @@ const styles = {
   },
   td: { padding: "10px 14px", fontSize: 13.5, background: "var(--panel)", borderBottom: "1px solid var(--line)" },
   confirmBtn: {
-    background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
+    background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "7px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap",
   },
   error: {

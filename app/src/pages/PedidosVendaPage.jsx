@@ -164,7 +164,7 @@ const panelStyles = {
     padding: "9px 10px", color: "var(--text)", fontSize: 13,
   },
   btn: {
-    background: "var(--amber)", color: "#1A1400", border: "none", borderRadius: "var(--radius)",
+    background: "var(--amber)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",
   },
   error: {
@@ -477,7 +477,7 @@ const styles = {
     padding: 16, marginBottom: 18,
   },
   addBtn: {
-    background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
+    background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38,
   },
   printBtn: {

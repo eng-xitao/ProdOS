@@ -1,19 +1,20 @@
 /* =========================================================
-   Design tokens — identidade "painel de chão de fábrica"
-   Paleta: grafite + âmbar industrial (sinalização de máquina),
-   não o azul-corporativo genérico de SaaS.
+   Design tokens — identidade "painel operacional claro"
+   Paleta: bege claro + azul industrial (troca do tema escuro
+   + âmbar original, mantendo os mesmos nomes de variável pra
+   não precisar editar cada tela individualmente).
    ========================================================= */
 :root {
-  --ink: #14181C;          /* fundo principal, quase preto-grafite */
-  --panel: #1C2128;        /* superfícies elevadas */
-  --panel-2: #242A32;      /* superfícies mais elevadas ainda */
-  --line: #2E3540;         /* divisórias */
-  --text: #E9EDF1;         /* texto principal */
-  --text-dim: #9AA4B2;     /* texto secundário */
-  --amber: #E8A33D;        /* acento — sinalização/alerta industrial */
-  --amber-dim: #6B5324;
-  --green: #4FAE7E;        /* status positivo */
-  --red: #D9695F;          /* status negativo */
+  --ink: #F7F5F1;          /* fundo principal, bege claro (não branco puro) */
+  --panel: #FFFFFF;        /* superfícies elevadas */
+  --panel-2: #F1EEE7;      /* superfícies mais elevadas ainda (inputs) */
+  --line: #E3E0D8;         /* divisórias */
+  --text: #2B2B2B;         /* texto principal */
+  --text-dim: #8A8780;     /* texto secundário */
+  --amber: #2563EB;        /* acento — mantém o nome da variável, agora azul */
+  --amber-dim: #DCE9FB;
+  --green: #2F9E68;        /* status positivo, ajustado pro contraste em fundo claro */
+  --red: #C9483D;          /* status negativo, ajustado pro contraste em fundo claro */
   --radius: 6px;
   --font-display: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
