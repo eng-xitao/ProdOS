@@ -148,7 +148,7 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
       {formOpen && (
         <form onSubmit={handleSubmit} style={styles.form} className="no-print">
           {editingId && <div style={styles.editingBanner}>Editando registro existente</div>}
-          {fields.map((f) => (
+          {fields.filter((f) => !f.formHidden).map((f) => (
             <label key={f.key} style={styles.field}>
               <span style={styles.fieldLabel}>{f.label}</span>
               {f.type === "select" ? (

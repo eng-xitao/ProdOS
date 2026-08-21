@@ -27,7 +27,7 @@ const NAV_SECTIONS = [
       { to: "/producao", label: "Ordens de Produção", icon: "⚙" },
       { to: "/apontamento-producao", label: "Apontamento de Produção", icon: "◷" },
       { to: "/mrp/materiais", label: "Necessidade de Materiais", icon: "▼" },
-      { to: "/mrp/capacidade", label: "Capacidade", icon: "▲" },
+      { to: "/mrp/capacidade", label: "Plano Mestre de Produção", icon: "▲" },
     ],
   },
   {

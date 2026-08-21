@@ -24,7 +24,7 @@ export default function ApontamentoProducaoPage() {
     <ModulePage
       table="production_time_logs"
       title="Apontamento de Produção"
-      subtitle="Registro de horas trabalhadas em cada ordem — todos os campos abaixo são livres, preencha o que fizer sentido"
+      subtitle="Registro de horas trabalhadas e quantidade produzida em cada ordem. A quantidade produzida atualiza automaticamente o progresso da OP em PCP → Ordens de Produção."
       emptyLabel="Nenhum apontamento registrado ainda."
       fields={[
         { key: "production_order_id", label: "Ordem de Produção", type: "select", options: orderOptions, required: true },
@@ -34,6 +34,8 @@ export default function ApontamentoProducaoPage() {
         { key: "start_time", label: "Início", type: "time" },
         { key: "end_time", label: "Fim", type: "time" },
         { key: "hours", label: "Horas trabalhadas", type: "number", placeholder: "Ex: 4.5" },
+        { key: "quantity_produced", label: "Qtd. produzida", type: "number", placeholder: "Ex: 50" },
+        { key: "quantity_scrapped", label: "Qtd. refugada", type: "number", placeholder: "Ex: 2" },
         { key: "notes", label: "Observações", placeholder: "Campo livre" },
       ]}
     />

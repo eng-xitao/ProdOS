@@ -64,7 +64,19 @@ export default function ProducaoPage() {
           { key: "quantity", label: "Quantidade", type: "number", required: true },
           { key: "stage_id", label: "Etapa", type: "select", required: true, options: stageOptions, quickEdit: true },
           { key: "sales_order_id", label: "Pedido de Venda relacionado", type: "select", options: salesOrderOptions },
-          { key: "due_date", label: "Prazo", type: "date" },
+          { key: "planned_start_date", label: "Início planejado", type: "date" },
+          { key: "due_date", label: "Término planejado (prazo)", type: "date" },
+          { key: "actual_start_date", label: "Início real", type: "date", formHidden: true },
+          { key: "actual_end_date", label: "Término real", type: "date", formHidden: true },
+          { key: "quantity_produced", label: "Produzido", type: "number", formHidden: true },
+          {
+            key: "status", label: "Status", type: "select", formHidden: true, quickEdit: true,
+            options: [
+              { value: "planejada", label: "Planejada" },
+              { value: "em_andamento", label: "Em andamento" },
+              { value: "concluida", label: "Concluída" },
+            ],
+          },
         ]}
       />
       <PrintOrderSection stages={stages} />
