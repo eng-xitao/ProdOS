@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
-import Logo from "../components/Logo";
+import logoFull from "../assets/logo-full.png";
 
 /**
  * Página para onde o link de "esqueci minha senha" (enviado por
@@ -47,7 +47,7 @@ export default function ResetSenhaPage() {
     <div style={styles.wrap}>
       <div style={styles.panel}>
         <div style={styles.brand}>
-          <Logo size={32} />
+          <img src={logoFull} alt="ProdOS" style={{ width: 200, height: "auto", display: "block" }} />
         </div>
         <p style={styles.title}>Defina sua nova senha</p>
 

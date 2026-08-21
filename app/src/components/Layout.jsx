@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
-import Logo from "./Logo";
+import logoFull from "../assets/logo-full.png";
 import { hasAccess, ROLE_LABEL } from "../lib/permissions";
 
 const NAV_SECTIONS = [
@@ -157,7 +157,7 @@ export default function Layout() {
     <div style={styles.shell}>
       <aside className="no-print" style={styles.sidebar}>
         <div style={styles.brand}>
-          <Logo size={28} />
+          <img src={logoFull} alt="ProdOS" style={{ width: 150, height: "auto", display: "block" }} />
         </div>
 
         <nav style={styles.nav}>
