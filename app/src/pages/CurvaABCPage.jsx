@@ -4,7 +4,7 @@ import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { Empty, currency, tooltipStyle } from "./RelatorioVendasPage";
 
-const CLASS_COLOR = { A: "#4FAE7E", B: "#E8A33D", C: "#D9695F" };
+const CLASS_COLOR = { A: "#2F9E68", B: "#2563EB", C: "#C9483D" };
 
 export default function CurvaABCPage() {
   const { company } = useAuth();
@@ -80,9 +80,9 @@ export default function CurvaABCPage() {
             <h2 style={styles.cardTitle}>Top 15 por valor vendido</h2>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={rows.slice(0, 15)} layout="vertical" margin={{ left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2E3540" />
-                <XAxis type="number" stroke="#9AA4B2" fontSize={11} />
-                <YAxis type="category" dataKey="name" stroke="#9AA4B2" fontSize={10.5} width={150} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E3E0D8" />
+                <XAxis type="number" stroke="#8A8780" fontSize={11} />
+                <YAxis type="category" dataKey="name" stroke="#8A8780" fontSize={10.5} width={150} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v) => currency(v)} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                   {rows.slice(0, 15).map((r, i) => <Cell key={i} fill={CLASS_COLOR[r.class]} />)}

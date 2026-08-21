@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ModulePage from "../components/ModulePage";
-import { openPrintWindow, brandHeader, currency, formatDate, openMailto } from "../lib/printDocument";
+import { openPrintWindow, brandHeader, currency, formatDate, sendDocumentEmail } from "../lib/printDocument";
 
 const STATUS_LABEL = {
   rascunho: "Rascunho",
@@ -77,6 +77,8 @@ function QuoteItemsEditor({ onQuoteConverted }) {
   const [quoteDetails, setQuoteDetails] = useState(null);
   const [customerContacts, setCustomerContacts] = useState([]);
   const [selectedContactId, setSelectedContactId] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSentTo, setEmailSentTo] = useState("");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -232,8 +234,7 @@ function QuoteItemsEditor({ onQuoteConverted }) {
     navigate("/pedidos-venda");
   }
 
-  function printQuote() {
-    if (!selectedQuote || !quoteDetails) return;
+  function buildQuoteHtml() {
     const customer = quoteDetails.customers;
 
     const rows = items.map((it) => {
@@ -248,7 +249,7 @@ function QuoteItemsEditor({ onQuoteConverted }) {
       </tr>`;
     }).join("");
 
-    const html = `
+    return `
       ${brandHeader(company, "ORÇAMENTO", [
         ["Nº", selectedQuote.code],
         ["Emitido em", formatDate(quoteDetails.created_at)],
@@ -282,18 +283,30 @@ function QuoteItemsEditor({ onQuoteConverted }) {
         <div class="signature-line">${customer?.name ?? "Cliente"}</div>
       </div>
     `;
-
-    openPrintWindow(`Orçamento ${selectedQuote.code}`, html);
   }
 
-  function sendEmail() {
+  function printQuote() {
+    if (!selectedQuote || !quoteDetails) return;
+    openPrintWindow(`Orçamento ${selectedQuote.code}`, buildQuoteHtml());
+  }
+
+  async function sendEmail() {
     const contact = customerContacts.find((c) => c.id === selectedContactId);
-    if (!contact?.email || !selectedQuote) return;
-    openMailto(
-      contact.email,
-      `Orçamento ${selectedQuote.code} — ${company?.name ?? ""}`,
-      `Olá ${contact.name},\n\nSegue em anexo o Orçamento ${selectedQuote.code}.\n\n(Lembre-se de anexar o PDF gerado na impressão antes de enviar.)\n\nAtenciosamente,\n${company?.name ?? ""}`
-    );
+    if (!contact?.email || !selectedQuote || !quoteDetails) return;
+    setSendingEmail(true);
+    setError("");
+
+    const { error: sendError } = await sendDocumentEmail({
+      to: contact.email,
+      subject: `Orçamento ${selectedQuote.code} — ${company?.name ?? ""}`,
+      message: `<p>Olá ${contact.name},</p><p>Segue em anexo o Orçamento ${selectedQuote.code}.</p><p>Atenciosamente,<br/>${company?.name ?? ""}</p>`,
+      bodyHtml: buildQuoteHtml(),
+      filename: `orcamento-${selectedQuote.code}.pdf`,
+    });
+
+    if (sendError) setError("Não foi possível enviar o e-mail agora. Tente novamente em instantes.");
+    else setEmailSentTo(contact.email);
+    setSendingEmail(false);
   }
 
   return (
@@ -328,9 +341,10 @@ function QuoteItemsEditor({ onQuoteConverted }) {
                     <option key={c.id} value={c.id}>{c.name}{c.department ? ` — ${c.department}` : ""}</option>
                   ))}
                 </select>
-                <button style={styles.printBtn} onClick={sendEmail} type="button" disabled={!selectedContactId}>
-                  ✉ Enviar por E-mail
+                <button style={styles.printBtn} onClick={sendEmail} type="button" disabled={!selectedContactId || sendingEmail}>
+                  {sendingEmail ? "Enviando..." : "✉ Enviar por E-mail"}
                 </button>
+                {emailSentTo && <span style={styles.emailSentTag}>Enviado para {emailSentTo}</span>}
               </>
             )}
           </div>
@@ -458,11 +472,11 @@ const styles = {
     padding: 16, marginBottom: 18,
   },
   addBtn: {
-    background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
+    background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38,
   },
   convertBtn: {
-    marginTop: 16, background: "var(--amber)", color: "#1A1400", border: "none",
+    marginTop: 16, background: "var(--amber)", color: "#FFFFFF", border: "none",
     borderRadius: "var(--radius)", padding: "12px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer",
   },
   printBtn: {
@@ -475,6 +489,7 @@ const styles = {
     background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
     padding: "9px 10px", color: "var(--text)", fontSize: 13,
   },
+  emailSentTag: { fontSize: 12.5, color: "var(--green)", fontWeight: 600 },
   dim: { color: "var(--text-dim)", fontSize: 14 },
   tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", maxWidth: 800 },
   table: { width: "100%", borderCollapse: "collapse" },

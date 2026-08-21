@@ -168,7 +168,7 @@ const styles = {
     padding: "9px 10px", color: "var(--text)", fontSize: 13,
   },
   addBtn: {
-    background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
+    background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38,
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },

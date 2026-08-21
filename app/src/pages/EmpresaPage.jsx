@@ -110,7 +110,7 @@ const styles = {
     padding: "9px 10px", color: "var(--text)", fontSize: 13,
   },
   saveBtn: {
-    background: "var(--amber)", color: "#1A1400", border: "none", borderRadius: "var(--radius)",
+    background: "var(--amber)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "11px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 42, gridColumn: "1 / -1", justifySelf: "start",
   },
   error: {

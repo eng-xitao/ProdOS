@@ -178,7 +178,7 @@ const styles = {
   netLabel: { fontSize: 13, color: "var(--text-dim)", fontWeight: 600 },
   netValue: { fontFamily: "var(--font-display)", fontSize: 20, color: "var(--amber)" },
   generateBtn: {
-    marginTop: 16, background: "var(--amber)", color: "#1A1400", border: "none",
+    marginTop: 16, background: "var(--amber)", color: "#FFFFFF", border: "none",
     borderRadius: "var(--radius)", padding: "12px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer",
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },

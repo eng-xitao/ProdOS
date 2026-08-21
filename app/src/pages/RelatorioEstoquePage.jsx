@@ -5,7 +5,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import { ChartCard, Empty, currency, tooltipStyle } from "./RelatorioVendasPage";
 
 const TYPE_LABEL = { acabado: "Acabado", componente: "Componente", materia_prima: "Matéria-prima" };
-const COLORS = ["#E8A33D", "#4FAE7E", "#D9695F"];
+const COLORS = ["#2563EB", "#2F9E68", "#C9483D"];
 
 export default function RelatorioEstoquePage() {
   const { company } = useAuth();
@@ -62,11 +62,11 @@ export default function RelatorioEstoquePage() {
               {topByValue.length === 0 ? <Empty /> : (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={topByValue} layout="vertical" margin={{ left: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2E3540" />
-                    <XAxis type="number" stroke="#9AA4B2" fontSize={11} />
-                    <YAxis type="category" dataKey="name" stroke="#9AA4B2" fontSize={11} width={160} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E3E0D8" />
+                    <XAxis type="number" stroke="#8A8780" fontSize={11} />
+                    <YAxis type="category" dataKey="name" stroke="#8A8780" fontSize={11} width={160} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(v) => currency(v)} />
-                    <Bar dataKey="value" fill="#E8A33D" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="value" fill="#2563EB" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}

@@ -221,10 +221,10 @@ const styles = {
     background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
     padding: "8px 12px", color: "var(--text-dim)", fontSize: 12.5, fontWeight: 600, cursor: "pointer",
   },
-  dayBtnActive: { background: "var(--amber)", color: "#1A1400", borderColor: "var(--amber)" },
+  dayBtnActive: { background: "var(--amber)", color: "#FFFFFF", borderColor: "var(--amber)" },
   formRow: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 12, alignItems: "end" },
   addBtn: {
-    background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
+    background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",
   },
   dayGroup: { marginBottom: 18 },

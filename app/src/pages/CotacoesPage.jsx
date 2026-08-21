@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import ModulePage from "../components/ModulePage";
-import { openPrintWindow, brandHeader, currency, formatDate, openMailto } from "../lib/printDocument";
+import { openPrintWindow, brandHeader, currency, formatDate, sendDocumentEmail } from "../lib/printDocument";
 
 export default function CotacoesPage() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -48,6 +48,8 @@ function QuoteWorkspace({ onClosed }) {
   const [winningSupplier, setWinningSupplier] = useState("");
   const [emailSupplierId, setEmailSupplierId] = useState("");
   const [supplierContacts, setSupplierContacts] = useState([]);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSentTo, setEmailSentTo] = useState("");
   const [selectedContactId, setSelectedContactId] = useState("");
 
   async function loadQuotes() {
@@ -206,9 +208,7 @@ function QuoteWorkspace({ onClosed }) {
     navigate("/pedidos-compra");
   }
 
-  function printQuote() {
-    if (!selectedQuote) return;
-
+  function buildQuoteHtml() {
     const itemsRows = items.map((it) =>
       `<tr><td>${it.products?.sku ?? ""}</td><td>${it.products?.name ?? ""}</td><td>${it.quantity}</td></tr>`
     ).join("");
@@ -226,7 +226,7 @@ function QuoteWorkspace({ onClosed }) {
       </tr>`;
     }).join("");
 
-    const html = `
+    return `
       ${brandHeader(company, "COTAÇÃO DE COMPRA", [
         ["Nº", selectedQuote.code],
         ["Status", selectedQuote.status === "aberta" ? "Aberta" : "Fechada"],
@@ -251,8 +251,11 @@ function QuoteWorkspace({ onClosed }) {
         <div class="signature-line">Aprovação</div>
       </div>
     `;
+  }
 
-    openPrintWindow(`Cotação ${selectedQuote.code}`, html);
+  function printQuote() {
+    if (!selectedQuote) return;
+    openPrintWindow(`Cotação ${selectedQuote.code}`, buildQuoteHtml());
   }
 
   async function loadSupplierContacts(supplierId) {
@@ -265,15 +268,24 @@ function QuoteWorkspace({ onClosed }) {
     setSelectedContactId("");
   }
 
-  function sendEmail() {
+  async function sendEmail() {
     const contact = supplierContacts.find((c) => c.id === selectedContactId);
-    const supplierName = Object.values(totalsBySupplier).find((_, i) => Object.keys(totalsBySupplier)[i] === emailSupplierId)?.name;
+    const supplierName = totalsBySupplier[emailSupplierId]?.name;
     if (!contact?.email || !selectedQuote) return;
-    openMailto(
-      contact.email,
-      `Cotação ${selectedQuote.code} — ${company?.name ?? ""}`,
-      `Olá ${contact.name},\n\nSegue em anexo a Cotação ${selectedQuote.code} para ${supplierName ?? "sua empresa"}.\n\n(Lembre-se de anexar o PDF gerado na impressão antes de enviar.)\n\nAtenciosamente,\n${company?.name ?? ""}`
-    );
+    setSendingEmail(true);
+    setError("");
+
+    const { error: sendError } = await sendDocumentEmail({
+      to: contact.email,
+      subject: `Cotação ${selectedQuote.code} — ${company?.name ?? ""}`,
+      message: `<p>Olá ${contact.name},</p><p>Segue em anexo a Cotação ${selectedQuote.code} para ${supplierName ?? "sua empresa"}.</p><p>Atenciosamente,<br/>${company?.name ?? ""}</p>`,
+      bodyHtml: buildQuoteHtml(),
+      filename: `cotacao-${selectedQuote.code}.pdf`,
+    });
+
+    if (sendError) setError("Não foi possível enviar o e-mail agora. Tente novamente em instantes.");
+    else setEmailSentTo(contact.email);
+    setSendingEmail(false);
   }
 
   return (
@@ -445,9 +457,10 @@ function QuoteWorkspace({ onClosed }) {
                         ))}
                       </select>
                     </label>
-                    <button style={styles.printBtn} onClick={sendEmail} type="button" disabled={!selectedContactId}>
-                      ✉ Enviar por E-mail
+                    <button style={styles.printBtn} onClick={sendEmail} type="button" disabled={!selectedContactId || sendingEmail}>
+                      {sendingEmail ? "Enviando..." : "✉ Enviar por E-mail"}
                     </button>
+                    {emailSentTo && <span style={styles.emailSentTag}>Enviado para {emailSentTo}</span>}
                   </>
                 )}
                 {emailSupplierId && supplierContacts.length === 0 && (
@@ -497,7 +510,7 @@ const styles = {
   formItems: { display: "grid", gridTemplateColumns: "2fr 1fr auto", gap: 12, alignItems: "end", maxWidth: 640, marginBottom: 12 },
   formPrices: { display: "grid", gridTemplateColumns: "1.5fr 1.5fr 1fr auto", gap: 12, alignItems: "end", maxWidth: 720, marginBottom: 12 },
   addBtn: {
-    background: "var(--green)", color: "#052014", border: "none", borderRadius: "var(--radius)",
+    background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",
   },
   printBtn: {
@@ -506,8 +519,9 @@ const styles = {
     cursor: "pointer", marginBottom: 16,
   },
   emailRow: { display: "flex", gap: 12, alignItems: "end", marginTop: 16, flexWrap: "wrap", maxWidth: 760 },
+  emailSentTag: { fontSize: 12.5, color: "var(--green)", fontWeight: 600 },
   convertBtn: {
-    background: "var(--amber)", color: "#1A1400", border: "none", borderRadius: "var(--radius)",
+    background: "var(--amber)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },

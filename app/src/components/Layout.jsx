@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
+import logoFull from "../assets/logo-full.png";
 import { hasAccess, ROLE_LABEL } from "../lib/permissions";
 
 const NAV_SECTIONS = [
@@ -115,18 +116,32 @@ const NAV_SECTIONS = [
       { to: "/usuarios", label: "Usuários", icon: "◎" },
     ],
   },
+  {
+    label: "Administração",
+    platformAdminOnly: true,
+    items: [
+      { to: "/admin/planos", label: "Planos", icon: "⚙" },
+    ],
+  },
 ];
 
 export default function Layout() {
   const { profile, company, signOut } = useAuth();
   const location = useLocation();
 
-  const visibleSections = NAV_SECTIONS.filter((s) => hasAccess(profile?.role, s.label));
+  const visibleSections = NAV_SECTIONS.filter((s) => {
+    if (s.platformAdminOnly) return !!profile?.is_platform_admin;
+    return hasAccess(profile?.role, s.label);
+  });
 
   // Descobre se a rota atual pertence a uma seção que o papel do
   // usuário não tem permissão de ver — bloqueia mesmo por URL direta.
   const currentSection = NAV_SECTIONS.find((s) => s.items.some((i) => i.to === location.pathname));
-  const isBlocked = currentSection && !hasAccess(profile?.role, currentSection.label);
+  const isBlocked = currentSection
+    ? currentSection.platformAdminOnly
+      ? !profile?.is_platform_admin
+      : !hasAccess(profile?.role, currentSection.label)
+    : false;
 
   const [openSections, setOpenSections] = useState(() => {
     const initial = {};
@@ -156,7 +171,7 @@ export default function Layout() {
     <div style={styles.shell}>
       <aside className="no-print" style={styles.sidebar}>
         <div style={styles.brand}>
-          <span style={{ color: "var(--amber)" }}>■</span> PRODOS
+          <img src={logoFull} alt="ProdOS" style={{ width: 150, height: "auto", display: "block" }} />
         </div>
 
         <nav style={styles.nav}>
@@ -210,6 +225,7 @@ export default function Layout() {
         </nav>
 
         <div style={styles.sidebarFooter}>
+          <img src={logoFull} alt="ProdOS" style={styles.footerLogo} />
           <div style={styles.companyName}>{company?.name ?? "—"}</div>
           <div style={styles.userName}>
             {profile?.full_name ?? ""}{profile?.role && ` · ${ROLE_LABEL[profile.role] ?? profile.role}`}
@@ -312,6 +328,7 @@ const styles = {
     marginTop: 14,
     flexShrink: 0,
   },
+  footerLogo: { width: 90, height: "auto", display: "block", marginBottom: 10, opacity: 0.85 },
   companyName: { fontSize: 13, fontWeight: 600, color: "var(--text)" },
   userName: { fontSize: 12, color: "var(--text-dim)", marginTop: 2, marginBottom: 10 },
   signOut: {

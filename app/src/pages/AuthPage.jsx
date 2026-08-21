@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../lib/AuthContext";
+import logoFull from "../assets/logo-full.png";
 
 export default function AuthPage() {
   const { signIn, signUp, requestPasswordReset } = useAuth();
@@ -47,7 +48,7 @@ export default function AuthPage() {
     <div style={styles.wrap}>
       <div style={styles.panel}>
         <div style={styles.brand}>
-          <span style={styles.brandMark}>■</span> PRODOS
+          <img src={logoFull} alt="ProdOS" style={styles.logoImg} />
         </div>
         <p style={styles.tagline}>Sistema operacional da produção — produção, estoque, vendas e financeiro num só lugar, para qualquer segmento.</p>
 
@@ -194,7 +195,7 @@ const styles = {
     justifyContent: "center",
     padding: 24,
     background:
-      "radial-gradient(circle at 20% 20%, #1C2128 0%, #14181C 60%)",
+      "radial-gradient(circle at 20% 20%, #FFFFFF 0%, #F7F5F1 60%)",
   },
   panel: {
     width: "100%",
@@ -212,6 +213,7 @@ const styles = {
     alignItems: "center",
     gap: 8,
   },
+  logoImg: { width: 220, height: "auto", display: "block" },
   brandMark: { color: "var(--amber)" },
   tagline: {
     color: "var(--text-dim)",
@@ -253,7 +255,7 @@ const styles = {
     cursor: "pointer",
   },
   tabActive: {
-    background: "var(--ink)",
+    background: "var(--panel)",
     color: "var(--amber)",
   },
   form: { display: "flex", flexDirection: "column", gap: 14 },
@@ -289,7 +291,7 @@ const styles = {
   submit: {
     marginTop: 8,
     background: "var(--amber)",
-    color: "#1A1400",
+    color: "#FFFFFF",
     border: "none",
     borderRadius: "var(--radius)",
     padding: "12px 0",

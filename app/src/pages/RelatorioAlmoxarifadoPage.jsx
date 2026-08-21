@@ -50,11 +50,11 @@ export default function RelatorioAlmoxarifadoPage() {
             {byWarehouseValue.length === 0 ? <Empty /> : (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={byWarehouseValue} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2E3540" />
-                  <XAxis type="number" stroke="#9AA4B2" fontSize={11} />
-                  <YAxis type="category" dataKey="name" stroke="#9AA4B2" fontSize={11} width={150} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E3E0D8" />
+                  <XAxis type="number" stroke="#8A8780" fontSize={11} />
+                  <YAxis type="category" dataKey="name" stroke="#8A8780" fontSize={11} width={150} />
                   <Tooltip contentStyle={tooltipStyle} formatter={(v) => currency(v)} />
-                  <Bar dataKey="value" fill="#4FAE7E" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" fill="#2F9E68" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -64,11 +64,11 @@ export default function RelatorioAlmoxarifadoPage() {
             {byWarehouseCount.length === 0 ? <Empty /> : (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={byWarehouseCount} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2E3540" />
-                  <XAxis type="number" stroke="#9AA4B2" fontSize={11} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" stroke="#9AA4B2" fontSize={11} width={150} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E3E0D8" />
+                  <XAxis type="number" stroke="#8A8780" fontSize={11} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" stroke="#8A8780" fontSize={11} width={150} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="value" fill="#E8A33D" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" fill="#2563EB" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
