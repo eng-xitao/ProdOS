@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import ModulePage from "../components/ModulePage";
-import { openPrintWindow, brandHeader, currency, formatDate, openMailto } from "../lib/printDocument";
+import { openPrintWindow, brandHeader, currency, formatDate, sendDocumentEmail } from "../lib/printDocument";
 
 export default function PedidosVendaPage() {
   const { company } = useAuth();
@@ -189,6 +189,8 @@ function OrderItemsViewer() {
   const [orderDetails, setOrderDetails] = useState(null);
   const [customerContacts, setCustomerContacts] = useState([]);
   const [selectedContactId, setSelectedContactId] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSentTo, setEmailSentTo] = useState("");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -257,8 +259,7 @@ function OrderItemsViewer() {
     return sum + line;
   }, 0);
 
-  function printOrder() {
-    if (!orderDetails) return;
+  function buildOrderHtml() {
     const customer = orderDetails.customers;
 
     const rows = items.map((it) => {
@@ -273,7 +274,7 @@ function OrderItemsViewer() {
       </tr>`;
     }).join("");
 
-    const html = `
+    return `
       ${brandHeader(company, "CONFIRMAÇÃO DE PEDIDO", [
         ["Nº", orderDetails.code],
         ["Data", formatDate(orderDetails.order_date)],
@@ -303,18 +304,30 @@ function OrderItemsViewer() {
         <div class="signature-line">${customer?.name ?? "Cliente"}</div>
       </div>
     `;
-
-    openPrintWindow(`Pedido ${orderDetails.code}`, html);
   }
 
-  function sendEmail() {
+  function printOrder() {
+    if (!orderDetails) return;
+    openPrintWindow(`Pedido ${orderDetails.code}`, buildOrderHtml());
+  }
+
+  async function sendEmail() {
     const contact = customerContacts.find((c) => c.id === selectedContactId);
     if (!contact?.email || !orderDetails) return;
-    openMailto(
-      contact.email,
-      `Pedido de Venda ${orderDetails.code} — ${company?.name ?? ""}`,
-      `Olá ${contact.name},\n\nSegue em anexo a confirmação do Pedido de Venda ${orderDetails.code}.\n\n(Lembre-se de anexar o PDF gerado na impressão antes de enviar.)\n\nAtenciosamente,\n${company?.name ?? ""}`
-    );
+    setSendingEmail(true);
+    setError("");
+
+    const { error: sendError } = await sendDocumentEmail({
+      to: contact.email,
+      subject: `Pedido de Venda ${orderDetails.code} — ${company?.name ?? ""}`,
+      message: `<p>Olá ${contact.name},</p><p>Segue em anexo a confirmação do Pedido de Venda ${orderDetails.code}.</p><p>Atenciosamente,<br/>${company?.name ?? ""}</p>`,
+      bodyHtml: buildOrderHtml(),
+      filename: `pedido-${orderDetails.code}.pdf`,
+    });
+
+    if (sendError) setError("Não foi possível enviar o e-mail agora. Tente novamente em instantes.");
+    else setEmailSentTo(contact.email);
+    setSendingEmail(false);
   }
 
   function handleProductChange(id) {
@@ -377,9 +390,10 @@ function OrderItemsViewer() {
                     <option key={c.id} value={c.id}>{c.name}{c.department ? ` — ${c.department}` : ""}</option>
                   ))}
                 </select>
-                <button style={styles.printBtn} onClick={sendEmail} type="button" disabled={!selectedContactId}>
-                  ✉ Enviar por E-mail
+                <button style={styles.printBtn} onClick={sendEmail} type="button" disabled={!selectedContactId || sendingEmail}>
+                  {sendingEmail ? "Enviando..." : "✉ Enviar por E-mail"}
                 </button>
+                {emailSentTo && <span style={styles.emailSentTag}>Enviado para {emailSentTo}</span>}
               </>
             )}
           </div>
@@ -490,6 +504,7 @@ const styles = {
     background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
     padding: "9px 10px", color: "var(--text)", fontSize: 13,
   },
+  emailSentTag: { fontSize: 12.5, color: "var(--green)", fontWeight: 600 },
   dim: { color: "var(--text-dim)", fontSize: 14 },
   tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", maxWidth: 800 },
   table: { width: "100%", borderCollapse: "collapse" },

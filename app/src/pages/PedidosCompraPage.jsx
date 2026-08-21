@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import ModulePage from "../components/ModulePage";
-import { openPrintWindow, brandHeader, currency, formatDate, openMailto } from "../lib/printDocument";
+import { openPrintWindow, brandHeader, currency, formatDate, sendDocumentEmail } from "../lib/printDocument";
 
 export default function PedidosCompraPage() {
   const { company } = useAuth();
@@ -184,6 +184,8 @@ function ReceivingWorkspace({ onReceived }) {
   const [orderId, setOrderId] = useState("");
   const [orderDetails, setOrderDetails] = useState(null);
   const [supplierContacts, setSupplierContacts] = useState([]);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSentTo, setEmailSentTo] = useState("");
   const [selectedContactId, setSelectedContactId] = useState("");
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
@@ -250,8 +252,7 @@ function ReceivingWorkspace({ onReceived }) {
 
   const selectedOrder = orders.find((o) => o.id === orderId);
 
-  function printOrder() {
-    if (!orderDetails) return;
+  function buildOrderHtml() {
     const supplier = orderDetails.suppliers;
 
     const rows = items.map((it) => `
@@ -264,7 +265,7 @@ function ReceivingWorkspace({ onReceived }) {
       </tr>
     `).join("");
 
-    const html = `
+    return `
       ${brandHeader(company, "PEDIDO DE COMPRA", [
         ["Nº", orderDetails.code],
         ["Data", formatDate(orderDetails.order_date)],
@@ -292,18 +293,30 @@ function ReceivingWorkspace({ onReceived }) {
         <div class="signature-line">${supplier?.name ?? "Fornecedor"}</div>
       </div>
     `;
-
-    openPrintWindow(`Pedido de Compra ${orderDetails.code}`, html);
   }
 
-  function sendEmail() {
+  function printOrder() {
+    if (!orderDetails) return;
+    openPrintWindow(`Pedido de Compra ${orderDetails.code}`, buildOrderHtml());
+  }
+
+  async function sendEmail() {
     const contact = supplierContacts.find((c) => c.id === selectedContactId);
     if (!contact?.email || !orderDetails) return;
-    openMailto(
-      contact.email,
-      `Pedido de Compra ${orderDetails.code} — ${company?.name ?? ""}`,
-      `Olá ${contact.name},\n\nSegue em anexo o Pedido de Compra ${orderDetails.code}.\n\n(Lembre-se de anexar o PDF gerado na impressão antes de enviar.)\n\nAtenciosamente,\n${company?.name ?? ""}`
-    );
+    setSendingEmail(true);
+    setError("");
+
+    const { error: sendError } = await sendDocumentEmail({
+      to: contact.email,
+      subject: `Pedido de Compra ${orderDetails.code} — ${company?.name ?? ""}`,
+      message: `<p>Olá ${contact.name},</p><p>Segue em anexo o Pedido de Compra ${orderDetails.code}.</p><p>Atenciosamente,<br/>${company?.name ?? ""}</p>`,
+      bodyHtml: buildOrderHtml(),
+      filename: `pedido-compra-${orderDetails.code}.pdf`,
+    });
+
+    if (sendError) setError("Não foi possível enviar o e-mail agora. Tente novamente em instantes.");
+    else setEmailSentTo(contact.email);
+    setSendingEmail(false);
   }
 
   async function addItem(e) {
@@ -416,9 +429,10 @@ function ReceivingWorkspace({ onReceived }) {
                     <option key={c.id} value={c.id}>{c.name}{c.department ? ` — ${c.department}` : ""}</option>
                   ))}
                 </select>
-                <button style={styles.printBtn} onClick={sendEmail} type="button" disabled={!selectedContactId}>
-                  ✉ Enviar por E-mail
+                <button style={styles.printBtn} onClick={sendEmail} type="button" disabled={!selectedContactId || sendingEmail}>
+                  {sendingEmail ? "Enviando..." : "✉ Enviar por E-mail"}
                 </button>
+                {emailSentTo && <span style={styles.emailSentTag}>Enviado para {emailSentTo}</span>}
               </>
             )}
           </div>
@@ -538,6 +552,7 @@ const styles = {
     background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
     padding: "9px 10px", color: "var(--text)", fontSize: 13,
   },
+  emailSentTag: { fontSize: 12.5, color: "var(--green)", fontWeight: 600 },
   receiveBtn: {
     marginTop: 16, background: "var(--amber)", color: "#FFFFFF", border: "none",
     borderRadius: "var(--radius)", padding: "12px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer",

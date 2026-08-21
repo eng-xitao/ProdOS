@@ -5,6 +5,10 @@
  * não mistura com o resto da tela, e imprime/permite salvar em PDF.
  */
 
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
+import { supabase } from "./supabaseClient";
+
 const CSS = `
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; color: #111; padding: 36px; margin: 0; }
@@ -96,4 +100,45 @@ function openMailto(email, subject, body) {
   window.location.href = url;
 }
 
-export { openPrintWindow, brandHeader, currency, formatDate, openMailto };
+/**
+ * Renderiza o HTML do documento fora da tela e transforma em PDF
+ * (base64), pra poder anexar num e-mail automaticamente — sem
+ * abrir a caixa de impressão do navegador.
+ */
+async function generatePdfBase64(bodyHtml) {
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
+  container.style.top = "0";
+  container.style.width = "800px";
+  container.style.background = "#ffffff";
+  container.innerHTML = `<style>${CSS}</style><div style="padding:36px;background:#fff;">${bodyHtml}</div>`;
+  document.body.appendChild(container);
+
+  // dá um tempinho pra imagens (logo) carregarem antes de capturar
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  const canvas = await html2canvas(container, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+  document.body.removeChild(container);
+
+  const imgData = canvas.toDataURL("image/png");
+  const pdf = new jsPDF({ unit: "px", format: [canvas.width / 2, canvas.height / 2] });
+  pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+
+  return pdf.output("datauristring").split(",")[1];
+}
+
+/**
+ * Gera o PDF do documento e manda por e-mail de verdade (via
+ * Edge Function + Resend), com o PDF já anexado — sem depender
+ * do programa de e-mail do computador da pessoa.
+ */
+async function sendDocumentEmail({ to, subject, message, bodyHtml, filename }) {
+  const attachmentBase64 = await generatePdfBase64(bodyHtml);
+  const { error } = await supabase.functions.invoke("send-document-email", {
+    body: { to, subject, message, attachmentBase64, attachmentFilename: filename },
+  });
+  return { error };
+}
+
+export { openPrintWindow, brandHeader, currency, formatDate, openMailto, sendDocumentEmail };
