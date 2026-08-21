@@ -109,7 +109,7 @@ export default function UsuariosPage() {
         <label style={styles.field}>
           <span style={styles.fieldLabel}>Papel</span>
           <select style={styles.input} value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-            {Object.entries(ROLE_LABEL).filter(([value]) => value !== "admin").map(([value, label]) => (
+            {Object.entries(ROLE_LABEL).filter(([value]) => value !== "admin" && value !== "master").map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
             ))}
           </select>
@@ -160,7 +160,7 @@ export default function UsuariosPage() {
                       <span style={styles.dim}>{ROLE_LABEL[m.role] ?? m.role} (você)</span>
                     ) : (
                       <select style={styles.inlineSelect} value={m.role} onChange={(e) => changeRole(m.id, e.target.value)}>
-                        {Object.entries(ROLE_LABEL).map(([value, label]) => (
+                        {Object.entries(ROLE_LABEL).filter(([value]) => value !== "master").map(([value, label]) => (
                           <option key={value} value={value}>{label}</option>
                         ))}
                       </select>

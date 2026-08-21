@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import logoFull from "../assets/logo-full.png";
-import { hasAccess, ROLE_LABEL } from "../lib/permissions";
+import { hasAccess, ROLE_LABEL, PLAN_UNRESTRICTED_ROLES } from "../lib/permissions";
 
 const NAV_SECTIONS = [
   {
@@ -132,13 +132,16 @@ export default function Layout() {
 
   const planFeatures = company?.plans?.features ?? [];
   const isPlatformAdmin = !!profile?.is_platform_admin;
+  // "master" é o perfil de QA/testes: enxerga tudo, em qualquer empresa,
+  // sem respeitar a trava de plano — diferente do admin comum.
+  const isPlanUnrestricted = PLAN_UNRESTRICTED_ROLES.includes(profile?.role);
 
   const visibleSections = NAV_SECTIONS.filter((s) => {
     if (s.platformAdminOnly) return isPlatformAdmin;
     if (!hasAccess(profile?.role, s.label)) return false;
     // Configurações nunca trava por plano — senão a empresa fica
     // presa sem conseguir nem acessar a tela de Assinatura pra corrigir
-    if (s.label === "Configurações") return true;
+    if (s.label === "Configurações" || isPlanUnrestricted) return true;
     return planFeatures.includes(s.label);
   });
 
@@ -149,7 +152,7 @@ export default function Layout() {
     ? currentSection.platformAdminOnly
       ? !profile?.is_platform_admin
       : !hasAccess(profile?.role, currentSection.label) ||
-        (currentSection.label !== "Configurações" && !planFeatures.includes(currentSection.label))
+        (currentSection.label !== "Configurações" && !isPlanUnrestricted && !planFeatures.includes(currentSection.label))
     : false;
 
   // Trava o sistema inteiro (exceto a própria tela de Assinatura)
