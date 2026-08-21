@@ -125,6 +125,44 @@ export function estimateFgtsFine(baseSalary, hireDate, terminationDate) {
 }
 
 /**
+ * Calcula o 13º salário do ano, dividido em 1ª parcela (50%, sem
+ * desconto, paga até 30/11) e 2ª parcela (o restante, com INSS/IRRF
+ * incidindo sobre o valor INTEGRAL do 13º, paga até 20/12).
+ */
+export function calculateThirteenthSalary({ baseSalary, hireDate, referenceYear, installment, dependentsCount = 0 }) {
+  const salary = Number(baseSalary || 0);
+  const hire = parseDate(hireDate);
+  const year = Number(referenceYear);
+
+  let avos = 0;
+  if (hire) {
+    if (hire.getFullYear() < year) {
+      avos = 12;
+    } else if (hire.getFullYear() === year) {
+      const yearEnd = new Date(year, 11, 31);
+      let months = 12 - hire.getMonth();
+      if (hire.getDate() >= 15) months -= 1;
+      avos = Math.max(Math.min(months, 12), 0);
+      void yearEnd;
+    }
+  }
+
+  const grossFull = round2((salary / 12) * avos);
+  const firstInstallment = round2(grossFull / 2);
+  const secondInstallmentGross = round2(grossFull - firstInstallment);
+
+  if (Number(installment) === 1) {
+    return { avos, grossFull, installmentGross: firstInstallment, inss: 0, irrf: 0, netAmount: firstInstallment };
+  }
+
+  // 2ª parcela: INSS/IRRF calculados sobre o valor integral do 13º.
+  const inss = calculateINSS(grossFull);
+  const irrf = calculateIRRF(grossFull, inss, dependentsCount);
+  const netAmount = round2(secondInstallmentGross - inss - irrf);
+  return { avos, grossFull, installmentGross: secondInstallmentGross, inss, irrf, netAmount };
+}
+
+/**
  * Calcula automaticamente todas as verbas de uma rescisão, incluindo
  * o INSS/IRRF retidos sobre a parcela tributável (saldo de salário +
  * 13º proporcional). Férias, 1/3 constitucional, aviso prévio

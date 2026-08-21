@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import CurrencyInput from "./CurrencyInput";
 
 /**
  * Página genérica de módulo: lista + formulário de criação + exclusão.
@@ -123,6 +124,12 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
                     return <option key={value} value={value}>{label}</option>;
                   })}
                 </select>
+              ) : f.type === "currency" ? (
+                <CurrencyInput
+                  value={form[f.key] ?? 0}
+                  onChange={(num) => updateField(f.key, num)}
+                  required={f.required}
+                />
               ) : (
                 <input
                   style={styles.input}
@@ -208,6 +215,7 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
 
 function formatValue(value, field) {
   if (value == null || value === "") return "—";
+  if (field.type === "currency") return `R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
   if (field.type === "number") return Number(value).toLocaleString("pt-BR");
   if (field.type === "select" && Array.isArray(field.options)) {
     const match = field.options.find((opt) => (typeof opt === "string" ? opt : opt.value) === value);

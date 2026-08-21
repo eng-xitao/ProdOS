@@ -30,7 +30,7 @@ export default function ColaboradoresPage() {
         { key: "contract_type", label: "Tipo de contrato", type: "select", options: ["clt", "pj", "estagio", "temporario", "terceirizado"] },
         { key: "work_schedule", label: "Jornada (texto livre)", placeholder: "Ex: 44h semanais" },
         { key: "work_schedule_id", label: "Jornada configurada", type: "select", options: scheduleOptions },
-        { key: "base_salary", label: "Salário base (R$)", type: "number" },
+        { key: "base_salary", label: "Salário base (R$)", type: "currency" },
         { key: "hire_date", label: "Data de admissão", type: "date" },
         { key: "work_center_id", label: "Centro de Trabalho", type: "select", options: workCenterOptions },
         { key: "email", label: "E-mail", type: "email" },

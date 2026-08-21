@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { calculateINSS, calculateIRRF } from "../lib/payrollCalc";
+import CurrencyInput from "../components/CurrencyInput";
 
 /**
  * Folha de Pagamento com cálculo automático de INSS e IRRF pelas
@@ -20,11 +21,11 @@ export default function FolhaPagamentoPage() {
 
   const [employeeId, setEmployeeId] = useState("");
   const [referenceMonth, setReferenceMonth] = useState("");
-  const [baseSalary, setBaseSalary] = useState("");
+  const [baseSalary, setBaseSalary] = useState(0);
   const [dependentsCount, setDependentsCount] = useState(0);
-  const [overtimeAmount, setOvertimeAmount] = useState("0");
-  const [vtDiscount, setVtDiscount] = useState("0");
-  const [otherDiscounts, setOtherDiscounts] = useState("0");
+  const [overtimeAmount, setOvertimeAmount] = useState(0);
+  const [vtDiscount, setVtDiscount] = useState(0);
+  const [otherDiscounts, setOtherDiscounts] = useState(0);
 
   async function loadEmployees() {
     const { data } = await supabase
@@ -52,7 +53,7 @@ export default function FolhaPagamentoPage() {
     setEmployeeId(id);
     const employee = employees.find((e) => e.id === id);
     if (employee) {
-      setBaseSalary(String(employee.base_salary ?? 0));
+      setBaseSalary(Number(employee.base_salary ?? 0));
       setDependentsCount(employee.dependents_count ?? 0);
     }
   }
@@ -109,8 +110,8 @@ export default function FolhaPagamentoPage() {
 
     if (payrollError) { setError(payrollError.message); setSaving(false); return; }
 
-    setEmployeeId(""); setReferenceMonth(""); setBaseSalary(""); setDependentsCount(0);
-    setOvertimeAmount("0"); setVtDiscount("0"); setOtherDiscounts("0");
+    setEmployeeId(""); setReferenceMonth(""); setBaseSalary(0); setDependentsCount(0);
+    setOvertimeAmount(0); setVtDiscount(0); setOtherDiscounts(0);
     setSaving(false);
     loadEntries();
   }
@@ -141,24 +142,24 @@ export default function FolhaPagamentoPage() {
           <input style={styles.input} type="date" value={referenceMonth} onChange={(e) => setReferenceMonth(e.target.value)} />
         </label>
         <label style={styles.field}>
-          <span style={styles.fieldLabel}>Salário base (R$)</span>
-          <input style={styles.input} type="number" step="any" value={baseSalary} onChange={(e) => setBaseSalary(e.target.value)} />
+          <span style={styles.fieldLabel}>Salário base</span>
+          <CurrencyInput value={baseSalary} onChange={setBaseSalary} />
         </label>
         <label style={styles.field}>
           <span style={styles.fieldLabel}>Dependentes (IRRF)</span>
           <input style={styles.input} type="number" min="0" step="1" value={dependentsCount} onChange={(e) => setDependentsCount(Number(e.target.value || 0))} />
         </label>
         <label style={styles.field}>
-          <span style={styles.fieldLabel}>Horas extras (R$)</span>
-          <input style={styles.input} type="number" step="any" value={overtimeAmount} onChange={(e) => setOvertimeAmount(e.target.value)} />
+          <span style={styles.fieldLabel}>Horas extras</span>
+          <CurrencyInput value={overtimeAmount} onChange={setOvertimeAmount} />
         </label>
         <label style={styles.field}>
-          <span style={styles.fieldLabel}>Desconto VT (R$)</span>
-          <input style={styles.input} type="number" step="any" value={vtDiscount} onChange={(e) => setVtDiscount(e.target.value)} />
+          <span style={styles.fieldLabel}>Desconto VT</span>
+          <CurrencyInput value={vtDiscount} onChange={setVtDiscount} />
         </label>
         <label style={styles.field}>
-          <span style={styles.fieldLabel}>Outros descontos (R$)</span>
-          <input style={styles.input} type="number" step="any" value={otherDiscounts} onChange={(e) => setOtherDiscounts(e.target.value)} />
+          <span style={styles.fieldLabel}>Outros descontos</span>
+          <CurrencyInput value={otherDiscounts} onChange={setOtherDiscounts} />
         </label>
       </div>
 
