@@ -143,7 +143,7 @@ const styles = {
   },
   link: { color: "var(--amber)", fontWeight: 600 },
   dim: { color: "var(--text-dim)", fontSize: 14 },
-  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden" },
+  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
     textAlign: "left",

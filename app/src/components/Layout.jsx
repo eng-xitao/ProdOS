@@ -70,6 +70,9 @@ const NAV_SECTIONS = [
       { to: "/contas-pagar", label: "Contas a Pagar", icon: "◑" },
       { to: "/lancamentos", label: "Lançamentos Avulsos", icon: "$" },
       { to: "/fluxo-caixa", label: "Fluxo de Caixa", icon: "≈" },
+      { to: "/tesouraria", label: "Tesouraria", icon: "▣" },
+      { to: "/credito-cobranca", label: "Crédito e Cobrança", icon: "◐" },
+      { to: "/analise-centro-custo", label: "Análise por Centro de Custo", icon: "◑" },
       { to: "/dre", label: "DRE", icon: "▦" },
       { to: "/plano-contas", label: "Plano de Contas", icon: "☰" },
     ],
@@ -121,6 +124,7 @@ const NAV_SECTIONS = [
     label: "Administração",
     platformAdminOnly: true,
     items: [
+      { to: "/admin/aprovacoes", label: "Aprovações", icon: "✓" },
       { to: "/admin/planos", label: "Planos", icon: "⚙" },
     ],
   },

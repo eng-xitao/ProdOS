@@ -36,6 +36,8 @@ import BeneficiosPage from "./pages/BeneficiosPage";
 import EmpresaPage from "./pages/EmpresaPage";
 import UsuariosPage from "./pages/UsuariosPage";
 import PlanosAdminPage from "./pages/PlanosAdminPage";
+import AprovacoesPage from "./pages/AprovacoesPage";
+import PendingApprovalPage from "./pages/PendingApprovalPage";
 import AssinaturaPage from "./pages/AssinaturaPage";
 import PlanoContasPage from "./pages/PlanoContasPage";
 import SACPage from "./pages/SACPage";
@@ -49,6 +51,9 @@ import CurvaABCPage from "./pages/CurvaABCPage";
 import ContasPagarPage from "./pages/ContasPagarPage";
 import LancamentosPage from "./pages/LancamentosPage";
 import FluxoCaixaPage from "./pages/FluxoCaixaPage";
+import TesourariaPage from "./pages/TesourariaPage";
+import CreditoCobrancaPage from "./pages/CreditoCobrancaPage";
+import AnaliseCentroCustoPage from "./pages/AnaliseCentroCustoPage";
 import DREPage from "./pages/DREPage";
 import CotacoesPage from "./pages/CotacoesPage";
 import PedidosCompraPage from "./pages/PedidosCompraPage";
@@ -60,13 +65,20 @@ import PedidosVendaPage from "./pages/PedidosVendaPage";
 import "./theme.css";
 
 function PrivateArea() {
-  const { session, loading } = useAuth();
+  const { session, profile, company, loading } = useAuth();
 
   if (loading) {
     return <div style={{ padding: 40, color: "var(--text-dim)" }}>Carregando...</div>;
   }
 
   if (!session) return <Navigate to="/login" replace />;
+
+  // Trava o sistema inteiro pra empresas que ainda não foram
+  // aprovadas pelo comercial — exceto o admin da plataforma, que
+  // precisa conseguir entrar pra revisar e aprovar os cadastros.
+  if (profile && !profile.is_platform_admin && company && company.approval_status !== "approved") {
+    return <PendingApprovalPage status={company.approval_status} />;
+  }
 
   return (
     <Routes>
@@ -111,6 +123,7 @@ function PrivateArea() {
         <Route path="/empresa" element={<EmpresaPage />} />
         <Route path="/usuarios" element={<UsuariosPage />} />
         <Route path="/admin/planos" element={<PlanosAdminPage />} />
+        <Route path="/admin/aprovacoes" element={<AprovacoesPage />} />
         <Route path="/assinatura" element={<AssinaturaPage />} />
         <Route path="/plano-contas" element={<PlanoContasPage />} />
         <Route path="/sac" element={<SACPage />} />
@@ -124,6 +137,9 @@ function PrivateArea() {
         <Route path="/contas-pagar" element={<ContasPagarPage />} />
         <Route path="/lancamentos" element={<LancamentosPage />} />
         <Route path="/fluxo-caixa" element={<FluxoCaixaPage />} />
+        <Route path="/tesouraria" element={<TesourariaPage />} />
+        <Route path="/credito-cobranca" element={<CreditoCobrancaPage />} />
+        <Route path="/analise-centro-custo" element={<AnaliseCentroCustoPage />} />
         <Route path="/dre" element={<DREPage />} />
       </Route>
     </Routes>

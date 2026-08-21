@@ -27,7 +27,7 @@ export default function PedidosVendaPage() {
         fields={[
           { key: "code", label: "Código", placeholder: "PV-0001", required: true },
           { key: "customer_id", label: "Cliente", type: "select", options: customerOptions, required: true },
-          { key: "total_value", label: "Valor total (R$)", type: "number", required: true },
+          { key: "total_value", label: "Valor total", type: "currency", required: true },
           {
             key: "status",
             label: "Status",

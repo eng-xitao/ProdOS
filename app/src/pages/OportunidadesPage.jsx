@@ -44,7 +44,7 @@ export default function OportunidadesPage() {
         { key: "title", label: "Título", placeholder: "Ex: Projeto reforma industrial", required: true },
         { key: "customer_id", label: "Cliente", type: "select", options: customerOptions },
         { key: "stage_id", label: "Etapa", type: "select", required: true, options: stageOptions },
-        { key: "estimated_value", label: "Valor estimado (R$)", type: "number" },
+        { key: "estimated_value", label: "Valor estimado", type: "currency" },
         { key: "expected_close_date", label: "Previsão de fechamento", type: "date" },
       ]}
     />

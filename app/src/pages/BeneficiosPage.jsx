@@ -16,7 +16,7 @@ export default function BeneficiosPage() {
         emptyLabel="Nenhum tipo de benefício cadastrado ainda."
         fields={[
           { key: "name", label: "Nome", placeholder: "Ex: Vale Refeição", required: true },
-          { key: "default_monthly_cost", label: "Custo mensal padrão (R$)", type: "number" },
+          { key: "default_monthly_cost", label: "Custo mensal padrão", type: "currency" },
         ]}
       />
       <EmployeeBenefitsEditor onChange={() => setRefreshKey((k) => k + 1)} />

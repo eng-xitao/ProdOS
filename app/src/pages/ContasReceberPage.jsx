@@ -92,7 +92,7 @@ const styles = {
   title: { fontFamily: "var(--font-display)", fontSize: 22, margin: 0 },
   subtitle: { color: "var(--text-dim)", fontSize: 13, margin: "6px 0 0", maxWidth: 640, lineHeight: 1.5 },
   dim: { color: "var(--text-dim)", fontSize: 14, maxWidth: 500 },
-  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden" },
+  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
     textAlign: "left", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em",

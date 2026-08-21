@@ -45,8 +45,8 @@ export default function ProdutosPage() {
             ? { key: "unit", label: "Unidade", type: "select", options: unitOptions, required: true }
             : { key: "unit", label: "Unidade", placeholder: "Cadastre em Cadastro → Unidades de Medida" },
           { key: "stock_quantity", label: "Estoque atual", type: "number" },
-          { key: "cost", label: "Custo (R$)", type: "number" },
-          { key: "sale_price", label: "Preço de venda (R$)", type: "number" },
+          { key: "cost", label: "Custo", type: "currency" },
+          { key: "sale_price", label: "Preço de venda", type: "currency" },
           { key: "lead_time_days", label: "Lead time (dias)", type: "number" },
         ]}
       />

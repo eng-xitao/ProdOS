@@ -212,7 +212,7 @@ const styles = {
     background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
     padding: "7px 9px", color: "var(--text)", fontSize: 13,
   },
-  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden" },
+  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
     textAlign: "left", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em",

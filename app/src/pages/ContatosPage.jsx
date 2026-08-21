@@ -172,7 +172,7 @@ const styles = {
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38,
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },
-  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden" },
+  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
     textAlign: "left", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em",

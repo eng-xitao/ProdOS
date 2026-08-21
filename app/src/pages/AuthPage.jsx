@@ -26,7 +26,7 @@ export default function AuthPage() {
       if (error) {
         setError(traduzErro(error.message));
       } else {
-        setNotice("Conta criada. Verifique seu e-mail para confirmar o acesso, depois entre com login.");
+        setNotice("Conta criada. Verifique seu e-mail para confirmar o acesso. Depois de confirmar, seu cadastro passa por uma análise do nosso time comercial antes de liberar o acesso — você recebe um aviso assim que for aprovado.");
         setMode("login");
       }
     } else if (mode === "login") {

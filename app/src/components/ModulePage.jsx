@@ -18,11 +18,12 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
   const [error, setError] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState({});
+  const [editingId, setEditingId] = useState(null); // null = criando novo; id = editando registro existente
 
   // Ao abrir o formulário de criação, pré-preenche o código
   // sequencial automático (ex: OP-0001), se configurado.
   useEffect(() => {
-    if (formOpen && autoGenerateCode && company?.id) {
+    if (formOpen && !editingId && autoGenerateCode && company?.id) {
       supabase.rpc(autoGenerateCode.rpc, { p_company_id: company.id }).then(({ data }) => {
         if (data) setForm((f) => ({ ...f, [autoGenerateCode.field]: data }));
       });
@@ -50,7 +51,7 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  async function handleCreate(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
     setError("");
@@ -61,16 +62,55 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
       return;
     }
 
-    const payload = { ...form, ...(extraValues ?? {}), company_id: company.id };
-    const { error } = await supabase.from(table).insert(payload);
-    if (error) {
-      setError(error.message);
+    if (editingId) {
+      // Edição: atualiza só os campos do formulário, sem mexer em company_id.
+      const payload = { ...form };
+      delete payload.id;
+      delete payload.company_id;
+      delete payload.created_at;
+      const { error } = await supabase.from(table).update(payload).eq("id", editingId);
+      if (error) {
+        setError(error.message);
+      } else {
+        setForm({});
+        setEditingId(null);
+        setFormOpen(false);
+        await load();
+      }
     } else {
-      setForm({});
-      setFormOpen(false);
-      await load();
+      const payload = { ...form, ...(extraValues ?? {}), company_id: company.id };
+      const { error } = await supabase.from(table).insert(payload);
+      if (error) {
+        setError(error.message);
+      } else {
+        setForm({});
+        setFormOpen(false);
+        await load();
+      }
     }
     setSaving(false);
+  }
+
+  function startEdit(row) {
+    setEditingId(row.id);
+    setForm({ ...row });
+    setFormOpen(true);
+  }
+
+  function startCreate() {
+    if (formOpen && !editingId) {
+      setFormOpen(false);
+    } else {
+      setEditingId(null);
+      setForm({});
+      setFormOpen(true);
+    }
+  }
+
+  function cancelForm() {
+    setEditingId(null);
+    setForm({});
+    setFormOpen(false);
   }
 
   async function handleDelete(id) {
@@ -98,15 +138,16 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
           <h1 style={styles.title}>{title}</h1>
           <p style={styles.subtitle}>{subtitle}</p>
         </div>
-        <button style={styles.addBtn} onClick={() => setFormOpen((v) => !v)} type="button">
-          {formOpen ? "Cancelar" : "+ Novo"}
+        <button style={styles.addBtn} onClick={startCreate} type="button">
+          {formOpen && !editingId ? "Cancelar" : "+ Novo"}
         </button>
       </header>
 
       {error && <div style={styles.error}>{error}</div>}
 
       {formOpen && (
-        <form onSubmit={handleCreate} style={styles.form} className="no-print">
+        <form onSubmit={handleSubmit} style={styles.form} className="no-print">
+          {editingId && <div style={styles.editingBanner}>Editando registro existente</div>}
           {fields.map((f) => (
             <label key={f.key} style={styles.field}>
               <span style={styles.fieldLabel}>{f.label}</span>
@@ -144,8 +185,11 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
             </label>
           ))}
           <button style={styles.submitBtn} type="submit" disabled={saving}>
-            {saving ? "Salvando..." : "Salvar"}
+            {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Salvar"}
           </button>
+          {editingId && (
+            <button style={styles.cancelEditBtn} type="button" onClick={cancelForm}>Cancelar edição</button>
+          )}
         </form>
       )}
 
@@ -155,6 +199,7 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
         <p style={styles.dim}>{emptyLabel ?? "Nenhum registro ainda."}</p>
       ) : (
         <div style={styles.tableWrap}>
+          <div style={styles.scrollX}>
           <table style={styles.table}>
             <thead>
               <tr>
@@ -198,7 +243,10 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
                       </button>
                     </td>
                   )}
-                  <td style={{ ...styles.td, textAlign: "right" }}>
+                  <td style={{ ...styles.td, textAlign: "right", whiteSpace: "nowrap" }}>
+                    <button style={styles.editBtn} onClick={() => startEdit(row)} type="button">
+                      Editar
+                    </button>
                     <button style={styles.deleteBtn} onClick={() => handleDelete(row.id)} type="button">
                       Excluir
                     </button>
@@ -207,6 +255,7 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>
@@ -288,6 +337,7 @@ const styles = {
     borderRadius: "var(--radius)",
     overflow: "hidden",
   },
+  scrollX: { overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
     textAlign: "left",
@@ -326,6 +376,35 @@ const styles = {
     borderRadius: "var(--radius)",
     padding: "5px 10px",
     fontSize: 12,
+    cursor: "pointer",
+  },
+  editBtn: {
+    background: "transparent",
+    border: "1px solid var(--line)",
+    color: "var(--amber)",
+    borderRadius: "var(--radius)",
+    padding: "5px 10px",
+    fontSize: 12,
+    cursor: "pointer",
+    marginRight: 8,
+  },
+  editingBanner: {
+    gridColumn: "1 / -1",
+    background: "rgba(232,163,61,0.12)",
+    color: "var(--amber)",
+    borderRadius: "var(--radius)",
+    padding: "6px 10px",
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  cancelEditBtn: {
+    background: "transparent",
+    border: "1px solid var(--line)",
+    color: "var(--text-dim)",
+    borderRadius: "var(--radius)",
+    padding: "10px 0",
+    fontWeight: 600,
+    fontSize: 13,
     cursor: "pointer",
   },
   error: {

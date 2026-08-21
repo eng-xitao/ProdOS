@@ -185,7 +185,7 @@ const styles = {
     background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",
   },
-  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden" },
+  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
     textAlign: "left", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em",

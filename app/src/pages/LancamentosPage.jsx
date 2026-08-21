@@ -28,7 +28,7 @@ export default function LancamentosPage() {
       fields={[
         { key: "description", label: "Descrição", placeholder: "Ex: Aluguel do galpão", required: true },
         { key: "entry_type", label: "Tipo", type: "select", required: true, options: ["receita", "despesa"] },
-        { key: "amount", label: "Valor (R$)", type: "number", required: true },
+        { key: "amount", label: "Valor", type: "currency", required: true },
         { key: "due_date", label: "Vencimento", type: "date", required: true },
         { key: "account_id", label: "Conta contábil", type: "select", options: accountOptions },
         { key: "cost_center_id", label: "Centro de Custo", type: "select", options: costCenterOptions },

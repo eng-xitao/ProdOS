@@ -351,7 +351,7 @@ const styles = {
     borderRadius: "var(--radius)", padding: "12px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer",
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },
-  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", maxWidth: 640, marginBottom: 12 },
+  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", overflowX: "auto", maxWidth: 640, marginBottom: 12 },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
     textAlign: "left", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em",

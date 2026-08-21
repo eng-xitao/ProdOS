@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import CurrencyInput from "../components/CurrencyInput";
 
 // As mesmas seções que existem no menu — o admin da plataforma
 // escolhe quais delas cada plano libera.
@@ -114,8 +115,8 @@ export default function PlanosAdminPage() {
                     <input style={styles.input} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
                   </label>
                   <label style={styles.field}>
-                    <span style={styles.fieldLabel}>Preço mensal (R$)</span>
-                    <input style={styles.input} type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+                    <span style={styles.fieldLabel}>Preço mensal</span>
+                    <CurrencyInput value={Number(form.price ?? 0)} onChange={(num) => setForm({ ...form, price: num })} />
                   </label>
                   <label style={styles.field}>
                     <span style={styles.fieldLabel}>Descrição</span>

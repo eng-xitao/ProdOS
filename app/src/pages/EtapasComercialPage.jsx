@@ -138,7 +138,7 @@ const styles = {
     whiteSpace: "nowrap",
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },
-  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", maxWidth: 480 },
+  tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", overflowX: "auto", maxWidth: 480 },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
     textAlign: "left",

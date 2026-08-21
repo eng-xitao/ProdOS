@@ -13,6 +13,7 @@ export default function ClientesPage() {
         { key: "email", label: "E-mail", type: "email" },
         { key: "phone", label: "Telefone", placeholder: "(11) 90000-0000" },
         { key: "address", label: "Endereço" },
+        { key: "credit_limit", label: "Limite de Crédito", type: "currency" },
       ]}
     />
   );

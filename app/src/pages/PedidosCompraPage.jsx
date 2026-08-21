@@ -27,7 +27,7 @@ export default function PedidosCompraPage() {
         fields={[
           { key: "code", label: "Código", placeholder: "PC-0001", required: true },
           { key: "supplier_id", label: "Fornecedor", type: "select", options: supplierOptions, required: true },
-          { key: "total_value", label: "Valor total (R$)", type: "number" },
+          { key: "total_value", label: "Valor total", type: "currency" },
           { key: "status", label: "Status", type: "select", options: ["aberto", "recebido", "cancelado"], quickEdit: true },
           { key: "order_date", label: "Data do pedido", type: "date" },
         ]}
