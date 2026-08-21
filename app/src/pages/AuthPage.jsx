@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../lib/AuthContext";
-import Logo from "../components/Logo";
+import logoFull from "../assets/logo-full.png";
 
 export default function AuthPage() {
   const { signIn, signUp, requestPasswordReset } = useAuth();
@@ -48,7 +48,7 @@ export default function AuthPage() {
     <div style={styles.wrap}>
       <div style={styles.panel}>
         <div style={styles.brand}>
-          <Logo size={32} />
+          <img src={logoFull} alt="ProdOS" style={styles.logoImg} />
         </div>
         <p style={styles.tagline}>Sistema operacional da produção — produção, estoque, vendas e financeiro num só lugar, para qualquer segmento.</p>
 
@@ -213,6 +213,7 @@ const styles = {
     alignItems: "center",
     gap: 8,
   },
+  logoImg: { width: 220, height: "auto", display: "block" },
   brandMark: { color: "var(--amber)" },
   tagline: {
     color: "var(--text-dim)",
