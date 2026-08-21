@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import { calculateINSS, calculateIRRF } from "../lib/payrollCalc";
 
 /**
- * Folha de Pagamento simplificada — os valores de INSS/IRRF são
- * informados manualmente (o sistema não calcula tabelas fiscais
- * automaticamente). Ao gerar o pagamento, cria uma despesa no
- * Financeiro vinculada ao colaborador e ao mês de referência.
+ * Folha de Pagamento com cálculo automático de INSS e IRRF pelas
+ * tabelas vigentes em 2026 (ver lib/payrollCalc.js). O usuário só
+ * informa salário base (auto-preenchido), horas extras e descontos
+ * específicos do colaborador (VT, outros) — os encargos fiscais não
+ * são mais digitados manualmente. Ao gerar o pagamento, cria uma
+ * despesa no Financeiro vinculada ao colaborador e ao mês de referência.
  */
 export default function FolhaPagamentoPage() {
   const { company } = useAuth();
@@ -18,14 +21,17 @@ export default function FolhaPagamentoPage() {
   const [employeeId, setEmployeeId] = useState("");
   const [referenceMonth, setReferenceMonth] = useState("");
   const [baseSalary, setBaseSalary] = useState("");
+  const [dependentsCount, setDependentsCount] = useState(0);
   const [overtimeAmount, setOvertimeAmount] = useState("0");
-  const [inssDiscount, setInssDiscount] = useState("0");
-  const [irrfDiscount, setIrrfDiscount] = useState("0");
   const [vtDiscount, setVtDiscount] = useState("0");
   const [otherDiscounts, setOtherDiscounts] = useState("0");
 
   async function loadEmployees() {
-    const { data } = await supabase.from("employees").select("id, full_name, base_salary").eq("status", "ativo").order("full_name");
+    const { data } = await supabase
+      .from("employees")
+      .select("id, full_name, base_salary, dependents_count")
+      .eq("status", "ativo")
+      .order("full_name");
     setEmployees(data ?? []);
   }
 
@@ -45,13 +51,24 @@ export default function FolhaPagamentoPage() {
   function handleEmployeeChange(id) {
     setEmployeeId(id);
     const employee = employees.find((e) => e.id === id);
-    if (employee) setBaseSalary(String(employee.base_salary ?? 0));
+    if (employee) {
+      setBaseSalary(String(employee.base_salary ?? 0));
+      setDependentsCount(employee.dependents_count ?? 0);
+    }
   }
 
+  // INSS e IRRF são recalculados automaticamente a cada mudança de
+  // salário base, hora extra ou nº de dependentes — não são mais
+  // campos digitáveis.
+  const grossForTax = Number(baseSalary || 0) + Number(overtimeAmount || 0);
+  const inssDiscount = useMemo(() => calculateINSS(grossForTax), [grossForTax]);
+  const irrfDiscount = useMemo(
+    () => calculateIRRF(grossForTax, inssDiscount, dependentsCount),
+    [grossForTax, inssDiscount, dependentsCount]
+  );
+
   const netSalary =
-    Number(baseSalary || 0) + Number(overtimeAmount || 0)
-    - Number(inssDiscount || 0) - Number(irrfDiscount || 0)
-    - Number(vtDiscount || 0) - Number(otherDiscounts || 0);
+    grossForTax - inssDiscount - irrfDiscount - Number(vtDiscount || 0) - Number(otherDiscounts || 0);
 
   async function generatePayroll() {
     if (!company?.id || !employeeId || !referenceMonth) return;
@@ -82,8 +99,8 @@ export default function FolhaPagamentoPage() {
       reference_month: referenceMonth,
       base_salary: Number(baseSalary || 0),
       overtime_amount: Number(overtimeAmount || 0),
-      inss_discount: Number(inssDiscount || 0),
-      irrf_discount: Number(irrfDiscount || 0),
+      inss_discount: inssDiscount,
+      irrf_discount: irrfDiscount,
       vt_discount: Number(vtDiscount || 0),
       other_discounts: Number(otherDiscounts || 0),
       net_salary: netSalary,
@@ -92,8 +109,8 @@ export default function FolhaPagamentoPage() {
 
     if (payrollError) { setError(payrollError.message); setSaving(false); return; }
 
-    setEmployeeId(""); setReferenceMonth(""); setBaseSalary(""); setOvertimeAmount("0");
-    setInssDiscount("0"); setIrrfDiscount("0"); setVtDiscount("0"); setOtherDiscounts("0");
+    setEmployeeId(""); setReferenceMonth(""); setBaseSalary(""); setDependentsCount(0);
+    setOvertimeAmount("0"); setVtDiscount("0"); setOtherDiscounts("0");
     setSaving(false);
     loadEntries();
   }
@@ -103,8 +120,9 @@ export default function FolhaPagamentoPage() {
       <header style={{ marginBottom: 20 }}>
         <h1 style={styles.title}>Folha de Pagamento</h1>
         <p style={styles.subtitle}>
-          Informe os valores de desconto (INSS, IRRF, VT) manualmente — o sistema não calcula
-          tabelas fiscais automaticamente. Ao gerar, uma despesa é criada em Financeiro → Contas a Pagar.
+          INSS e IRRF são calculados automaticamente pelas tabelas vigentes em 2026 (com o redutor
+          da Lei nº 15.270/2025). Você só informa horas extras, VT e outros descontos específicos do
+          colaborador. Ao gerar, uma despesa é criada em Financeiro → Contas a Pagar.
         </p>
       </header>
 
@@ -127,16 +145,12 @@ export default function FolhaPagamentoPage() {
           <input style={styles.input} type="number" step="any" value={baseSalary} onChange={(e) => setBaseSalary(e.target.value)} />
         </label>
         <label style={styles.field}>
+          <span style={styles.fieldLabel}>Dependentes (IRRF)</span>
+          <input style={styles.input} type="number" min="0" step="1" value={dependentsCount} onChange={(e) => setDependentsCount(Number(e.target.value || 0))} />
+        </label>
+        <label style={styles.field}>
           <span style={styles.fieldLabel}>Horas extras (R$)</span>
           <input style={styles.input} type="number" step="any" value={overtimeAmount} onChange={(e) => setOvertimeAmount(e.target.value)} />
-        </label>
-        <label style={styles.field}>
-          <span style={styles.fieldLabel}>Desconto INSS (R$)</span>
-          <input style={styles.input} type="number" step="any" value={inssDiscount} onChange={(e) => setInssDiscount(e.target.value)} />
-        </label>
-        <label style={styles.field}>
-          <span style={styles.fieldLabel}>Desconto IRRF (R$)</span>
-          <input style={styles.input} type="number" step="any" value={irrfDiscount} onChange={(e) => setIrrfDiscount(e.target.value)} />
         </label>
         <label style={styles.field}>
           <span style={styles.fieldLabel}>Desconto VT (R$)</span>
@@ -146,6 +160,17 @@ export default function FolhaPagamentoPage() {
           <span style={styles.fieldLabel}>Outros descontos (R$)</span>
           <input style={styles.input} type="number" step="any" value={otherDiscounts} onChange={(e) => setOtherDiscounts(e.target.value)} />
         </label>
+      </div>
+
+      <div style={styles.autoBox}>
+        <div style={styles.autoRow}>
+          <span style={styles.autoLabel}>Desconto INSS (automático)</span>
+          <span style={styles.autoValue}>R$ {inssDiscount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+        </div>
+        <div style={styles.autoRow}>
+          <span style={styles.autoLabel}>Desconto IRRF (automático)</span>
+          <span style={styles.autoValue}>R$ {irrfDiscount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+        </div>
       </div>
 
       <div style={styles.netSalaryBox}>
@@ -207,6 +232,14 @@ const styles = {
     background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
     padding: 20, marginTop: 20, maxWidth: 820,
   },
+  autoBox: {
+    display: "flex", flexDirection: "column", gap: 8,
+    background: "var(--panel-2)", border: "1px dashed var(--line)", borderRadius: "var(--radius)",
+    padding: "12px 20px", marginTop: 16, maxWidth: 820,
+  },
+  autoRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+  autoLabel: { fontSize: 12.5, color: "var(--text-dim)" },
+  autoValue: { fontSize: 13.5, fontWeight: 600 },
   netSalaryBox: {
     display: "flex", justifyContent: "space-between", alignItems: "center",
     background: "var(--panel-2)", border: "1px solid var(--amber)", borderRadius: "var(--radius)",

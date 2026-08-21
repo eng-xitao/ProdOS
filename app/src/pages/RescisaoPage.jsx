@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import { calculateTermination } from "../lib/payrollCalc";
 
 const TYPE_LABEL = {
   sem_justa_causa: "Sem justa causa",
@@ -11,10 +12,14 @@ const TYPE_LABEL = {
 };
 
 /**
- * Rescisão simplificada — os valores das verbas rescisórias são
- * informados manualmente (o sistema não calcula as fórmulas da
- * CLT). Ao gerar, cria a despesa no Financeiro e marca o
- * colaborador como inativo automaticamente.
+ * Rescisão com cálculo automático das verbas rescisórias (saldo de
+ * salário, férias proporcionais + 1/3, 13º proporcional, aviso
+ * prévio e multa de 40% do FGTS), incluindo o INSS/IRRF retido sobre
+ * a parcela tributável — ver lib/payrollCalc.js. Nada é mais
+ * digitado manualmente: os valores nascem de admissão, salário base
+ * e dependentes do colaborador, e do tipo de rescisão escolhido.
+ * Ao gerar, cria a despesa no Financeiro e marca o colaborador como
+ * inativo automaticamente.
  */
 export default function RescisaoPage() {
   const { company } = useAuth();
@@ -27,15 +32,13 @@ export default function RescisaoPage() {
   const [terminationDate, setTerminationDate] = useState("");
   const [terminationType, setTerminationType] = useState("");
   const [noticeType, setNoticeType] = useState("");
-  const [balanceSalary, setBalanceSalary] = useState("0");
-  const [proportionalVacation, setProportionalVacation] = useState("0");
-  const [proportional13th, setProportional13th] = useState("0");
-  const [noticeAmount, setNoticeAmount] = useState("0");
-  const [fgtsFine, setFgtsFine] = useState("0");
-  const [otherAmounts, setOtherAmounts] = useState("0");
 
   async function loadEmployees() {
-    const { data } = await supabase.from("employees").select("id, full_name").eq("status", "ativo").order("full_name");
+    const { data } = await supabase
+      .from("employees")
+      .select("id, full_name, hire_date, base_salary, dependents_count")
+      .eq("status", "ativo")
+      .order("full_name");
     setEmployees(data ?? []);
   }
 
@@ -52,16 +55,25 @@ export default function RescisaoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id]);
 
-  const totalAmount =
-    Number(balanceSalary || 0) + Number(proportionalVacation || 0) + Number(proportional13th || 0)
-    + Number(noticeAmount || 0) + Number(fgtsFine || 0) + Number(otherAmounts || 0);
+  const employee = employees.find((e) => e.id === employeeId);
+
+  // Todas as verbas nascem automaticamente da admissão + salário do
+  // colaborador, da data de desligamento e do tipo de aviso prévio.
+  const calc = useMemo(() => {
+    if (!employee || !terminationDate || !terminationType) return null;
+    return calculateTermination({
+      baseSalary: employee.base_salary,
+      hireDate: employee.hire_date,
+      terminationDate,
+      noticeType,
+      dependentsCount: employee.dependents_count ?? 0,
+    });
+  }, [employee, terminationDate, terminationType, noticeType]);
 
   async function generateTermination() {
-    if (!company?.id || !employeeId || !terminationDate || !terminationType) return;
+    if (!company?.id || !employeeId || !terminationDate || !terminationType || !calc) return;
     setSaving(true);
     setError("");
-
-    const employee = employees.find((e) => e.id === employeeId);
 
     const { data: financialEntry, error: financialError } = await supabase
       .from("financial_entries")
@@ -69,7 +81,7 @@ export default function RescisaoPage() {
         company_id: company.id,
         description: `Rescisão — ${employee?.full_name} (${TYPE_LABEL[terminationType]})`,
         entry_type: "despesa",
-        amount: totalAmount,
+        amount: calc.totalAmount,
         due_date: terminationDate,
         employee_id: employeeId,
         paid: false,
@@ -85,13 +97,13 @@ export default function RescisaoPage() {
       termination_date: terminationDate,
       termination_type: terminationType,
       notice_type: noticeType || null,
-      balance_salary: Number(balanceSalary || 0),
-      proportional_vacation: Number(proportionalVacation || 0),
-      proportional_13th: Number(proportional13th || 0),
-      notice_amount: Number(noticeAmount || 0),
-      fgts_fine: Number(fgtsFine || 0),
-      other_amounts: Number(otherAmounts || 0),
-      total_amount: totalAmount,
+      balance_salary: calc.balanceSalary,
+      proportional_vacation: calc.proportionalVacation,
+      proportional_13th: calc.proportional13th,
+      notice_amount: calc.noticeAmount,
+      fgts_fine: calc.fgtsFine,
+      other_amounts: -(calc.inssOnTaxable + calc.irrfOnTaxable), // registra o desconto de INSS/IRRF no total
+      total_amount: calc.totalAmount,
       financial_entry_id: financialEntry.id,
     });
 
@@ -100,8 +112,6 @@ export default function RescisaoPage() {
     await supabase.from("employees").update({ status: "inativo", termination_date: terminationDate }).eq("id", employeeId);
 
     setEmployeeId(""); setTerminationDate(""); setTerminationType(""); setNoticeType("");
-    setBalanceSalary("0"); setProportionalVacation("0"); setProportional13th("0");
-    setNoticeAmount("0"); setFgtsFine("0"); setOtherAmounts("0");
     setSaving(false);
     loadEmployees();
     loadTerminations();
@@ -112,8 +122,10 @@ export default function RescisaoPage() {
       <header style={{ marginBottom: 20 }}>
         <h1 style={styles.title}>Rescisão / Desligamento</h1>
         <p style={styles.subtitle}>
-          Informe as verbas rescisórias manualmente. Ao gerar, cria a despesa em Financeiro →
-          Contas a Pagar e marca o colaborador como inativo automaticamente.
+          As verbas rescisórias (saldo de salário, férias + 1/3, 13º proporcional, aviso prévio e
+          multa de 40% do FGTS) e os descontos de INSS/IRRF são calculados automaticamente a partir
+          da admissão e do salário do colaborador — nada é digitado manualmente. Ao gerar, cria a
+          despesa em Financeiro → Contas a Pagar e marca o colaborador como inativo.
         </p>
       </header>
 
@@ -147,38 +159,68 @@ export default function RescisaoPage() {
             <option value="dispensado">Dispensado</option>
           </select>
         </label>
-        <label style={styles.field}>
-          <span style={styles.fieldLabel}>Saldo de salário (R$)</span>
-          <input style={styles.input} type="number" step="any" value={balanceSalary} onChange={(e) => setBalanceSalary(e.target.value)} />
-        </label>
-        <label style={styles.field}>
-          <span style={styles.fieldLabel}>Férias proporcionais + 1/3 (R$)</span>
-          <input style={styles.input} type="number" step="any" value={proportionalVacation} onChange={(e) => setProportionalVacation(e.target.value)} />
-        </label>
-        <label style={styles.field}>
-          <span style={styles.fieldLabel}>13º proporcional (R$)</span>
-          <input style={styles.input} type="number" step="any" value={proportional13th} onChange={(e) => setProportional13th(e.target.value)} />
-        </label>
-        <label style={styles.field}>
-          <span style={styles.fieldLabel}>Aviso prévio indenizado (R$)</span>
-          <input style={styles.input} type="number" step="any" value={noticeAmount} onChange={(e) => setNoticeAmount(e.target.value)} />
-        </label>
-        <label style={styles.field}>
-          <span style={styles.fieldLabel}>Multa 40% FGTS (R$)</span>
-          <input style={styles.input} type="number" step="any" value={fgtsFine} onChange={(e) => setFgtsFine(e.target.value)} />
-        </label>
-        <label style={styles.field}>
-          <span style={styles.fieldLabel}>Outros valores (R$)</span>
-          <input style={styles.input} type="number" step="any" value={otherAmounts} onChange={(e) => setOtherAmounts(e.target.value)} />
-        </label>
       </div>
+
+      {!employee && (employeeId || terminationDate) === "" && null}
+
+      {employee && !employee.hire_date && (
+        <div style={styles.error}>
+          Este colaborador não tem data de admissão cadastrada em Cadastro → Colaboradores — sem ela
+          não é possível calcular férias, 13º e aviso prévio automaticamente. Complete o cadastro antes de continuar.
+        </div>
+      )}
+
+      {calc && (
+        <div style={styles.autoBox}>
+          <div style={styles.autoRow}>
+            <span style={styles.autoLabel}>Saldo de salário</span>
+            <span style={styles.autoValue}>R$ {calc.balanceSalary.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div style={styles.autoRow}>
+            <span style={styles.autoLabel}>Férias proporcionais + 1/3 ({calc.vacationAvos}/12)</span>
+            <span style={styles.autoValue}>R$ {calc.proportionalVacation.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div style={styles.autoRow}>
+            <span style={styles.autoLabel}>13º proporcional ({calc.thirteenthAvos}/12)</span>
+            <span style={styles.autoValue}>R$ {calc.proportional13th.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div style={styles.autoRow}>
+            <span style={styles.autoLabel}>Aviso prévio {noticeType ? `(${calc.noticeDays} dias)` : ""}</span>
+            <span style={styles.autoValue}>R$ {calc.noticeAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div style={styles.autoRow}>
+            <span style={styles.autoLabel}>Multa 40% FGTS (estimada)</span>
+            <span style={styles.autoValue}>R$ {calc.fgtsFine.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div style={{ ...styles.autoRow, borderTop: "1px solid var(--line)", paddingTop: 8, marginTop: 4 }}>
+            <span style={styles.autoLabel}>(–) INSS sobre saldo + 13º</span>
+            <span style={styles.autoValue}>R$ {calc.inssOnTaxable.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div style={styles.autoRow}>
+            <span style={styles.autoLabel}>(–) IRRF sobre saldo + 13º</span>
+            <span style={styles.autoValue}>R$ {calc.irrfOnTaxable.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+          <p style={styles.disclaimer}>
+            Estimativa pelas tabelas de INSS/IRRF vigentes em 2026 e pela regra de 8%/mês de FGTS.
+            Confira o extrato de FGTS real e valide com o contador antes de pagar — este cálculo não
+            substitui a apuração oficial da folha.
+          </p>
+        </div>
+      )}
 
       <div style={styles.totalBox}>
-        <span style={styles.totalLabel}>Total das verbas rescisórias</span>
-        <span style={styles.totalValue}>R$ {totalAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+        <span style={styles.totalLabel}>Total líquido das verbas rescisórias</span>
+        <span style={styles.totalValue}>
+          R$ {(calc?.totalAmount ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+        </span>
       </div>
 
-      <button style={styles.generateBtn} onClick={generateTermination} disabled={saving || !employeeId || !terminationDate || !terminationType} type="button">
+      <button
+        style={styles.generateBtn}
+        onClick={generateTermination}
+        disabled={saving || !employeeId || !terminationDate || !terminationType || !calc}
+        type="button"
+      >
         {saving ? "Gerando..." : "Gerar Rescisão (cria despesa e inativa colaborador)"}
       </button>
 
@@ -226,6 +268,15 @@ const styles = {
     background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
     padding: 20, marginTop: 20, maxWidth: 900,
   },
+  autoBox: {
+    display: "flex", flexDirection: "column", gap: 8,
+    background: "var(--panel-2)", border: "1px dashed var(--line)", borderRadius: "var(--radius)",
+    padding: "16px 20px", marginTop: 16, maxWidth: 900,
+  },
+  autoRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+  autoLabel: { fontSize: 12.5, color: "var(--text-dim)" },
+  autoValue: { fontSize: 13.5, fontWeight: 600 },
+  disclaimer: { fontSize: 11.5, color: "var(--text-dim)", lineHeight: 1.5, marginTop: 8, marginBottom: 0 },
   totalBox: {
     display: "flex", justifyContent: "space-between", alignItems: "center",
     background: "var(--panel-2)", border: "1px solid var(--amber)", borderRadius: "var(--radius)",
