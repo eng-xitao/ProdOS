@@ -37,6 +37,7 @@ const NAV_SECTIONS = [
       { to: "/etapas-comercial", label: "Etapas", icon: "→" },
       { to: "/orcamentos", label: "Orçamentos", icon: "▤" },
       { to: "/pedidos-venda", label: "Pedidos de Venda", icon: "◆" },
+      { to: "/sac", label: "SAC — Atendimento", icon: "◈", planFeature: "CRM" },
     ],
   },
   {
@@ -87,12 +88,6 @@ const NAV_SECTIONS = [
       { to: "/decimo-terceiro", label: "13º Salário", icon: "◑" },
       { to: "/rescisao", label: "Rescisão", icon: "✕" },
       { to: "/beneficios", label: "Benefícios", icon: "◈" },
-    ],
-  },
-  {
-    label: "CRM",
-    items: [
-      { to: "/sac", label: "SAC — Atendimento", icon: "◈" },
     ],
   },
   {
@@ -157,11 +152,13 @@ export default function Layout() {
   // Descobre se a rota atual pertence a uma seção que o papel do
   // usuário não tem permissão de ver — bloqueia mesmo por URL direta.
   const currentSection = NAV_SECTIONS.find((s) => s.items.some((i) => i.to === location.pathname));
+  const currentItem = currentSection?.items.find((i) => i.to === location.pathname);
   const isBlocked = currentSection
     ? currentSection.platformAdminOnly
       ? !profile?.is_platform_admin
       : !hasAccess(profile?.role, currentSection.label) ||
-        (currentSection.label !== "Configurações" && !isPlanUnrestricted && !planFeatures.includes(currentSection.label))
+        (currentSection.label !== "Configurações" && !isPlanUnrestricted && !planFeatures.includes(currentSection.label)) ||
+        (currentItem?.planFeature && !isPlanUnrestricted && !planFeatures.includes(currentItem.planFeature))
     : false;
 
   // Trava o sistema inteiro (exceto a própria tela de Assinatura)
@@ -230,7 +227,13 @@ export default function Layout() {
 
                 {isOpen && (
                   <div style={styles.sectionItems}>
-                    {section.items.map((item) => (
+                    {section.items
+                      .filter((item) => {
+                        if (!item.planFeature) return true;
+                        if (isPlanUnrestricted) return true;
+                        return planFeatures.includes(item.planFeature);
+                      })
+                      .map((item) => (
                       <NavLink
                         key={item.to}
                         to={item.to}
