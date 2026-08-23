@@ -118,6 +118,7 @@ const NAV_SECTIONS = [
       { to: "/usuarios", label: "Usuários", icon: "◎" },
       { to: "/assinatura", label: "Assinatura", icon: "◈" },
       { to: "/suporte", label: "Suporte", icon: "?" },
+      { to: "/meus-dados-lgpd", label: "Meus Dados (LGPD)", icon: "🔒" },
     ],
   },
   {
@@ -129,6 +130,7 @@ const NAV_SECTIONS = [
       { to: "/admin/planos", label: "Planos", icon: "⚙", platformRoles: ["super_admin"] },
       { to: "/admin/administradores", label: "Administradores", icon: "👤", platformRoles: ["super_admin"] },
       { to: "/admin/suporte", label: "Suporte", icon: "?", platformRoles: ["super_admin", "suporte"] },
+      { to: "/admin/lgpd", label: "Solicitações LGPD", icon: "🔒", platformRoles: ["super_admin", "comercial"] },
     ],
   },
 ];

@@ -43,7 +43,11 @@ import AprovacoesPage from "./pages/AprovacoesPage";
 import AdminEmpresasPage from "./pages/AdminEmpresasPage";
 import AdminUsuariosPage from "./pages/AdminUsuariosPage";
 import AdminSuportePage from "./pages/AdminSuportePage";
+import AdminLgpdPage from "./pages/AdminLgpdPage";
 import SuportePage from "./pages/SuportePage";
+import MeusDadosLGPDPage from "./pages/MeusDadosLGPDPage";
+import PrivacidadePage from "./pages/PrivacidadePage";
+import TermosPage from "./pages/TermosPage";
 import PendingApprovalPage from "./pages/PendingApprovalPage";
 import AssinaturaPage from "./pages/AssinaturaPage";
 import PlanoContasPage from "./pages/PlanoContasPage";
@@ -136,7 +140,9 @@ function PrivateArea() {
         <Route path="/admin/empresas" element={<AdminEmpresasPage />} />
         <Route path="/admin/administradores" element={<AdminUsuariosPage />} />
         <Route path="/admin/suporte" element={<AdminSuportePage />} />
+        <Route path="/admin/lgpd" element={<AdminLgpdPage />} />
         <Route path="/suporte" element={<SuportePage />} />
+        <Route path="/meus-dados-lgpd" element={<MeusDadosLGPDPage />} />
         <Route path="/admin/planos" element={<PlanosAdminPage />} />
         <Route path="/admin/aprovacoes" element={<AprovacoesPage />} />
         <Route path="/assinatura" element={<AssinaturaPage />} />
@@ -167,11 +173,10 @@ function RootRoutes() {
 
   return (
     <Routes>
-      <Route
-        path="/login"
-        element={!loading && session ? <Navigate to="/" replace /> : <AuthPage />}
-      />
+      <Route path="/login" element={!loading && session ? <Navigate to="/" replace /> : <AuthPage />} />
       <Route path="/reset-senha" element={<ResetSenhaPage />} />
+      <Route path="/privacidade" element={<PrivacidadePage />} />
+      <Route path="/termos" element={<TermosPage />} />
       <Route path="/*" element={<PrivateArea />} />
     </Routes>
   );
