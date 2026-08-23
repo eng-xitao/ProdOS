@@ -1,33 +1,31 @@
-// Edge Function: asaas-webhook
-// Recebe as notificações de pagamento do Asaas e atualiza o status
-// de assinatura da empresa correspondente (ativa, atrasada, cancelada).
-//
-// Como implantar: Supabase → Edge Functions → Create a new function
-// → nome exato "asaas-webhook" → cole este código → Deploy.
-// Depois, no painel do Asaas → Integrações → Webhooks, cadastre a URL
-// pública dessa função (algo tipo https://SEU-PROJETO.supabase.co/functions/v1/asaas-webhook)
-// e copie o "Token de autenticação" gerado — configure ele aqui como
-// segredo ASAAS_WEBHOOK_TOKEN.
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ASAAS_WEBHOOK_TOKEN = Deno.env.get("ASAAS_WEBHOOK_TOKEN");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
-// Usa a chave de serviço (não a anon key) porque essa função precisa
-// atualizar QUALQUER empresa, não só a de um usuário logado — o
-// Supabase já disponibiliza essas variáveis automaticamente.
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
+async function sendOverdueEmail(companyId: string) {
+  const { data: company } = await supabase.from("companies").select("name, email").eq("id", companyId).single();
+  if (!company?.email) return;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "ProdOS <naoresponda@prodos.app.br>",
+      to: [company.email],
+      subject: "Pagamento em atraso - ProdOS",
+      html: `<p>Ola, ${company.name}!</p><p>Identificamos que o pagamento da sua assinatura do ProdOS venceu e ainda nao foi confirmado.</p><p>Regularize em <a href="https://app.prodos.app.br/assinatura">app.prodos.app.br/assinatura</a> para evitar a suspensao do acesso.</p>`,
+    }),
+  });
+}
+
 serve(async (req) => {
   try {
-    // Confere o token de segurança do webhook. IMPORTANTE: confirme no
-    // painel do Asaas qual o nome exato do header usado pra enviar esse
-    // token (pode ser "asaas-access-token" ou outro nome parecido) —
-    // ajuste a linha abaixo se necessário depois de testar.
     const receivedToken = req.headers.get("asaas-access-token");
     if (ASAAS_WEBHOOK_TOKEN && receivedToken !== ASAAS_WEBHOOK_TOKEN) {
       return new Response("Unauthorized", { status: 401 });
@@ -37,8 +35,6 @@ serve(async (req) => {
     const eventType = payload.event;
     const payment = payload.payment;
 
-    // Eventos que não são de cobrança (ex: transferência, nota fiscal)
-    // não têm o que fazer aqui — só confirma recebimento.
     if (!payment) {
       return new Response("ok", { status: 200 });
     }
@@ -55,7 +51,6 @@ serve(async (req) => {
     }
 
     if (companyId) {
-      // Guarda o evento no histórico, sempre — mesmo que não mude o status
       await supabase.from("billing_events").insert({
         company_id: companyId,
         event_type: eventType,
@@ -65,6 +60,10 @@ serve(async (req) => {
 
       if (newStatus) {
         await supabase.from("companies").update({ subscription_status: newStatus }).eq("id", companyId);
+      }
+
+      if (eventType === "PAYMENT_OVERDUE") {
+        await sendOverdueEmail(companyId);
       }
     }
 

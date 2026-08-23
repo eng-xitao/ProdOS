@@ -128,6 +128,7 @@ const NAV_SECTIONS = [
       { to: "/admin/empresas", label: "Empresas", icon: "🏢" },
       { to: "/admin/aprovacoes", label: "Aprovações", icon: "✓" },
       { to: "/admin/planos", label: "Planos", icon: "⚙" },
+      { to: "/admin/administradores", label: "Administradores", icon: "👤" },
     ],
   },
 ];
