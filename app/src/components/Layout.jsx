@@ -119,6 +119,7 @@ const NAV_SECTIONS = [
       { to: "/empresa", label: "Dados da Empresa", icon: "▣" },
       { to: "/usuarios", label: "Usuários", icon: "◎" },
       { to: "/assinatura", label: "Assinatura", icon: "◈" },
+      { to: "/suporte", label: "Suporte", icon: "?" },
     ],
   },
   {
@@ -129,6 +130,7 @@ const NAV_SECTIONS = [
       { to: "/admin/aprovacoes", label: "Aprovações", icon: "✓" },
       { to: "/admin/planos", label: "Planos", icon: "⚙" },
       { to: "/admin/administradores", label: "Administradores", icon: "👤" },
+      { to: "/admin/suporte", label: "Suporte", icon: "?" },
     ],
   },
 ];

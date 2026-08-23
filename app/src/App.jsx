@@ -39,6 +39,8 @@ import PlanosAdminPage from "./pages/PlanosAdminPage";
 import AprovacoesPage from "./pages/AprovacoesPage";
 import AdminEmpresasPage from "./pages/AdminEmpresasPage";
 import AdminUsuariosPage from "./pages/AdminUsuariosPage";
+import AdminSuportePage from "./pages/AdminSuportePage";
+import SuportePage from "./pages/SuportePage";
 import PendingApprovalPage from "./pages/PendingApprovalPage";
 import AssinaturaPage from "./pages/AssinaturaPage";
 import PlanoContasPage from "./pages/PlanoContasPage";
@@ -127,6 +129,8 @@ function PrivateArea() {
         <Route path="/usuarios" element={<UsuariosPage />} />
         <Route path="/admin/empresas" element={<AdminEmpresasPage />} />
         <Route path="/admin/administradores" element={<AdminUsuariosPage />} />
+        <Route path="/admin/suporte" element={<AdminSuportePage />} />
+        <Route path="/suporte" element={<SuportePage />} />
         <Route path="/admin/planos" element={<PlanosAdminPage />} />
         <Route path="/admin/aprovacoes" element={<AprovacoesPage />} />
         <Route path="/assinatura" element={<AssinaturaPage />} />
