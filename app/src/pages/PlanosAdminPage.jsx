@@ -79,11 +79,11 @@ export default function PlanosAdminPage() {
     loadPlans();
   }
 
-  if (!profile?.is_platform_admin) {
+  if (!profile?.is_platform_admin || profile?.platform_role !== "super_admin") {
     return (
       <div style={styles.blocked}>
         <h1 style={styles.blockedTitle}>Acesso não permitido</h1>
-        <p style={styles.blockedText}>Esta área é exclusiva do Administrador da Plataforma.</p>
+        <p style={styles.blockedText}>Esta área é exclusiva do super admin da plataforma.</p>
       </div>
     );
   }

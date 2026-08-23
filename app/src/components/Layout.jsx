@@ -121,11 +121,11 @@ const NAV_SECTIONS = [
     label: "Administração",
     platformAdminOnly: true,
     items: [
-      { to: "/admin/empresas", label: "Empresas", icon: "🏢" },
-      { to: "/admin/aprovacoes", label: "Aprovações", icon: "✓" },
-      { to: "/admin/planos", label: "Planos", icon: "⚙" },
-      { to: "/admin/administradores", label: "Administradores", icon: "👤" },
-      { to: "/admin/suporte", label: "Suporte", icon: "?" },
+      { to: "/admin/empresas", label: "Empresas", icon: "🏢", platformRoles: ["super_admin", "comercial", "financeiro"] },
+      { to: "/admin/aprovacoes", label: "Aprovações", icon: "✓", platformRoles: ["super_admin", "comercial"] },
+      { to: "/admin/planos", label: "Planos", icon: "⚙", platformRoles: ["super_admin"] },
+      { to: "/admin/administradores", label: "Administradores", icon: "👤", platformRoles: ["super_admin"] },
+      { to: "/admin/suporte", label: "Suporte", icon: "?", platformRoles: ["super_admin", "suporte"] },
     ],
   },
 ];
@@ -155,7 +155,7 @@ export default function Layout() {
   const currentItem = currentSection?.items.find((i) => i.to === location.pathname);
   const isBlocked = currentSection
     ? currentSection.platformAdminOnly
-      ? !profile?.is_platform_admin
+      ? !profile?.is_platform_admin || (currentItem?.platformRoles && !currentItem.platformRoles.includes(profile?.platform_role))
       : !hasAccess(profile?.role, currentSection.label) ||
         (currentSection.label !== "Configurações" && !isPlanUnrestricted && !planFeatures.includes(currentSection.label)) ||
         (currentItem?.planFeature && !isPlanUnrestricted && !planFeatures.includes(currentItem.planFeature))
@@ -229,6 +229,7 @@ export default function Layout() {
                   <div style={styles.sectionItems}>
                     {section.items
                       .filter((item) => {
+                        if (item.platformRoles && !item.platformRoles.includes(profile?.platform_role)) return false;
                         if (!item.planFeature) return true;
                         if (isPlanUnrestricted) return true;
                         return planFeatures.includes(item.planFeature);

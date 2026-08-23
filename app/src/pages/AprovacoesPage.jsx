@@ -35,7 +35,7 @@ export default function AprovacoesPage() {
     load();
   }
 
-  if (!profile?.is_platform_admin) return null;
+  if (!profile?.is_platform_admin || !["super_admin","comercial"].includes(profile?.platform_role)) return null;
 
   const filtered = filter === "todos" ? companies : companies.filter((c) => c.approval_status === filter);
 

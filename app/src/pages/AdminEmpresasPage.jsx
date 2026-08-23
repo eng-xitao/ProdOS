@@ -133,7 +133,7 @@ export default function AdminEmpresasPage() {
     return true;
   });
 
-  if (!profile?.is_platform_admin) return null;
+  if (!profile?.is_platform_admin || !["super_admin","comercial","financeiro"].includes(profile?.platform_role)) return null;
 
   return (
     <div>

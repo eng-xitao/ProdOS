@@ -68,7 +68,7 @@ export default function AdminSuportePage() {
     setChangingStatus(false);
   }
 
-  if (!profile?.is_platform_admin) return null;
+  if (!profile?.is_platform_admin || !["super_admin","suporte"].includes(profile?.platform_role)) return null;
 
   const filtered = filter === "todos" ? tickets : tickets.filter((t) => t.status === filter);
   const selectedTicket = tickets.find((t) => t.id === selectedId);
