@@ -28,6 +28,9 @@ const NAV_SECTIONS = [
       { to: "/apontamento-producao", label: "Apontamento de Produção", icon: "◷" },
       { to: "/mrp/materiais", label: "Necessidade de Materiais", icon: "▼" },
       { to: "/mrp/capacidade", label: "Plano Mestre de Produção", icon: "▲" },
+      { to: "/qualidade/checklist", label: "Checklist de Qualidade", icon: "☑" },
+      { to: "/qualidade/inspecao", label: "Inspeção de Qualidade", icon: "☑" },
+      { to: "/qualidade/nao-conformidades", label: "Não Conformidades", icon: "⚠" },
     ],
   },
   {

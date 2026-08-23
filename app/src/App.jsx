@@ -19,6 +19,9 @@ import ProducaoPage from "./pages/ProducaoPage";
 import ApontamentoProducaoPage from "./pages/ApontamentoProducaoPage";
 import NecessidadeMateriaisPage from "./pages/NecessidadeMateriaisPage";
 import CapacidadePage from "./pages/CapacidadePage";
+import QualidadeChecklistPage from "./pages/QualidadeChecklistPage";
+import QualidadeInspecaoPage from "./pages/QualidadeInspecaoPage";
+import QualidadeNaoConformidadesPage from "./pages/QualidadeNaoConformidadesPage";
 import EstoquePage from "./pages/EstoquePage";
 import RecebimentoProducaoPage from "./pages/RecebimentoProducaoPage";
 import ExpedicaoPage from "./pages/ExpedicaoPage";
@@ -104,6 +107,9 @@ function PrivateArea() {
         <Route path="/apontamento-producao" element={<ApontamentoProducaoPage />} />
         <Route path="/mrp/materiais" element={<NecessidadeMateriaisPage />} />
         <Route path="/mrp/capacidade" element={<CapacidadePage />} />
+        <Route path="/qualidade/checklist" element={<QualidadeChecklistPage />} />
+        <Route path="/qualidade/inspecao" element={<QualidadeInspecaoPage />} />
+        <Route path="/qualidade/nao-conformidades" element={<QualidadeNaoConformidadesPage />} />
         <Route path="/estoque" element={<EstoquePage />} />
         <Route path="/recebimento-producao" element={<RecebimentoProducaoPage />} />
         <Route path="/expedicao" element={<ExpedicaoPage />} />
