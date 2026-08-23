@@ -21,6 +21,8 @@ export default function AssinaturaPage() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingPlanId, setProcessingPlanId] = useState("");
+  const [confirmingPlanId, setConfirmingPlanId] = useState("");
+  const [canceling, setCanceling] = useState(false);
   const [error, setError] = useState("");
 
   async function loadPlans() {
@@ -45,8 +47,11 @@ export default function AssinaturaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function subscribe(plan) {
+  // "Assinar" nunca gera a cobrança na hora — primeiro pede confirmação
+  // (segundo clique), pra ninguém criar uma cobrança real sem querer.
+  async function confirmAndSubscribe(plan) {
     setError("");
+    setConfirmingPlanId("");
     setProcessingPlanId(plan.id);
 
     const { data, error } = await supabase.functions.invoke("create-subscription", {
@@ -60,6 +65,23 @@ export default function AssinaturaPage() {
     }
 
     window.location.href = data.checkoutUrl;
+  }
+
+  async function cancelSubscription() {
+    if (!window.confirm("Cancelar sua assinatura? O acesso aos recursos do plano continua até o fim do período já pago.")) return;
+    setCanceling(true);
+    setError("");
+
+    const { data, error } = await supabase.functions.invoke("cancel-subscription", {
+      body: { companyId: profile.company_id },
+    });
+
+    if (error || data?.error) {
+      setError("Não foi possível cancelar a assinatura agora. Tente novamente em instantes.");
+    } else {
+      await refreshCompany();
+    }
+    setCanceling(false);
   }
 
   const currentPlanId = company?.plan_id;
@@ -86,6 +108,11 @@ export default function AssinaturaPage() {
             {trialDaysLeft > 0 ? `${trialDaysLeft} dia${trialDaysLeft !== 1 ? "s" : ""} restante${trialDaysLeft !== 1 ? "s" : ""} de teste` : "Teste encerrado"}
           </div>
         )}
+        {company?.subscription_status === "active" && (
+          <button style={styles.cancelBtn} onClick={cancelSubscription} disabled={canceling} type="button">
+            {canceling ? "Cancelando..." : "Cancelar assinatura"}
+          </button>
+        )}
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
@@ -108,14 +135,32 @@ export default function AssinaturaPage() {
                 <div style={styles.featuresList}>
                   {(plan.features ?? []).map((f) => <span key={f} style={styles.featureTag}>{f}</span>)}
                 </div>
-                <button
-                  style={{ ...styles.subscribeBtn, ...(isCurrent ? styles.subscribeBtnDisabled : {}) }}
-                  onClick={() => subscribe(plan)}
-                  disabled={isCurrent || processingPlanId === plan.id}
-                  type="button"
-                >
-                  {isCurrent ? "Plano atual" : processingPlanId === plan.id ? "Gerando link..." : "Assinar este plano"}
-                </button>
+                {confirmingPlanId === plan.id ? (
+                  <div style={styles.confirmBox}>
+                    <p style={styles.confirmText}>
+                      Confirma assinar o <strong>{plan.name}</strong> por{" "}
+                      <strong>R$ {Number(plan.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</strong>?
+                      Isso gera uma cobrança real no Asaas.
+                    </p>
+                    <div style={styles.confirmActions}>
+                      <button style={styles.confirmYesBtn} onClick={() => confirmAndSubscribe(plan)} type="button">
+                        Sim, assinar
+                      </button>
+                      <button style={styles.confirmNoBtn} onClick={() => setConfirmingPlanId("")} type="button">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    style={{ ...styles.subscribeBtn, ...(isCurrent ? styles.subscribeBtnDisabled : {}) }}
+                    onClick={() => setConfirmingPlanId(plan.id)}
+                    disabled={isCurrent || processingPlanId === plan.id}
+                    type="button"
+                  >
+                    {isCurrent ? "Plano atual" : processingPlanId === plan.id ? "Gerando link..." : "Assinar este plano"}
+                  </button>
+                )}
               </div>
             );
           })}
@@ -137,6 +182,10 @@ const styles = {
   statusLabel: { fontSize: 11, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.04em" },
   statusValue: { fontSize: 18, fontWeight: 700, marginTop: 4 },
   trialInfo: { fontSize: 13, color: "var(--text-dim)" },
+  cancelBtn: {
+    background: "transparent", border: "1px solid var(--red)", color: "var(--red)",
+    borderRadius: "var(--radius)", padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer",
+  },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 },
   card: {
     background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
@@ -161,6 +210,19 @@ const styles = {
     padding: "11px 0", fontWeight: 700, fontSize: 13.5, cursor: "pointer",
   },
   subscribeBtnDisabled: { background: "var(--panel-2)", color: "var(--text-dim)", cursor: "default" },
+  confirmBox: {
+    background: "var(--panel-2)", border: "1px solid var(--amber)", borderRadius: "var(--radius)", padding: 12,
+  },
+  confirmText: { fontSize: 12.5, lineHeight: 1.5, margin: "0 0 10px" },
+  confirmActions: { display: "flex", gap: 8 },
+  confirmYesBtn: {
+    flex: 1, background: "var(--amber)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
+    padding: "9px 0", fontWeight: 700, fontSize: 12.5, cursor: "pointer",
+  },
+  confirmNoBtn: {
+    flex: 1, background: "transparent", border: "1px solid var(--line)", color: "var(--text-dim)", borderRadius: "var(--radius)",
+    padding: "9px 0", fontWeight: 600, fontSize: 12.5, cursor: "pointer",
+  },
   error: {
     background: "rgba(217,105,95,0.12)", border: "1px solid var(--red)", color: "var(--red)",
     borderRadius: "var(--radius)", padding: "10px 12px", fontSize: 13, marginBottom: 16, maxWidth: 640,
