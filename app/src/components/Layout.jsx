@@ -125,6 +125,7 @@ const NAV_SECTIONS = [
     label: "Administração",
     platformAdminOnly: true,
     items: [
+      { to: "/admin/empresas", label: "Empresas", icon: "🏢" },
       { to: "/admin/aprovacoes", label: "Aprovações", icon: "✓" },
       { to: "/admin/planos", label: "Planos", icon: "⚙" },
     ],
