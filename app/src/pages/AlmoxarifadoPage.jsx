@@ -11,10 +11,13 @@ const MATERIAL_TYPE_LABEL = {
   componente: "Componente",
 };
 
+const EXPIRY_WARNING_DAYS = 30;
+
 /**
  * Mostra e ajusta a quantidade de cada produto em cada almoxarifado
- * (local de estoque). Um mesmo produto pode ter quantidades
- * diferentes em locais diferentes (ex: insumos vs produtos acabados).
+ * (local de estoque). Entradas podem registrar lote e validade — útil
+ * pra matéria-prima/insumo que vence — e saídas descontam de um lote
+ * específico. Lotes vencendo em até 30 dias aparecem em destaque.
  */
 export default function AlmoxarifadoPage() {
   const { company } = useAuth();
@@ -22,12 +25,17 @@ export default function AlmoxarifadoPage() {
   const [products, setProducts] = useState([]);
   const [warehouseId, setWarehouseId] = useState("");
   const [levels, setLevels] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [expiringBatches, setExpiringBatches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [adjustProductId, setAdjustProductId] = useState("");
   const [adjustType, setAdjustType] = useState("entrada");
   const [adjustQty, setAdjustQty] = useState("");
+  const [adjustBatchNumber, setAdjustBatchNumber] = useState("");
+  const [adjustExpiryDate, setAdjustExpiryDate] = useState("");
+  const [adjustBatchId, setAdjustBatchId] = useState(""); // pra saída: de qual lote descontar
 
   const [showNewItemForm, setShowNewItemForm] = useState(false);
   const [newItemSku, setNewItemSku] = useState("");
@@ -47,13 +55,27 @@ export default function AlmoxarifadoPage() {
     setProducts(data ?? []);
   }
 
+  async function loadExpiringBatches() {
+    const limit = new Date();
+    limit.setDate(limit.getDate() + EXPIRY_WARNING_DAYS);
+    const { data } = await supabase
+      .from("stock_batches")
+      .select("id, batch_number, expiry_date, quantity, products:product_id (sku, name, unit), warehouses:warehouse_id (name)")
+      .not("expiry_date", "is", null)
+      .lte("expiry_date", limit.toISOString().slice(0, 10))
+      .gt("quantity", 0)
+      .order("expiry_date", { ascending: true });
+    setExpiringBatches(data ?? []);
+  }
+
   async function loadLevels(wid) {
-    if (!wid) { setLevels([]); return; }
+    if (!wid) { setLevels([]); setBatches([]); return; }
     setLoading(true);
 
-    const [{ data: allProducts, error: productsError }, { data: existingLevels, error: levelsError }] = await Promise.all([
+    const [{ data: allProducts, error: productsError }, { data: existingLevels, error: levelsError }, { data: batchesData }] = await Promise.all([
       supabase.from("products").select("id, sku, name, unit").order("name"),
       supabase.from("stock_levels").select("id, quantity, product_id").eq("warehouse_id", wid),
+      supabase.from("stock_batches").select("id, product_id, batch_number, expiry_date, quantity").eq("warehouse_id", wid).gt("quantity", 0).order("expiry_date", { ascending: true, nullsFirst: false }),
     ]);
 
     if (productsError) setError(productsError.message);
@@ -69,23 +91,32 @@ export default function AlmoxarifadoPage() {
     }));
 
     setLevels(merged);
+    setBatches(batchesData ?? []);
     setLoading(false);
   }
 
   useEffect(() => {
-    if (company?.id) { loadWarehouses(); loadProducts(); }
+    if (company?.id) { loadWarehouses(); loadProducts(); loadExpiringBatches(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id]);
 
   useEffect(() => {
     loadLevels(warehouseId);
+    setAdjustBatchId("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [warehouseId]);
+
+  const batchesForProduct = batches.filter((b) => b.product_id === adjustProductId);
 
   async function applyAdjustment(e) {
     e.preventDefault();
     setError("");
     if (!company?.id || !warehouseId || !adjustProductId || !adjustQty) return;
+
+    if (adjustType === "saida" && batchesForProduct.length > 0 && !adjustBatchId) {
+      setError("Esse produto tem lotes registrados — escolha de qual lote a saída vai descontar.");
+      return;
+    }
 
     const existing = levels.find((l) => l.product_id === adjustProductId);
     const hasRealRow = existing && !String(existing.id).startsWith("empty-");
@@ -102,6 +133,18 @@ export default function AlmoxarifadoPage() {
       if (error) setError(error.message);
     }
 
+    // Lote: entrada com nº de lote cria um lote novo; saída desconta do lote escolhido
+    if (adjustType === "entrada" && adjustBatchNumber) {
+      await supabase.from("stock_batches").insert({
+        company_id: company.id, product_id: adjustProductId, warehouse_id: warehouseId,
+        batch_number: adjustBatchNumber, expiry_date: adjustExpiryDate || null, quantity: Number(adjustQty),
+      });
+    } else if (adjustType === "saida" && adjustBatchId) {
+      const batch = batches.find((b) => b.id === adjustBatchId);
+      const newBatchQty = Math.max(0, Number(batch?.quantity ?? 0) - Number(adjustQty));
+      await supabase.from("stock_batches").update({ quantity: newBatchQty }).eq("id", adjustBatchId);
+    }
+
     // Mantém o total do Produto (usado pelo MRP) coerente com o ajuste
     const { data: product } = await supabase.from("products").select("stock_quantity").eq("id", adjustProductId).single();
     const newTotal = Math.max(0, Number(product?.stock_quantity ?? 0) + delta);
@@ -114,11 +157,12 @@ export default function AlmoxarifadoPage() {
       movement_type: adjustType,
       quantity: Number(adjustQty),
       reference_type: "ajuste",
-      notes: "Ajuste manual",
+      notes: adjustBatchNumber ? `Lote ${adjustBatchNumber}` : "Ajuste manual",
     });
 
-    setAdjustProductId(""); setAdjustQty("");
+    setAdjustProductId(""); setAdjustQty(""); setAdjustBatchNumber(""); setAdjustExpiryDate(""); setAdjustBatchId("");
     loadLevels(warehouseId);
+    loadExpiringBatches();
   }
 
   async function createMaterialItem(e) {
@@ -162,10 +206,30 @@ export default function AlmoxarifadoPage() {
       <header style={{ marginBottom: 20 }}>
         <h1 style={styles.title}>Almoxarifado</h1>
         <p style={styles.subtitle}>
-          Quantidade de cada produto em cada local de estoque. Um mesmo produto pode ter
-          quantidades diferentes em almoxarifados diferentes.
+          Quantidade de cada produto em cada local de estoque. Registre lote e validade na entrada
+          de matéria-prima/insumo que vence — o sistema avisa quando estiver perto de vencer.
         </p>
       </header>
+
+      {expiringBatches.length > 0 && (
+        <div style={styles.expiryBox}>
+          <span style={styles.expiryTitle}>⚠ Lotes vencendo nos próximos {EXPIRY_WARNING_DAYS} dias</span>
+          <div style={styles.expiryList}>
+            {expiringBatches.map((b) => {
+              const isPast = new Date(b.expiry_date + "T00:00:00") < new Date();
+              return (
+                <div key={b.id} style={styles.expiryRow}>
+                  <span>{b.products?.sku} — {b.products?.name} (lote {b.batch_number})</span>
+                  <span>{Number(b.quantity).toLocaleString("pt-BR")} {b.products?.unit} · {b.warehouses?.name}</span>
+                  <span style={{ color: isPast ? "var(--red)" : "var(--amber)", fontWeight: 700 }}>
+                    {isPast ? "Vencido" : "Vence"} {new Date(b.expiry_date + "T00:00:00").toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <button style={styles.addItemBtn} onClick={() => setShowNewItemForm((v) => !v)} type="button">
         {showNewItemForm ? "Cancelar" : "+ Cadastrar matéria-prima / insumo / máquina"}
@@ -216,7 +280,7 @@ export default function AlmoxarifadoPage() {
           <form onSubmit={applyAdjustment} style={styles.form}>
             <label style={styles.field}>
               <span style={styles.fieldLabel}>Produto</span>
-              <select style={styles.input} value={adjustProductId} onChange={(e) => setAdjustProductId(e.target.value)} required>
+              <select style={styles.input} value={adjustProductId} onChange={(e) => { setAdjustProductId(e.target.value); setAdjustBatchId(""); }} required>
                 <option value="">Selecione...</option>
                 {products.map((p) => <option key={p.id} value={p.id}>{p.sku} — {p.name}</option>)}
               </select>
@@ -232,6 +296,34 @@ export default function AlmoxarifadoPage() {
               <span style={styles.fieldLabel}>Quantidade</span>
               <input style={styles.input} type="number" step="any" value={adjustQty} onChange={(e) => setAdjustQty(e.target.value)} required />
             </label>
+
+            {adjustType === "entrada" && (
+              <>
+                <label style={styles.field}>
+                  <span style={styles.fieldLabel}>Nº do lote (opcional)</span>
+                  <input style={styles.input} value={adjustBatchNumber} onChange={(e) => setAdjustBatchNumber(e.target.value)} placeholder="Ex: L-2026-08" />
+                </label>
+                <label style={styles.field}>
+                  <span style={styles.fieldLabel}>Validade (opcional)</span>
+                  <input style={styles.input} type="date" value={adjustExpiryDate} onChange={(e) => setAdjustExpiryDate(e.target.value)} disabled={!adjustBatchNumber} />
+                </label>
+              </>
+            )}
+
+            {adjustType === "saida" && batchesForProduct.length > 0 && (
+              <label style={styles.field}>
+                <span style={styles.fieldLabel}>De qual lote?</span>
+                <select style={styles.input} value={adjustBatchId} onChange={(e) => setAdjustBatchId(e.target.value)} required>
+                  <option value="">Selecione...</option>
+                  {batchesForProduct.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.batch_number} — {Number(b.quantity).toLocaleString("pt-BR")} disp.{b.expiry_date ? ` — vence ${new Date(b.expiry_date + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             <button style={styles.addBtn} type="submit">Aplicar</button>
           </form>
 
@@ -271,6 +363,13 @@ const styles = {
     borderRadius: "var(--radius)", padding: "14px 16px", fontSize: 13.5, lineHeight: 1.5, maxWidth: 620,
   },
   link: { color: "var(--amber)", fontWeight: 600 },
+  expiryBox: {
+    background: "rgba(232,163,61,0.08)", border: "1px solid var(--amber)", borderRadius: "var(--radius)",
+    padding: "12px 16px", marginBottom: 20, maxWidth: 720,
+  },
+  expiryTitle: { fontSize: 12.5, fontWeight: 700, color: "var(--amber)" },
+  expiryList: { display: "flex", flexDirection: "column", gap: 6, marginTop: 8 },
+  expiryRow: { display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12.5, flexWrap: "wrap" },
   field: { display: "flex", flexDirection: "column", gap: 6, marginTop: 16, marginBottom: 16, maxWidth: 320 },
   fieldLabel: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" },
   input: {
@@ -278,9 +377,9 @@ const styles = {
     padding: "9px 10px", color: "var(--text)", fontSize: 13,
   },
   form: {
-    display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 12, alignItems: "end",
+    display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, alignItems: "end",
     background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
-    padding: 16, marginBottom: 18, maxWidth: 720,
+    padding: 16, marginBottom: 18, maxWidth: 860,
   },
   addBtn: {
     background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
