@@ -53,6 +53,7 @@ export default function PlanosAdminPage() {
         features: form.features,
         active: form.active,
         included_users: Number(form.included_users ?? 2),
+        adesao_price: Number(form.adesao_price ?? 0),
         extra_user_price: Number(form.extra_user_price ?? 0),
         promo_active: !!form.promo_active,
         promo_price: form.promo_active ? Number(form.promo_price ?? 0) : null,
@@ -125,6 +126,10 @@ export default function PlanosAdminPage() {
                     <CurrencyInput value={Number(form.price ?? 0)} onChange={(num) => setForm({ ...form, price: num })} />
                   </label>
                   <label style={styles.field}>
+                    <span style={styles.fieldLabel}>Taxa de adesão (única vez)</span>
+                    <CurrencyInput value={Number(form.adesao_price ?? 0)} onChange={(num) => setForm({ ...form, adesao_price: num })} />
+                  </label>
+                  <label style={styles.field}>
                     <span style={styles.fieldLabel}>Usuários inclusos</span>
                     <input
                       style={styles.input} type="number" min="1"
@@ -192,6 +197,9 @@ export default function PlanosAdminPage() {
                     {!plan.active && <span style={styles.inactiveTag}>Inativo</span>}
                   </div>
                   <div style={styles.price}>R$ {Number(plan.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}<span style={styles.priceSuffix}>/mês</span></div>
+                  {Number(plan.adesao_price) > 0 && (
+                    <p style={styles.seatsInfo}>+ R$ {Number(plan.adesao_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} de adesão (única vez)</p>
+                  )}
                   {plan.promo_active && (
                     <span style={styles.promoBadge}>Promo: R$ {Number(plan.promo_price ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} — {plan.promo_description}</span>
                   )}

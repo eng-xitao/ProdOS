@@ -140,6 +140,11 @@ export default function AssinaturaPage() {
                   <span style={styles.priceSuffix}>/mês</span>
                 </div>
                 {hasPromo && plan.promo_description && <p style={styles.promoText}>{plan.promo_description}</p>}
+                {Number(plan.adesao_price) > 0 && (
+                  <p style={styles.adesaoInfo}>
+                    + R$ {Number(plan.adesao_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} de adesão (única vez, na contratação)
+                  </p>
+                )}
                 <p style={styles.description}>{plan.description}</p>
                 <p style={styles.seatsInfo}>
                   Inclui {plan.included_users ?? 2} usuário{(plan.included_users ?? 2) !== 1 ? "s" : ""}
@@ -157,9 +162,12 @@ export default function AssinaturaPage() {
                 {confirmingPlanId === plan.id ? (
                   <div style={styles.confirmBox}>
                     <p style={styles.confirmText}>
-                      Confirma assinar o <strong>{plan.name}</strong> por{" "}
-                      <strong>R$ {totalWithSeats.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</strong>?
-                      Isso gera uma cobrança real no Asaas.
+                      Confirma assinar o <strong>{plan.name}</strong>?
+                      {Number(plan.adesao_price) > 0 && (
+                        <> Você vai pagar <strong>R$ {Number(plan.adesao_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} de adesão</strong> (única vez) e depois</>
+                      )}{" "}
+                      <strong>R$ {totalWithSeats.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</strong>.
+                      Isso gera cobrança real no Asaas.
                     </p>
                     <div style={styles.confirmActions}>
                       <button style={styles.confirmYesBtn} onClick={() => confirmAndSubscribe(plan)} type="button">
@@ -221,6 +229,7 @@ const styles = {
   priceOld: { fontSize: 15, color: "var(--text-dim)", textDecoration: "line-through", marginRight: 8, fontWeight: 400 },
   promoText: { fontSize: 12, color: "var(--green)", fontWeight: 700, margin: "2px 0 0" },
   seatsInfo: { fontSize: 11.5, color: "var(--text-dim)", margin: "6px 0 0", lineHeight: 1.4 },
+  adesaoInfo: { fontSize: 11.5, color: "var(--amber)", fontWeight: 700, margin: "2px 0 0" },
   seatsWarning: {
     fontSize: 11.5, color: "var(--amber)", margin: "6px 0 0", lineHeight: 1.4,
     background: "rgba(232,163,61,0.1)", padding: "6px 8px", borderRadius: 6,

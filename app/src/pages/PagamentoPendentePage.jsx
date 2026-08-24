@@ -80,6 +80,11 @@ export default function PagamentoPendentePage({ status }) {
                     <span style={styles.priceSuffix}>/mês</span>
                   </div>
                   <p style={styles.description}>{plan.description}</p>
+                  {Number(plan.adesao_price) > 0 && (
+                    <p style={styles.adesaoInfo}>
+                      + R$ {Number(plan.adesao_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} de adesão (única vez)
+                    </p>
+                  )}
                   <p style={styles.seatsInfo}>
                     Inclui {plan.included_users ?? 2} usuário(s){Number(plan.extra_user_price) > 0 && ` — extra: R$${Number(plan.extra_user_price).toLocaleString("pt-BR")}/usuário`}
                   </p>
@@ -87,8 +92,11 @@ export default function PagamentoPendentePage({ status }) {
                   {confirmingPlanId === plan.id ? (
                     <div style={styles.confirmBox}>
                       <p style={styles.confirmText}>
-                        Confirma assinar o <strong>{plan.name}</strong> por{" "}
-                        <strong>R$ {basePrice.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</strong>?
+                        Confirma assinar o <strong>{plan.name}</strong>?
+                        {Number(plan.adesao_price) > 0 && (
+                          <> Você vai pagar <strong>R$ {Number(plan.adesao_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} de adesão</strong> (única vez) e depois</>
+                        )}{" "}
+                        <strong>R$ {basePrice.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</strong>.
                       </p>
                       <div style={styles.confirmActions}>
                         <button style={styles.confirmYesBtn} onClick={() => confirmAndSubscribe(plan)} type="button">Sim, pagar</button>
@@ -126,6 +134,7 @@ const styles = {
   priceOld: { fontSize: 14, color: "var(--text-dim)", textDecoration: "line-through", marginRight: 6, fontWeight: 400 },
   priceSuffix: { fontSize: 12, color: "var(--text-dim)", fontWeight: 400 },
   description: { fontSize: 12.5, color: "var(--text-dim)", margin: "0 0 6px" },
+  adesaoInfo: { fontSize: 11, color: "var(--amber)", fontWeight: 700, margin: "2px 0 4px" },
   seatsInfo: { fontSize: 11, color: "var(--text-dim)", marginBottom: 14 },
   subscribeBtn: { width: "100%", background: "var(--amber)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)", padding: "10px 0", fontWeight: 700, fontSize: 13, cursor: "pointer" },
   confirmBox: { background: "var(--panel)", border: "1px solid var(--amber)", borderRadius: "var(--radius)", padding: 12 },
