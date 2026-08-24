@@ -63,6 +63,10 @@ import RelatorioEstoqueMateriaisPage from "./pages/RelatorioEstoqueMateriaisPage
 import RelatorioAlmoxarifadoPage from "./pages/RelatorioAlmoxarifadoPage";
 import RelatorioProducaoPage from "./pages/RelatorioProducaoPage";
 import CurvaABCPage from "./pages/CurvaABCPage";
+import RelatorioQualidadePage from "./pages/RelatorioQualidadePage";
+import RelatorioFinanceiroPage from "./pages/RelatorioFinanceiroPage";
+import RelatorioRHPage from "./pages/RelatorioRHPage";
+import RelatorioFiscalPage from "./pages/RelatorioFiscalPage";
 import ContasPagarPage from "./pages/ContasPagarPage";
 import LancamentosPage from "./pages/LancamentosPage";
 import FluxoCaixaPage from "./pages/FluxoCaixaPage";
@@ -168,6 +172,10 @@ function PrivateArea() {
         <Route path="/relatorio-almoxarifado" element={<RelatorioAlmoxarifadoPage />} />
         <Route path="/relatorio-producao" element={<RelatorioProducaoPage />} />
         <Route path="/curva-abc" element={<CurvaABCPage />} />
+        <Route path="/relatorio-qualidade" element={<RelatorioQualidadePage />} />
+        <Route path="/relatorio-financeiro" element={<RelatorioFinanceiroPage />} />
+        <Route path="/relatorio-rh" element={<RelatorioRHPage />} />
+        <Route path="/relatorio-fiscal" element={<RelatorioFiscalPage />} />
         <Route path="/contas-pagar" element={<ContasPagarPage />} />
         <Route path="/lancamentos" element={<LancamentosPage />} />
         <Route path="/fluxo-caixa" element={<FluxoCaixaPage />} />

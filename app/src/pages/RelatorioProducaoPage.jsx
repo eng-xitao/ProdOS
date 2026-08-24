@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, formatMonth, tooltipStyle } from "./RelatorioVendasPage";
+import DateRangeFilter from "../components/DateRangeFilter";
 
 export default function RelatorioProducaoPage() {
   const { company } = useAuth();
@@ -10,23 +11,34 @@ export default function RelatorioProducaoPage() {
   const [byStage, setByStage] = useState([]);
   const [byProduct, setByProduct] = useState([]);
   const [byMonth, setByMonth] = useState([]);
+  const [avgHoursByStage, setAvgHoursByStage] = useState([]);
+  const [range, setRange] = useState({ from: "", to: "" });
 
   useEffect(() => {
     if (company?.id) calculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company?.id]);
+  }, [company?.id, range]);
 
   async function calculate() {
     setLoading(true);
-    const { data: orders } = await supabase
-      .from("production_orders")
-      .select("quantity, due_date, created_at, production_stages:stage_id (name), products:product_id (sku, name)");
+    const [{ data: allOrders }, { data: logs }] = await Promise.all([
+      supabase.from("production_orders").select("quantity, due_date, created_at, production_stages:stage_id (name), products:product_id (sku, name)"),
+      supabase.from("production_time_logs").select("hours, log_date, production_stages:stage_id (name)"),
+    ]);
+
+    const orders = (allOrders ?? []).filter((o) => {
+      if (!o.created_at) return true;
+      const day = o.created_at.slice(0, 10);
+      if (range.from && day < range.from) return false;
+      if (range.to && day > range.to) return false;
+      return true;
+    });
 
     const stageMap = {};
     const productMap = {};
     const monthMap = {};
 
-    (orders ?? []).forEach((o) => {
+    orders.forEach((o) => {
       const stageLabel = o.production_stages?.name ?? "Sem etapa";
       stageMap[stageLabel] = (stageMap[stageLabel] ?? 0) + 1;
 
@@ -42,6 +54,27 @@ export default function RelatorioProducaoPage() {
     setByStage(Object.entries(stageMap).map(([name, value]) => ({ name, value })));
     setByProduct(Object.entries(productMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8));
     setByMonth(Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => ({ month: formatMonth(key), value })));
+
+    // Tempo médio (horas) apontado por etapa — ajuda a identificar gargalos
+    const filteredLogs = (logs ?? []).filter((l) => {
+      if (!l.log_date) return true;
+      if (range.from && l.log_date < range.from) return false;
+      if (range.to && l.log_date > range.to) return false;
+      return true;
+    });
+    const hoursByStage = {};
+    const countByStage = {};
+    filteredLogs.forEach((l) => {
+      const label = l.production_stages?.name ?? "Sem etapa";
+      hoursByStage[label] = (hoursByStage[label] ?? 0) + Number(l.hours ?? 0);
+      countByStage[label] = (countByStage[label] ?? 0) + 1;
+    });
+    setAvgHoursByStage(
+      Object.keys(hoursByStage)
+        .map((name) => ({ name, value: Math.round((hoursByStage[name] / countByStage[name]) * 10) / 10 }))
+        .sort((a, b) => b.value - a.value)
+    );
+
     setLoading(false);
   }
 
@@ -52,10 +85,26 @@ export default function RelatorioProducaoPage() {
         <p style={styles.subtitle}>Baseado nas Ordens de Produção cadastradas.</p>
       </header>
 
+      <DateRangeFilter onChange={setRange} />
+
       {loading ? (
         <p style={styles.dim}>Calculando...</p>
       ) : (
         <>
+          <ChartCard title="Tempo médio (horas) por etapa — identifica gargalos">
+            {avgHoursByStage.length === 0 ? <Empty /> : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={avgHoursByStage} layout="vertical" margin={{ left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E3E0D8" />
+                  <XAxis type="number" stroke="#8A8780" fontSize={11} />
+                  <YAxis type="category" dataKey="name" stroke="#8A8780" fontSize={11} width={130} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v) => `${v}h em média`} />
+                  <Bar dataKey="value" fill="#C9483D" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
           <ChartCard title="Ordens abertas por mês (criação)">
             {byMonth.length === 0 ? <Empty /> : (
               <ResponsiveContainer width="100%" height={240}>

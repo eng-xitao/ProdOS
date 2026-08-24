@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { Empty, currency, tooltipStyle } from "./RelatorioVendasPage";
+import DateRangeFilter from "../components/DateRangeFilter";
 
 const CLASS_COLOR = { A: "#2F9E68", B: "#2563EB", C: "#C9483D" };
 
@@ -11,20 +12,29 @@ export default function CurvaABCPage() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [summary, setSummary] = useState({ A: 0, B: 0, C: 0 });
+  const [range, setRange] = useState({ from: "", to: "" });
 
   useEffect(() => {
     if (company?.id) calculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company?.id]);
+  }, [company?.id, range]);
 
   async function calculate() {
     setLoading(true);
-    const { data: items } = await supabase
+    const { data: allItems } = await supabase
       .from("sales_order_items")
-      .select("quantity, unit_price, products:product_id (sku, name)");
+      .select("quantity, unit_price, products:product_id (sku, name), sales_orders:sales_order_id (order_date)");
+
+    const items = (allItems ?? []).filter((it) => {
+      const date = it.sales_orders?.order_date;
+      if (!date) return true;
+      if (range.from && date < range.from) return false;
+      if (range.to && date > range.to) return false;
+      return true;
+    });
 
     const productMap = {};
-    (items ?? []).forEach((it) => {
+    items.forEach((it) => {
       const label = it.products ? `${it.products.sku} — ${it.products.name}` : "—";
       const value = Number(it.quantity) * Number(it.unit_price);
       productMap[label] = (productMap[label] ?? 0) + value;
@@ -60,6 +70,8 @@ export default function CurvaABCPage() {
           Classe A = até 80% do valor acumulado, B = até 95%, C = o restante.
         </p>
       </header>
+
+      <DateRangeFilter onChange={setRange} />
 
       {loading ? (
         <p style={styles.dim}>Calculando...</p>

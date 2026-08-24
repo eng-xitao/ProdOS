@@ -3,27 +3,36 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, formatMonth, currency, tooltipStyle } from "./RelatorioVendasPage";
+import DateRangeFilter from "../components/DateRangeFilter";
 
 export default function RelatorioComprasPage() {
   const { company } = useAuth();
   const [loading, setLoading] = useState(true);
   const [byMonth, setByMonth] = useState([]);
   const [topSuppliers, setTopSuppliers] = useState([]);
+  const [range, setRange] = useState({ from: "", to: "" });
 
   useEffect(() => {
     if (company?.id) calculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company?.id]);
+  }, [company?.id, range]);
 
   async function calculate() {
     setLoading(true);
-    const { data: orders } = await supabase
+    const { data: allOrders } = await supabase
       .from("purchase_orders")
       .select("order_date, total_value, suppliers:supplier_id (name)");
 
+    const orders = (allOrders ?? []).filter((o) => {
+      if (!o.order_date) return true;
+      if (range.from && o.order_date < range.from) return false;
+      if (range.to && o.order_date > range.to) return false;
+      return true;
+    });
+
     const monthMap = {};
     const supplierMap = {};
-    (orders ?? []).forEach((o) => {
+    orders.forEach((o) => {
       if (o.order_date) {
         const key = o.order_date.slice(0, 7);
         monthMap[key] = (monthMap[key] ?? 0) + Number(o.total_value);
@@ -43,6 +52,8 @@ export default function RelatorioComprasPage() {
         <h1 style={styles.title}>Relatório de Compras</h1>
         <p style={styles.subtitle}>Baseado nos Pedidos de Compra cadastrados.</p>
       </header>
+
+      <DateRangeFilter onChange={setRange} />
 
       {loading ? (
         <p style={styles.dim}>Calculando...</p>

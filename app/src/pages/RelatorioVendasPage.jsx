@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import DateRangeFilter from "../components/DateRangeFilter";
 
 export default function RelatorioVendasPage() {
   const { company } = useAuth();
@@ -9,23 +10,33 @@ export default function RelatorioVendasPage() {
   const [byMonth, setByMonth] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
   const [topCustomers, setTopCustomers] = useState([]);
+  const [range, setRange] = useState({ from: "", to: "" });
 
   useEffect(() => {
     if (company?.id) calculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company?.id]);
+  }, [company?.id, range]);
 
   async function calculate() {
     setLoading(true);
 
-    const [{ data: orders }, { data: items }] = await Promise.all([
+    const [{ data: allOrders }, { data: items }] = await Promise.all([
       supabase.from("sales_orders").select("id, order_date, total_value, customer_id, customers:customer_id (name)"),
       supabase.from("sales_order_items").select("sales_order_id, product_id, quantity, unit_price, products:product_id (sku, name)"),
     ]);
 
+    const orders = (allOrders ?? []).filter((o) => {
+      if (!o.order_date) return true;
+      if (range.from && o.order_date < range.from) return false;
+      if (range.to && o.order_date > range.to) return false;
+      return true;
+    });
+    const orderIds = new Set(orders.map((o) => o.id));
+    const filteredItems = (items ?? []).filter((it) => orderIds.has(it.sales_order_id));
+
     // Vendas por mês
     const monthMap = {};
-    (orders ?? []).forEach((o) => {
+    orders.forEach((o) => {
       if (!o.order_date) return;
       const key = o.order_date.slice(0, 7);
       monthMap[key] = (monthMap[key] ?? 0) + Number(o.total_value);
@@ -36,7 +47,7 @@ export default function RelatorioVendasPage() {
 
     // Top produtos por valor vendido
     const productMap = {};
-    (items ?? []).forEach((it) => {
+    filteredItems.forEach((it) => {
       const label = it.products ? `${it.products.sku} — ${it.products.name}` : "—";
       const value = Number(it.quantity) * Number(it.unit_price);
       productMap[label] = (productMap[label] ?? 0) + value;
@@ -48,7 +59,7 @@ export default function RelatorioVendasPage() {
 
     // Top clientes por valor total
     const customerMap = {};
-    (orders ?? []).forEach((o) => {
+    orders.forEach((o) => {
       const label = o.customers?.name ?? "Sem cliente";
       customerMap[label] = (customerMap[label] ?? 0) + Number(o.total_value);
     });
@@ -69,6 +80,8 @@ export default function RelatorioVendasPage() {
         <h1 style={styles.title}>Relatório de Vendas</h1>
         <p style={styles.subtitle}>Baseado nos Pedidos de Venda cadastrados.</p>
       </header>
+
+      <DateRangeFilter onChange={setRange} />
 
       {loading ? (
         <p style={styles.dim}>Calculando...</p>

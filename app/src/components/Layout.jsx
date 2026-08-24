@@ -110,6 +110,10 @@ const NAV_SECTIONS = [
       { to: "/relatorio-almoxarifado", label: "Almoxarifado", icon: "▥" },
       { to: "/relatorio-producao", label: "Produção", icon: "⚙" },
       { to: "/curva-abc", label: "Curva ABC", icon: "%" },
+      { to: "/relatorio-qualidade", label: "Qualidade e Refugo", icon: "☑", planFeature: "PCP" },
+      { to: "/relatorio-financeiro", label: "Financeiro — Inadimplência", icon: "◑", planFeature: "Financeiro" },
+      { to: "/relatorio-rh", label: "RH — Custo de Folha", icon: "$", planFeature: "RH" },
+      { to: "/relatorio-fiscal", label: "Fiscal — Notas Emitidas", icon: "🧾", planFeature: "Fiscal" },
     ],
   },
   {
