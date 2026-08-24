@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../lib/AuthContext";
+import { supabase } from "../lib/supabaseClient";
 import logoFull from "../assets/logo-full.png";
 
 export default function AuthPage() {
@@ -15,14 +16,77 @@ export default function AuthPage() {
   const [companyName, setCompanyName] = useState("");
   const [segment, setSegment] = useState("");
 
+  const [cnpj, setCnpj] = useState("");
+  const [cnpjChecking, setCnpjChecking] = useState(false);
+  const [cnpjStatus, setCnpjStatus] = useState(""); // "" | "checking" | "taken" | "found" | "not_found" | "invalid"
+  const [address, setAddress] = useState(null);
+
+  function formatCnpj(value) {
+    const digits = value.replace(/\D/g, "").slice(0, 14);
+    return digits
+      .replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1/$2")
+      .replace(/(\d{4})(\d)/, "$1-$2");
+  }
+
+  async function handleCnpjBlur() {
+    const digits = cnpj.replace(/\D/g, "");
+    if (digits.length !== 14) {
+      setCnpjStatus(digits.length > 0 ? "invalid" : "");
+      return;
+    }
+
+    setCnpjChecking(true);
+    setCnpjStatus("checking");
+    setAddress(null);
+
+    // 1. Confere se esse CNPJ já tem cadastro no ProdOS
+    const { data: taken } = await supabase.rpc("check_cnpj_taken", { p_cnpj: digits });
+    if (taken) {
+      setCnpjStatus("taken");
+      setCnpjChecking(false);
+      return;
+    }
+
+    // 2. Consulta os dados oficiais da empresa (Receita Federal, via BrasilAPI)
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCompanyName(data.razao_social || data.nome_fantasia || companyName);
+        setAddress({
+          logradouro: [data.descricao_tipo_de_logradouro, data.logradouro].filter(Boolean).join(" ").trim(),
+          numero: data.numero || "",
+          bairro: data.bairro || "",
+          municipio: data.municipio || "",
+          uf: data.uf || "",
+          cep: data.cep || "",
+        });
+        setCnpjStatus("found");
+      } else {
+        setCnpjStatus("not_found");
+      }
+    } catch {
+      setCnpjStatus("not_found");
+    }
+    setCnpjChecking(false);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setNotice("");
+
+    if (mode === "signup" && cnpjStatus === "taken") {
+      setError("Já existe um cadastro no ProdOS com esse CNPJ. Se você faz parte dessa empresa, peça pra ser convidado por um administrador dela.");
+      return;
+    }
+
     setLoading(true);
 
     if (mode === "signup") {
-      const { error } = await signUp({ email, password, fullName, companyName, segment });
+      const { error } = await signUp({ email, password, fullName, companyName, segment, cnpj: cnpj.replace(/\D/g, ""), address });
       if (error) {
         setError(traduzErro(error.message));
       } else {
@@ -88,6 +152,21 @@ export default function AuthPage() {
                 Foi convidado por e-mail? Cadastre-se normalmente usando o mesmo e-mail do
                 convite — o campo "Nome da empresa" abaixo será ignorado nesse caso.
               </p>
+              <Field label="CNPJ">
+                <input
+                  style={styles.input}
+                  value={cnpj}
+                  onChange={(e) => { setCnpj(formatCnpj(e.target.value)); setCnpjStatus(""); }}
+                  onBlur={handleCnpjBlur}
+                  placeholder="00.000.000/0000-00"
+                  required
+                />
+                {cnpjStatus === "checking" && <span style={styles.cnpjHintChecking}>Consultando...</span>}
+                {cnpjStatus === "taken" && <span style={styles.cnpjHintError}>Já existe cadastro com esse CNPJ. Peça pra ser convidado pelo admin da empresa.</span>}
+                {cnpjStatus === "found" && <span style={styles.cnpjHintOk}>Encontrado — nome e endereço preenchidos automaticamente.</span>}
+                {cnpjStatus === "not_found" && <span style={styles.cnpjHintWarn}>Não encontramos esse CNPJ na Receita Federal — confira se digitou certo, ou preencha os dados manualmente mesmo assim.</span>}
+                {cnpjStatus === "invalid" && <span style={styles.cnpjHintError}>CNPJ incompleto.</span>}
+              </Field>
               <Field label="Nome da empresa">
                 <input
                   style={styles.input}
@@ -155,7 +234,7 @@ export default function AuthPage() {
           {error && <div style={styles.error}>{error}</div>}
           {notice && <div style={styles.notice}>{notice}</div>}
 
-          <button style={styles.submit} type="submit" disabled={loading}>
+          <button style={styles.submit} type="submit" disabled={loading || (mode === "signup" && (cnpjStatus === "taken" || cnpjChecking))}>
             {loading ? "Aguarde..." : mode === "signup" ? "Criar minha conta" : mode === "forgot" ? "Enviar link de redefinição" : "Entrar"}
           </button>
 
@@ -238,6 +317,10 @@ const styles = {
     textAlign: "center",
     textDecoration: "none",
   },
+  cnpjHintChecking: { fontSize: 11.5, color: "var(--text-dim)", marginTop: 4, display: "block" },
+  cnpjHintOk: { fontSize: 11.5, color: "var(--green)", marginTop: 4, display: "block", fontWeight: 600 },
+  cnpjHintWarn: { fontSize: 11.5, color: "var(--amber)", marginTop: 4, display: "block" },
+  cnpjHintError: { fontSize: 11.5, color: "var(--red)", marginTop: 4, display: "block", fontWeight: 600 },
   inviteHint: {
     fontSize: 12,
     color: "var(--text-dim)",

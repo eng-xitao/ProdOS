@@ -59,12 +59,16 @@ export function AuthProvider({ children }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function signUp({ email, password, fullName, companyName, segment }) {
+  async function signUp({ email, password, fullName, companyName, segment, cnpj, address }) {
     return supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName, company_name: companyName, segment },
+        data: {
+          full_name: fullName, company_name: companyName, segment, cnpj,
+          logradouro: address?.logradouro, numero: address?.numero, bairro: address?.bairro,
+          municipio: address?.municipio, uf: address?.uf, cep: address?.cep,
+        },
       },
     });
   }
