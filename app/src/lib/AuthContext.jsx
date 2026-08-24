@@ -32,19 +32,16 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) await loadProfileAndCompany(session.user.id);
-      setLoading(false);
-      setProfileLoading(false);
-    });
+    let initialCheckDone = false;
 
+    // onAuthStateChange já dispara sozinho com a sessão atual assim
+    // que o listener é registrado (evento INITIAL_SESSION) — não
+    // precisamos chamar getSession() por fora também. Ter os dois
+    // rodando em paralelo foi o que causava a corrida (um terminando
+    // antes do outro, liberando a tela cedo demais).
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session?.user) {
-        // Trava a tela até termos certeza do status de aprovação da
-        // empresa — senão, por uma fração de segundo, a área privada
-        // renderiza antes de saber se a empresa está bloqueada.
         setProfileLoading(true);
         await loadProfileAndCompany(session.user.id);
         setProfileLoading(false);
@@ -52,6 +49,10 @@ export function AuthProvider({ children }) {
         setProfile(null);
         setCompany(null);
         setProfileLoading(false);
+      }
+      if (!initialCheckDone) {
+        initialCheckDone = true;
+        setLoading(false);
       }
     });
 
