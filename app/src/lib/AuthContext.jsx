@@ -8,6 +8,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   async function loadProfileAndCompany(userId) {
     const { data: profileData } = await supabase
@@ -25,6 +26,8 @@ export function AuthProvider({ children }) {
         .eq("id", profileData.company_id)
         .single();
       setCompany(companyData ?? null);
+    } else {
+      setCompany(null);
     }
   }
 
@@ -33,15 +36,22 @@ export function AuthProvider({ children }) {
       setSession(session);
       if (session?.user) await loadProfileAndCompany(session.user.id);
       setLoading(false);
+      setProfileLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session?.user) {
+        // Trava a tela até termos certeza do status de aprovação da
+        // empresa — senão, por uma fração de segundo, a área privada
+        // renderiza antes de saber se a empresa está bloqueada.
+        setProfileLoading(true);
         await loadProfileAndCompany(session.user.id);
+        setProfileLoading(false);
       } else {
         setProfile(null);
         setCompany(null);
+        setProfileLoading(false);
       }
     });
 
@@ -88,7 +98,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, profile, company, loading, signUp, signIn, signOut, refreshCompany, requestPasswordReset, updatePassword }}
+      value={{ session, profile, company, loading, profileLoading, signUp, signIn, signOut, refreshCompany, requestPasswordReset, updatePassword }}
     >
       {children}
     </AuthContext.Provider>

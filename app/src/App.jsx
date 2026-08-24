@@ -79,13 +79,20 @@ import PedidosVendaPage from "./pages/PedidosVendaPage";
 import "./theme.css";
 
 function PrivateArea() {
-  const { session, profile, company, loading } = useAuth();
+  const { session, profile, company, loading, profileLoading } = useAuth();
 
   if (loading) {
     return <div style={{ padding: 40, color: "var(--text-dim)" }}>Carregando...</div>;
   }
 
   if (!session) return <Navigate to="/login" replace />;
+
+  // Espera profile/company terminarem de carregar antes de decidir
+  // qualquer coisa — sem isso, a tela normal pisca por uma fração de
+  // segundo antes do bloqueio de aprovação aparecer.
+  if (profileLoading) {
+    return <div style={{ padding: 40, color: "var(--text-dim)" }}>Carregando...</div>;
+  }
 
   // Trava o sistema inteiro pra empresas que ainda não foram
   // aprovadas pelo comercial — exceto o admin da plataforma, que
