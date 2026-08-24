@@ -24,6 +24,7 @@ export default function AssinaturaPage() {
   const [confirmingPlanId, setConfirmingPlanId] = useState("");
   const [canceling, setCanceling] = useState(false);
   const [error, setError] = useState("");
+  const [userCount, setUserCount] = useState(null);
 
   async function loadPlans() {
     setLoading(true);
@@ -32,9 +33,16 @@ export default function AssinaturaPage() {
     setLoading(false);
   }
 
+  async function loadUserCount() {
+    const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("company_id", profile.company_id);
+    setUserCount(count ?? 0);
+  }
+
   useEffect(() => {
     loadPlans();
-  }, []);
+    if (profile?.company_id) loadUserCount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.company_id]);
 
   useEffect(() => {
     // Quando a pessoa volta do checkout do Asaas, o parâmetro "status"
@@ -123,15 +131,34 @@ export default function AssinaturaPage() {
         <div style={styles.grid}>
           {plans.map((plan) => {
             const isCurrent = plan.id === currentPlanId && company?.subscription_status === "active";
+            const hasPromo = plan.promo_active && plan.promo_price != null;
+            const basePrice = hasPromo ? Number(plan.promo_price) : Number(plan.price);
+            const extraSeats = Math.max((userCount ?? 0) - (plan.included_users ?? 2), 0);
+            const totalWithSeats = basePrice + extraSeats * Number(plan.extra_user_price ?? 0);
+
             return (
               <div key={plan.id} style={{ ...styles.card, ...(isCurrent ? styles.cardCurrent : {}) }}>
                 {isCurrent && <div style={styles.currentTag}>Seu plano atual</div>}
                 <h2 style={styles.planName}>{plan.name}</h2>
                 <div style={styles.price}>
-                  R$ {Number(plan.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {hasPromo && (
+                    <span style={styles.priceOld}>R$ {Number(plan.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  )}
+                  R$ {basePrice.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   <span style={styles.priceSuffix}>/mês</span>
                 </div>
+                {hasPromo && plan.promo_description && <p style={styles.promoText}>{plan.promo_description}</p>}
                 <p style={styles.description}>{plan.description}</p>
+                <p style={styles.seatsInfo}>
+                  Inclui {plan.included_users ?? 2} usuário{(plan.included_users ?? 2) !== 1 ? "s" : ""}
+                  {Number(plan.extra_user_price) > 0 && ` — usuário extra: R$ ${Number(plan.extra_user_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`}
+                </p>
+                {extraSeats > 0 && (
+                  <p style={styles.seatsWarning}>
+                    Sua empresa tem {userCount} usuários ({extraSeats} acima do plano) — total real:{" "}
+                    <strong>R$ {totalWithSeats.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</strong>
+                  </p>
+                )}
                 <div style={styles.featuresList}>
                   {(plan.features ?? []).map((f) => <span key={f} style={styles.featureTag}>{f}</span>)}
                 </div>
@@ -139,7 +166,7 @@ export default function AssinaturaPage() {
                   <div style={styles.confirmBox}>
                     <p style={styles.confirmText}>
                       Confirma assinar o <strong>{plan.name}</strong> por{" "}
-                      <strong>R$ {Number(plan.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</strong>?
+                      <strong>R$ {totalWithSeats.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</strong>?
                       Isso gera uma cobrança real no Asaas.
                     </p>
                     <div style={styles.confirmActions}>
@@ -199,6 +226,13 @@ const styles = {
   planName: { fontFamily: "var(--font-display)", fontSize: 18, margin: "6px 0 4px" },
   price: { fontSize: 28, fontWeight: 700, color: "var(--amber)", margin: "8px 0 6px" },
   priceSuffix: { fontSize: 13, color: "var(--text-dim)", fontWeight: 400 },
+  priceOld: { fontSize: 15, color: "var(--text-dim)", textDecoration: "line-through", marginRight: 8, fontWeight: 400 },
+  promoText: { fontSize: 12, color: "var(--green)", fontWeight: 700, margin: "2px 0 0" },
+  seatsInfo: { fontSize: 11.5, color: "var(--text-dim)", margin: "6px 0 0", lineHeight: 1.4 },
+  seatsWarning: {
+    fontSize: 11.5, color: "var(--amber)", margin: "6px 0 0", lineHeight: 1.4,
+    background: "rgba(232,163,61,0.1)", padding: "6px 8px", borderRadius: 6,
+  },
   description: { fontSize: 13, color: "var(--text-dim)", lineHeight: 1.5, margin: "0 0 14px", minHeight: 38 },
   featuresList: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 },
   featureTag: {

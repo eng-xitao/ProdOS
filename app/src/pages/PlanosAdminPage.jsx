@@ -52,6 +52,12 @@ export default function PlanosAdminPage() {
         description: form.description,
         features: form.features,
         active: form.active,
+        included_users: Number(form.included_users ?? 2),
+        extra_user_price: Number(form.extra_user_price ?? 0),
+        promo_active: !!form.promo_active,
+        promo_price: form.promo_active ? Number(form.promo_price ?? 0) : null,
+        promo_description: form.promo_active ? (form.promo_description ?? null) : null,
+        promo_ends_at: form.promo_active ? (form.promo_ends_at || null) : null,
       })
       .eq("id", editingId);
 
@@ -119,9 +125,44 @@ export default function PlanosAdminPage() {
                     <CurrencyInput value={Number(form.price ?? 0)} onChange={(num) => setForm({ ...form, price: num })} />
                   </label>
                   <label style={styles.field}>
+                    <span style={styles.fieldLabel}>Usuários inclusos</span>
+                    <input
+                      style={styles.input} type="number" min="1"
+                      value={form.included_users ?? 2}
+                      onChange={(e) => setForm({ ...form, included_users: Number(e.target.value) })}
+                    />
+                  </label>
+                  <label style={styles.field}>
+                    <span style={styles.fieldLabel}>Valor por usuário adicional</span>
+                    <CurrencyInput value={Number(form.extra_user_price ?? 0)} onChange={(num) => setForm({ ...form, extra_user_price: num })} />
+                  </label>
+                  <label style={styles.field}>
                     <span style={styles.fieldLabel}>Descrição</span>
                     <input style={styles.input} value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                   </label>
+
+                  <div style={styles.promoBox}>
+                    <label style={styles.checkboxRow}>
+                      <input type="checkbox" checked={form.promo_active ?? false} onChange={(e) => setForm({ ...form, promo_active: e.target.checked })} />
+                      <span>Preço promocional ativo</span>
+                    </label>
+                    {form.promo_active && (
+                      <>
+                        <label style={styles.field}>
+                          <span style={styles.fieldLabel}>Preço promocional</span>
+                          <CurrencyInput value={Number(form.promo_price ?? 0)} onChange={(num) => setForm({ ...form, promo_price: num })} />
+                        </label>
+                        <label style={styles.field}>
+                          <span style={styles.fieldLabel}>Descrição da promoção</span>
+                          <input style={styles.input} value={form.promo_description ?? ""} onChange={(e) => setForm({ ...form, promo_description: e.target.value })} placeholder="Ex: Lançamento — 3 primeiros meses" />
+                        </label>
+                        <label style={styles.field}>
+                          <span style={styles.fieldLabel}>Promoção válida até (opcional)</span>
+                          <input style={styles.input} type="date" value={form.promo_ends_at ?? ""} onChange={(e) => setForm({ ...form, promo_ends_at: e.target.value || null })} />
+                        </label>
+                      </>
+                    )}
+                  </div>
                   <span style={styles.fieldLabel}>O que libera</span>
                   <div style={styles.featureGrid}>
                     {ALL_FEATURES.map((f) => (
@@ -151,6 +192,12 @@ export default function PlanosAdminPage() {
                     {!plan.active && <span style={styles.inactiveTag}>Inativo</span>}
                   </div>
                   <div style={styles.price}>R$ {Number(plan.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}<span style={styles.priceSuffix}>/mês</span></div>
+                  {plan.promo_active && (
+                    <span style={styles.promoBadge}>Promo: R$ {Number(plan.promo_price ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} — {plan.promo_description}</span>
+                  )}
+                  <p style={styles.seatsInfo}>
+                    {plan.included_users ?? 2} usuário(s) inclusos · +R$ {Number(plan.extra_user_price ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/usuário extra
+                  </p>
                   <p style={styles.description}>{plan.description}</p>
                   <div style={styles.featuresList}>
                     {(plan.features ?? []).map((f) => <span key={f} style={styles.featureTag}>{f}</span>)}
@@ -184,6 +231,15 @@ const styles = {
   inactiveTag: { fontSize: 11, color: "var(--red)", fontWeight: 700 },
   price: { fontSize: 26, fontWeight: 700, color: "var(--amber)", margin: "10px 0 4px" },
   priceSuffix: { fontSize: 13, color: "var(--text-dim)", fontWeight: 400 },
+  promoBox: {
+    display: "flex", flexDirection: "column", gap: 10,
+    background: "var(--panel-2)", border: "1px dashed var(--line)", borderRadius: "var(--radius)", padding: 12,
+  },
+  promoBadge: {
+    display: "inline-block", background: "rgba(79,174,126,0.15)", color: "var(--green)",
+    borderRadius: 20, padding: "4px 10px", fontSize: 11.5, fontWeight: 700,
+  },
+  seatsInfo: { fontSize: 11.5, color: "var(--text-dim)", margin: "4px 0" },
   description: { fontSize: 13, color: "var(--text-dim)", margin: "0 0 14px", lineHeight: 1.5 },
   featuresList: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 },
   featureTag: {
