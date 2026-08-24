@@ -20,6 +20,7 @@ export default function AuthPage() {
   const [cnpjChecking, setCnpjChecking] = useState(false);
   const [cnpjStatus, setCnpjStatus] = useState(""); // "" | "checking" | "taken" | "found" | "not_found" | "invalid"
   const [address, setAddress] = useState(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   function formatCnpj(value) {
     const digits = value.replace(/\D/g, "").slice(0, 14);
@@ -80,6 +81,10 @@ export default function AuthPage() {
 
     if (mode === "signup" && cnpjStatus === "taken") {
       setError("Já existe um cadastro no ProdOS com esse CNPJ. Se você faz parte dessa empresa, peça pra ser convidado por um administrador dela.");
+      return;
+    }
+    if (mode === "signup" && !acceptedTerms) {
+      setError("Você precisa aceitar os Termos de Uso e a Política de Privacidade pra continuar.");
       return;
     }
 
@@ -237,6 +242,18 @@ export default function AuthPage() {
           {error && <div style={styles.error}>{error}</div>}
           {notice && <div style={styles.notice}>{notice}</div>}
 
+          {mode === "signup" && (
+            <label style={styles.termsRow}>
+              <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
+              <span>
+                Li e aceito os{" "}
+                <a href="/termos" target="_blank" rel="noreferrer" style={styles.link}>Termos de Uso</a>{" "}
+                e a{" "}
+                <a href="/privacidade" target="_blank" rel="noreferrer" style={styles.link}>Política de Privacidade</a>.
+              </span>
+            </label>
+          )}
+
           <button style={styles.submit} type="submit" disabled={loading || (mode === "signup" && (cnpjStatus === "taken" || cnpjChecking))}>
             {loading ? "Aguarde..." : mode === "signup" ? "Criar minha conta" : mode === "forgot" ? "Enviar link de redefinição" : "Entrar"}
           </button>
@@ -325,6 +342,11 @@ const styles = {
     display: "block", fontSize: 12.5, color: "var(--text-dim)", textAlign: "center",
     marginBottom: 12, textDecoration: "underline",
   },
+  termsRow: {
+    display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "var(--text-dim)",
+    lineHeight: 1.5, margin: "4px 0 12px",
+  },
+  link: { color: "var(--amber)", fontWeight: 600 },
   cnpjHintOk: { fontSize: 11.5, color: "var(--green)", marginTop: 4, display: "block", fontWeight: 600 },
   cnpjHintWarn: { fontSize: 11.5, color: "var(--amber)", marginTop: 4, display: "block" },
   cnpjHintError: { fontSize: 11.5, color: "var(--red)", marginTop: 4, display: "block", fontWeight: 600 },
