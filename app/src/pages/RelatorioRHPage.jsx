@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, formatMonth, currency, tooltipStyle } from "./RelatorioVendasPage";
+import DateRangeFilter from "../components/DateRangeFilter";
 
 /**
  * Relatório de RH: primeira visão consolidada do custo de folha —
@@ -16,23 +17,31 @@ export default function RelatorioRHPage() {
   const [byEmployee, setByEmployee] = useState([]);
   const [activeCount, setActiveCount] = useState(0);
   const [lastMonthCost, setLastMonthCost] = useState(0);
+  const [range, setRange] = useState({ from: "", to: "" });
 
   useEffect(() => {
     if (company?.id) calculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company?.id]);
+  }, [company?.id, range]);
 
   async function calculate() {
     setLoading(true);
-    const [{ data: payroll }, { data: employees }] = await Promise.all([
+    const [{ data: allPayroll }, { data: employees }] = await Promise.all([
       supabase.from("payroll_entries").select("reference_month, net_salary, employees:employee_id (full_name)"),
       supabase.from("employees").select("id, status"),
     ]);
 
+    const payroll = (allPayroll ?? []).filter((p) => {
+      if (!p.reference_month) return true;
+      if (range.from && p.reference_month < range.from) return false;
+      if (range.to && p.reference_month > range.to) return false;
+      return true;
+    });
+
     setActiveCount((employees ?? []).filter((e) => e.status === "ativo").length);
 
     const monthMap = {};
-    (payroll ?? []).forEach((p) => {
+    payroll.forEach((p) => {
       if (!p.reference_month) return;
       const key = p.reference_month.slice(0, 7);
       monthMap[key] = (monthMap[key] ?? 0) + Number(p.net_salary);
@@ -42,7 +51,7 @@ export default function RelatorioRHPage() {
     setLastMonthCost(monthRows.length > 0 ? monthRows[monthRows.length - 1].value : 0);
 
     const employeeMap = {};
-    (payroll ?? []).forEach((p) => {
+    payroll.forEach((p) => {
       const label = p.employees?.full_name ?? "—";
       employeeMap[label] = (employeeMap[label] ?? 0) + Number(p.net_salary);
     });
@@ -57,6 +66,8 @@ export default function RelatorioRHPage() {
         <h1 style={styles.title}>Relatório de RH — Custo de Folha</h1>
         <p style={styles.subtitle}>Baseado nas folhas de pagamento já lançadas.</p>
       </header>
+
+      <DateRangeFilter onChange={setRange} />
 
       {loading ? (
         <p style={styles.dim}>Calculando...</p>

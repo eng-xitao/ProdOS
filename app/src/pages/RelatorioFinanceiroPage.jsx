@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, currency, tooltipStyle } from "./RelatorioVendasPage";
+import DateRangeFilter from "../components/DateRangeFilter";
 
 const BUCKETS = [
   { key: "0-30", label: "1 a 30 dias", min: 1, max: 30 },
@@ -22,22 +23,30 @@ export default function RelatorioFinanceiroPage() {
   const [totalOverdue, setTotalOverdue] = useState(0);
   const [byBucket, setByBucket] = useState([]);
   const [topDebtors, setTopDebtors] = useState([]);
+  const [range, setRange] = useState({ from: "", to: "" });
 
   useEffect(() => {
     if (company?.id) calculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company?.id]);
+  }, [company?.id, range]);
 
   async function calculate() {
     setLoading(true);
-    const { data: entries } = await supabase
+    const { data: allEntries } = await supabase
       .from("financial_entries")
       .select("description, amount, due_date, customers:customer_id (name)")
       .eq("entry_type", "receita")
       .eq("paid", false);
 
+    const entries = (allEntries ?? []).filter((e) => {
+      if (!e.due_date) return true;
+      if (range.from && e.due_date < range.from) return false;
+      if (range.to && e.due_date > range.to) return false;
+      return true;
+    });
+
     const today = new Date();
-    const overdue = (entries ?? [])
+    const overdue = entries
       .map((e) => {
         const due = new Date(e.due_date + "T00:00:00");
         const daysLate = Math.floor((today - due) / (1000 * 60 * 60 * 24));
@@ -75,6 +84,8 @@ export default function RelatorioFinanceiroPage() {
           <strong style={{ color: "var(--red)" }}>{currency(totalOverdue)}</strong>
         </p>
       </header>
+
+      <DateRangeFilter onChange={setRange} />
 
       {loading ? (
         <p style={styles.dim}>Calculando...</p>

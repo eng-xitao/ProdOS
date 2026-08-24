@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, formatMonth, currency, tooltipStyle } from "./RelatorioVendasPage";
+import DateRangeFilter from "../components/DateRangeFilter";
 
 const STATUS_LABEL = { processando: "Processando", autorizado: "Autorizada", erro: "Erro", cancelado: "Cancelada" };
 
@@ -18,21 +19,30 @@ export default function RelatorioFiscalPage() {
   const [byStatus, setByStatus] = useState([]);
   const [totalAuthorized, setTotalAuthorized] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
+  const [range, setRange] = useState({ from: "", to: "" });
 
   useEffect(() => {
     if (company?.id) calculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company?.id]);
+  }, [company?.id, range]);
 
   async function calculate() {
     setLoading(true);
-    const { data: invoices } = await supabase
+    const { data: allInvoices } = await supabase
       .from("invoices")
       .select("status, valor_total, created_at");
 
-    const authorized = (invoices ?? []).filter((i) => i.status === "autorizado");
+    const invoices = (allInvoices ?? []).filter((i) => {
+      if (!i.created_at) return true;
+      const day = i.created_at.slice(0, 10);
+      if (range.from && day < range.from) return false;
+      if (range.to && day > range.to) return false;
+      return true;
+    });
+
+    const authorized = invoices.filter((i) => i.status === "autorizado");
     setTotalAuthorized(authorized.reduce((sum, i) => sum + Number(i.valor_total ?? 0), 0));
-    setErrorCount((invoices ?? []).filter((i) => i.status === "erro").length);
+    setErrorCount(invoices.filter((i) => i.status === "erro").length);
 
     const monthMap = {};
     authorized.forEach((i) => {
@@ -43,7 +53,7 @@ export default function RelatorioFiscalPage() {
     setByMonth(Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => ({ month: formatMonth(key), value })));
 
     const statusMap = {};
-    (invoices ?? []).forEach((i) => {
+    invoices.forEach((i) => {
       const label = STATUS_LABEL[i.status] ?? i.status;
       statusMap[label] = (statusMap[label] ?? 0) + 1;
     });
@@ -64,6 +74,8 @@ export default function RelatorioFiscalPage() {
           )}
         </p>
       </header>
+
+      <DateRangeFilter onChange={setRange} />
 
       {loading ? (
         <p style={styles.dim}>Calculando...</p>
