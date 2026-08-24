@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 
-const SUB_STATUS_LABEL = { trial: "Em teste", active: "Ativa", overdue: "Em atraso", canceled: "Cancelada" };
+const SUB_STATUS_LABEL = { pending_payment: "Aguardando pagamento", active: "Ativa", overdue: "Em atraso", canceled: "Cancelada" };
 const APPROVAL_LABEL = { pending: "Pendente", approved: "Aprovada", rejected: "Não aprovada" };
 const BILLING_EVENT_LABEL = {
   PAYMENT_CONFIRMED: "Pagamento confirmado", PAYMENT_RECEIVED: "Pagamento recebido",
@@ -98,16 +98,16 @@ export default function AdminEmpresasPage() {
 
   const metrics = useMemo(() => {
     const active = companies.filter((c) => c.subscription_status === "active");
-    const trial = companies.filter((c) => c.subscription_status === "trial");
+    const pendingPayment = companies.filter((c) => c.subscription_status === "pending_payment");
     const overdue = companies.filter((c) => c.subscription_status === "overdue");
     const canceled = companies.filter((c) => c.subscription_status === "canceled");
     const mrr = active.reduce((sum, c) => sum + Number(c.plans?.price ?? 0), 0);
 
-    const decided = active.length + overdue.length + canceled.length; // já saíram do trial
+    const decided = active.length + overdue.length + canceled.length; // já decidiram (nao ficam mais presas em "aguardando pagamento" pra sempre)
     const conversionRate = decided > 0 ? ((active.length + overdue.length) / decided) * 100 : null;
     const churnRate = decided > 0 ? (canceled.length / decided) * 100 : null;
 
-    return { total: companies.length, active: active.length, trial: trial.length, overdue: overdue.length, canceled: canceled.length, mrr, conversionRate, churnRate };
+    return { total: companies.length, active: active.length, pendingPayment: pendingPayment.length, overdue: overdue.length, canceled: canceled.length, mrr, conversionRate, churnRate };
   }, [companies]);
 
   const signupsByMonth = useMemo(() => {
@@ -147,11 +147,11 @@ export default function AdminEmpresasPage() {
       <div style={styles.metricsRow}>
         <MetricCard label="Total de empresas" value={metrics.total} />
         <MetricCard label="Ativas" value={metrics.active} color="var(--green)" />
-        <MetricCard label="Em teste" value={metrics.trial} color="var(--amber)" />
+        <MetricCard label="Aguardando pagamento" value={metrics.pendingPayment} color="var(--amber)" />
         <MetricCard label="Em atraso" value={metrics.overdue} color="var(--red)" />
         <MetricCard label="Canceladas" value={metrics.canceled} color="var(--text-dim)" />
         <MetricCard label="MRR (ativas)" value={`R$ ${metrics.mrr.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} color="var(--amber)" wide />
-        <MetricCard label="Conversão trial→pago" value={metrics.conversionRate !== null ? `${metrics.conversionRate.toFixed(0)}%` : "—"} color="var(--green)" />
+        <MetricCard label="Conversão para pago" value={metrics.conversionRate !== null ? `${metrics.conversionRate.toFixed(0)}%` : "—"} color="var(--green)" />
         <MetricCard label="Cancelamento" value={metrics.churnRate !== null ? `${metrics.churnRate.toFixed(0)}%` : "—"} color="var(--red)" />
       </div>
 
@@ -172,7 +172,7 @@ export default function AdminEmpresasPage() {
 
       <div style={styles.filterRow}>
         <input style={styles.search} placeholder="Buscar empresa..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        {["todas", "trial", "active", "overdue", "canceled"].map((f) => (
+        {["todas", "pending_payment", "active", "overdue", "canceled"].map((f) => (
           <button key={f} style={{ ...styles.filterBtn, ...(filter === f ? styles.filterBtnActive : {}) }} onClick={() => setFilter(f)} type="button">
             {f === "todas" ? "Todas" : SUB_STATUS_LABEL[f]}
           </button>
@@ -219,7 +219,7 @@ export default function AdminEmpresasPage() {
                     <td style={styles.td}>
                       <select
                         style={styles.inlineSelect}
-                        value={c.subscription_status ?? "trial"}
+                        value={c.subscription_status ?? "pending_payment"}
                         disabled={savingId === c.id}
                         onChange={(e) => changeStatus(c.id, e.target.value)}
                       >

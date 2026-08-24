@@ -48,7 +48,8 @@ import SuportePage from "./pages/SuportePage";
 import MeusDadosLGPDPage from "./pages/MeusDadosLGPDPage";
 import PrivacidadePage from "./pages/PrivacidadePage";
 import TermosPage from "./pages/TermosPage";
-import PendingApprovalPage from "./pages/PendingApprovalPage";
+import SolicitarDemoPage from "./pages/SolicitarDemoPage";
+import PagamentoPendentePage from "./pages/PagamentoPendentePage";
 import AssinaturaPage from "./pages/AssinaturaPage";
 import PlanoContasPage from "./pages/PlanoContasPage";
 import SACPage from "./pages/SACPage";
@@ -94,11 +95,11 @@ function PrivateArea() {
     return <div style={{ padding: 40, color: "var(--text-dim)" }}>Carregando...</div>;
   }
 
-  // Trava o sistema inteiro pra empresas que ainda não foram
-  // aprovadas pelo comercial — exceto o admin da plataforma, que
-  // precisa conseguir entrar pra revisar e aprovar os cadastros.
-  if (profile && !profile.is_platform_admin && company && company.approval_status !== "approved") {
-    return <PendingApprovalPage status={company.approval_status} />;
+  // Trava o sistema inteiro até o primeiro pagamento ser confirmado —
+  // não existe mais período de teste. Admin da plataforma sempre entra,
+  // pra conseguir dar suporte mesmo em empresas ainda não pagantes.
+  if (profile && !profile.is_platform_admin && company && company.subscription_status !== "active") {
+    return <PagamentoPendentePage status={company.subscription_status} />;
   }
 
   return (
@@ -188,6 +189,7 @@ function RootRoutes() {
       <Route path="/reset-senha" element={<ResetSenhaPage />} />
       <Route path="/privacidade" element={<PrivacidadePage />} />
       <Route path="/termos" element={<TermosPage />} />
+      <Route path="/demo" element={<SolicitarDemoPage />} />
       <Route path="/*" element={<PrivateArea />} />
     </Routes>
   );

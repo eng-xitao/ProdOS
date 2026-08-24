@@ -3,14 +3,14 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 
 const STATUS_LABEL = {
-  trial: "Em período de teste",
+  pending_payment: "Aguardando pagamento",
   active: "Ativa",
   overdue: "Pagamento em atraso",
   canceled: "Cancelada",
 };
 
 const STATUS_COLOR = {
-  trial: "var(--amber)",
+  pending_payment: "var(--amber)",
   active: "var(--green)",
   overdue: "var(--red)",
   canceled: "var(--red)",
@@ -93,9 +93,6 @@ export default function AssinaturaPage() {
   }
 
   const currentPlanId = company?.plan_id;
-  const trialDaysLeft = company?.trial_ends_at
-    ? Math.max(0, Math.ceil((new Date(company.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24)))
-    : null;
 
   return (
     <div>
@@ -111,11 +108,6 @@ export default function AssinaturaPage() {
             {STATUS_LABEL[company?.subscription_status] ?? "—"}
           </div>
         </div>
-        {company?.subscription_status === "trial" && trialDaysLeft !== null && (
-          <div style={styles.trialInfo}>
-            {trialDaysLeft > 0 ? `${trialDaysLeft} dia${trialDaysLeft !== 1 ? "s" : ""} restante${trialDaysLeft !== 1 ? "s" : ""} de teste` : "Teste encerrado"}
-          </div>
-        )}
         {company?.subscription_status === "active" && (
           <button style={styles.cancelBtn} onClick={cancelSubscription} disabled={canceling} type="button">
             {canceling ? "Cancelando..." : "Cancelar assinatura"}

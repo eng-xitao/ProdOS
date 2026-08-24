@@ -90,7 +90,7 @@ export default function AuthPage() {
       if (error) {
         setError(traduzErro(error.message));
       } else {
-        setNotice("Conta criada. Verifique seu e-mail para confirmar o acesso. Depois de confirmar, seu cadastro passa por uma análise do nosso time comercial antes de liberar o acesso — você recebe um aviso assim que for aprovado.");
+        setNotice("Conta criada. Verifique seu e-mail para confirmar o acesso. Depois de confirmar, escolha um plano e conclua o pagamento para liberar o sistema — não tem período de teste.");
         setMode("login");
       }
     } else if (mode === "login") {
@@ -147,6 +147,9 @@ export default function AuthPage() {
             <>
               <a href="https://prodos.app.br/#planos" style={styles.plansLink} target="_blank" rel="noreferrer">
                 Ainda não conhece os planos? Veja preços e o que cada um libera →
+              </a>
+              <a href="/demo" style={styles.demoLink}>
+                Prefere ver funcionando antes? Solicite uma demonstração →
               </a>
               <p style={styles.inviteHint}>
                 Foi convidado por e-mail? Cadastre-se normalmente usando o mesmo e-mail do
@@ -318,6 +321,10 @@ const styles = {
     textDecoration: "none",
   },
   cnpjHintChecking: { fontSize: 11.5, color: "var(--text-dim)", marginTop: 4, display: "block" },
+  demoLink: {
+    display: "block", fontSize: 12.5, color: "var(--text-dim)", textAlign: "center",
+    marginBottom: 12, textDecoration: "underline",
+  },
   cnpjHintOk: { fontSize: 11.5, color: "var(--green)", marginTop: 4, display: "block", fontWeight: 600 },
   cnpjHintWarn: { fontSize: 11.5, color: "var(--amber)", marginTop: 4, display: "block" },
   cnpjHintError: { fontSize: 11.5, color: "var(--red)", marginTop: 4, display: "block", fontWeight: 600 },

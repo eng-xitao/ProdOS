@@ -168,11 +168,8 @@ export default function Layout() {
         (currentItem?.planFeature && !isPlanUnrestricted && !planFeatures.includes(currentItem.planFeature))
     : false;
 
-  // Trava o sistema inteiro (exceto a própria tela de Assinatura)
-  // se o teste acabou ou a assinatura foi cancelada.
-  const trialExpired = company?.subscription_status === "trial" && company?.trial_ends_at && new Date(company.trial_ends_at) < new Date();
-  const isCanceled = company?.subscription_status === "canceled";
-  const billingBlocked = (trialExpired || isCanceled) && location.pathname !== "/assinatura";
+  // O bloqueio por pagamento pendente/cancelado já acontece antes,
+  // no App.jsx (PrivateArea) — aqui só sobra o bloqueio por papel/plano.
 
   const [openSections, setOpenSections] = useState(() => {
     const initial = {};
@@ -275,19 +272,7 @@ export default function Layout() {
       </aside>
 
       <main style={styles.main}>
-        {billingBlocked ? (
-          <div style={styles.blocked}>
-            <h1 style={styles.blockedTitle}>
-              {isCanceled ? "Assinatura cancelada" : "Seu período de teste acabou"}
-            </h1>
-            <p style={styles.blockedText}>
-              {isCanceled
-                ? "A assinatura desta empresa foi cancelada. Escolha um plano pra continuar usando o ProdOS."
-                : "Os 14 dias de teste grátis chegaram ao fim. Escolha um plano pra continuar usando o ProdOS."}
-            </p>
-            <Link to="/assinatura" style={styles.blockedBtn}>Ver planos e assinar</Link>
-          </div>
-        ) : isBlocked ? (
+        {isBlocked ? (
           <div style={styles.blocked}>
             <h1 style={styles.blockedTitle}>Acesso não permitido</h1>
             <p style={styles.blockedText}>
