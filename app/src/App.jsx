@@ -52,6 +52,8 @@ import PendingApprovalPage from "./pages/PendingApprovalPage";
 import AssinaturaPage from "./pages/AssinaturaPage";
 import PlanoContasPage from "./pages/PlanoContasPage";
 import SACPage from "./pages/SACPage";
+import NotasFiscaisPage from "./pages/NotasFiscaisPage";
+import FiscalPage from "./pages/FiscalPage";
 import FrotasPage from "./pages/FrotasPage";
 import RelatorioVendasPage from "./pages/RelatorioVendasPage";
 import RelatorioComprasPage from "./pages/RelatorioComprasPage";
@@ -136,6 +138,7 @@ function PrivateArea() {
         <Route path="/rescisao" element={<RescisaoPage />} />
         <Route path="/beneficios" element={<BeneficiosPage />} />
         <Route path="/empresa" element={<EmpresaPage />} />
+        <Route path="/fiscal" element={<FiscalPage />} />
         <Route path="/usuarios" element={<UsuariosPage />} />
         <Route path="/admin/empresas" element={<AdminEmpresasPage />} />
         <Route path="/admin/administradores" element={<AdminUsuariosPage />} />
@@ -148,6 +151,7 @@ function PrivateArea() {
         <Route path="/assinatura" element={<AssinaturaPage />} />
         <Route path="/plano-contas" element={<PlanoContasPage />} />
         <Route path="/sac" element={<SACPage />} />
+        <Route path="/notas-fiscais" element={<NotasFiscaisPage />} />
         <Route path="/frotas" element={<FrotasPage />} />
         <Route path="/relatorio-vendas" element={<RelatorioVendasPage />} />
         <Route path="/relatorio-compras" element={<RelatorioComprasPage />} />

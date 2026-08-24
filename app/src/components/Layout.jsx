@@ -40,6 +40,7 @@ const NAV_SECTIONS = [
       { to: "/etapas-comercial", label: "Etapas", icon: "→" },
       { to: "/orcamentos", label: "Orçamentos", icon: "▤" },
       { to: "/pedidos-venda", label: "Pedidos de Venda", icon: "◆" },
+      { to: "/notas-fiscais", label: "Notas Fiscais", icon: "🧾" },
       { to: "/sac", label: "SAC — Atendimento", icon: "◈", planFeature: "CRM" },
     ],
   },
@@ -115,6 +116,7 @@ const NAV_SECTIONS = [
     label: "Configurações",
     items: [
       { to: "/empresa", label: "Dados da Empresa", icon: "▣" },
+      { to: "/fiscal", label: "Fiscal", icon: "🧾" },
       { to: "/usuarios", label: "Usuários", icon: "◎" },
       { to: "/assinatura", label: "Assinatura", icon: "◈" },
       { to: "/suporte", label: "Suporte", icon: "?" },
