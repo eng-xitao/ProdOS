@@ -40,7 +40,7 @@ const NAV_SECTIONS = [
       { to: "/etapas-comercial", label: "Etapas", icon: "→" },
       { to: "/orcamentos", label: "Orçamentos", icon: "▤" },
       { to: "/pedidos-venda", label: "Pedidos de Venda", icon: "◆" },
-      { to: "/notas-fiscais", label: "Notas Fiscais", icon: "🧾" },
+      { to: "/notas-fiscais", label: "Notas Fiscais", icon: "🧾", planFeature: "Fiscal" },
       { to: "/sac", label: "SAC — Atendimento", icon: "◈", planFeature: "CRM" },
     ],
   },
