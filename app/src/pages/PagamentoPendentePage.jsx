@@ -86,7 +86,7 @@ export default function PagamentoPendentePage({ status }) {
                     </p>
                   )}
                   <p style={styles.seatsInfo}>
-                    Inclui {plan.included_users ?? 2} usuário(s){Number(plan.extra_user_price) > 0 && ` — extra: R$${Number(plan.extra_user_price).toLocaleString("pt-BR")}/usuário`}
+                    Inclui até {plan.included_users ?? 2} usuário(s){Number(plan.extra_user_price) > 0 && ` — extra: R$${Number(plan.extra_user_price).toLocaleString("pt-BR")}/usuário`}
                   </p>
 
                   {confirmingPlanId === plan.id ? (

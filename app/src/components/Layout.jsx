@@ -78,7 +78,7 @@ const NAV_SECTIONS = [
       { to: "/tesouraria", label: "Tesouraria", icon: "▣" },
       { to: "/credito-cobranca", label: "Crédito e Cobrança", icon: "◐" },
       { to: "/analise-centro-custo", label: "Análise por Centro de Custo", icon: "◑" },
-      { to: "/dre", label: "DRE", icon: "▦" },
+      { to: "/dre", label: "DRE Gerencial", icon: "▦" },
       { to: "/plano-contas", label: "Plano de Contas", icon: "☰" },
     ],
   },

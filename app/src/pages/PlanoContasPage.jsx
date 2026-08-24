@@ -5,7 +5,7 @@ export default function PlanoContasPage() {
     <ModulePage
       table="chart_of_accounts"
       title="Plano de Contas"
-      subtitle="Classificação contábil formal, usada para agrupar lançamentos no DRE"
+      subtitle="Classificação contábil formal, usada para agrupar lançamentos no DRE Gerencial"
       emptyLabel="Nenhuma conta cadastrada ainda."
       fields={[
         { key: "code", label: "Código", placeholder: "Ex: 3.1.01" },

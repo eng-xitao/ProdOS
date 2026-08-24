@@ -147,7 +147,7 @@ export default function AssinaturaPage() {
                 )}
                 <p style={styles.description}>{plan.description}</p>
                 <p style={styles.seatsInfo}>
-                  Inclui {plan.included_users ?? 2} usuário{(plan.included_users ?? 2) !== 1 ? "s" : ""}
+                  Inclui até {plan.included_users ?? 2} usuário{(plan.included_users ?? 2) !== 1 ? "s" : ""}
                   {Number(plan.extra_user_price) > 0 && ` — usuário extra: R$ ${Number(plan.extra_user_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`}
                 </p>
                 {extraSeats > 0 && (

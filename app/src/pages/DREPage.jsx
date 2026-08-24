@@ -77,7 +77,7 @@ export default function DREPage() {
   return (
     <div>
       <header style={{ marginBottom: 20 }}>
-        <h1 style={styles.title}>DRE (simplificado)</h1>
+        <h1 style={styles.title}>DRE Gerencial</h1>
         <p style={styles.subtitle}>
           Receita total menos despesas agrupadas por Centro de Custo / Plano de Contas, com a
           evolução mês a mês. Uma visão simplificada, baseada no que está lançado no sistema —
