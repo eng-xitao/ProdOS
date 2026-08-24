@@ -81,6 +81,9 @@ export default function AuthPage() {
         <form onSubmit={handleSubmit} style={styles.form}>
           {mode === "signup" && (
             <>
+              <a href="https://prodos.app.br/#planos" style={styles.plansLink} target="_blank" rel="noreferrer">
+                Ainda não conhece os planos? Veja preços e o que cada um libera →
+              </a>
               <p style={styles.inviteHint}>
                 Foi convidado por e-mail? Cadastre-se normalmente usando o mesmo e-mail do
                 convite — o campo "Nome da empresa" abaixo será ignorado nesse caso.
@@ -221,6 +224,19 @@ const styles = {
     lineHeight: 1.5,
     marginTop: 8,
     marginBottom: 24,
+  },
+  plansLink: {
+    display: "block",
+    fontSize: 13,
+    fontWeight: 700,
+    color: "var(--amber)",
+    background: "rgba(232,163,61,0.1)",
+    border: "1px solid var(--amber)",
+    borderRadius: "var(--radius)",
+    padding: "10px 12px",
+    marginBottom: 8,
+    textAlign: "center",
+    textDecoration: "none",
   },
   inviteHint: {
     fontSize: 12,
