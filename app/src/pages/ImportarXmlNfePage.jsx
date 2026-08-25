@@ -18,7 +18,8 @@ export default function ImportarXmlNfePage() {
   const [creating, setCreating] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const hasAddon = (company?.addons ?? []).includes("XML-NFe");
+  const includedByPlan = Number(company?.plans?.addon_prices?.["XML-NFe"] ?? -1) === 0;
+  const hasAddon = includedByPlan || (company?.addons ?? []).includes("XML-NFe");
 
   async function loadProducts() {
     const { data } = await supabase.from("products").select("id, sku, name").order("name");

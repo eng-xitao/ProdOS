@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
     if (profileData?.company_id) {
       const { data: companyData } = await supabase
         .from("companies")
-        .select("*, plans:plan_id (name, price, features)")
+        .select("*, plans:plan_id (name, price, features, addon_prices)")
         .eq("id", profileData.company_id)
         .single();
       setCompany(companyData ?? null);
@@ -85,7 +85,7 @@ export function AuthProvider({ children }) {
     if (!profile?.company_id) return;
     const { data: companyData } = await supabase
       .from("companies")
-      .select("*, plans:plan_id (name, price, features)")
+      .select("*, plans:plan_id (name, price, features, addon_prices)")
       .eq("id", profile.company_id)
       .single();
     setCompany(companyData ?? null);
