@@ -35,7 +35,7 @@ export default function AdminEmpresasPage() {
   async function load() {
     setLoading(true);
     const [{ data: companiesData }, { data: plansData }, { data: profilesData }] = await Promise.all([
-      supabase.from("companies").select("*, plans:plan_id (name, price, key)").order("created_at", { ascending: false }),
+      supabase.from("companies").select("*, plans:plan_id (name, price, key, addon_prices)").order("created_at", { ascending: false }),
       supabase.from("plans").select("id, key, name, price").eq("active", true).order("sort_order"),
       supabase.from("profiles").select("company_id"),
     ]);
@@ -260,7 +260,13 @@ export default function AdminEmpresasPage() {
                               onChange={() => toggleAddon(c, "XML-NFe")}
                               disabled={savingId === c.id}
                             />
-                            <span>Importação de XML de NF-e (Compras)</span>
+                            <span>
+                              Importação de XML de NF-e (Compras)
+                              {" — "}
+                              {Number(c.plans?.addon_prices?.["XML-NFe"] ?? 0) > 0
+                                ? `+R$ ${Number(c.plans.addon_prices["XML-NFe"]).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`
+                                : "incluso no plano"}
+                            </span>
                           </label>
                         </div>
                         {loadingBilling ? (
