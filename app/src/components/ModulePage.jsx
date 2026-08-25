@@ -114,6 +114,7 @@ export default function ModulePage({ table, title, subtitle, fields, emptyLabel,
   }
 
   async function handleDelete(id) {
+    if (!window.confirm("Tem certeza que deseja excluir este registro? Essa ação não pode ser desfeita.")) return;
     const { error } = await supabase.from(table).delete().eq("id", id);
     if (error) setError(error.message);
     else setRows((r) => r.filter((row) => row.id !== id));

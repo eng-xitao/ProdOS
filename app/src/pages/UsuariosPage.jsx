@@ -79,6 +79,7 @@ export default function UsuariosPage() {
   }
 
   async function cancelInvite(id) {
+    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
     await supabase.from("user_invites").delete().eq("id", id);
     loadInvites();
   }

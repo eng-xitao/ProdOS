@@ -338,6 +338,7 @@ function ReceivingWorkspace({ onReceived }) {
   }
 
   async function removeItem(id) {
+    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
     await supabase.from("purchase_order_items").delete().eq("id", id);
     loadItems(orderId);
   }

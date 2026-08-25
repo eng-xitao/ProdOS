@@ -131,6 +131,7 @@ function BomEditor() {
   }
 
   async function removeComponent(id) {
+    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
     await supabase.from("product_components").delete().eq("id", id);
     loadComponents(parentId);
   }

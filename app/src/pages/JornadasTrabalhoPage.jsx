@@ -100,6 +100,7 @@ function BlockEditor() {
   }
 
   async function removeBlock(id) {
+    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
     await supabase.from("work_schedule_blocks").delete().eq("id", id);
     loadBlocks(scheduleId);
   }

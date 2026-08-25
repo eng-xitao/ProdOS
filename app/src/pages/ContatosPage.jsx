@@ -65,6 +65,7 @@ export default function ContatosPage() {
   }
 
   async function removeContact(id) {
+    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
     await supabase.from("contacts").delete().eq("id", id);
     loadContacts();
   }

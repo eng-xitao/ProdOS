@@ -128,6 +128,7 @@ function QuoteWorkspace({ onClosed }) {
   }
 
   async function removeItem(id) {
+    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
     await supabase.from("purchase_quote_items").delete().eq("id", id);
     loadItems(quoteId);
   }
@@ -151,6 +152,7 @@ function QuoteWorkspace({ onClosed }) {
   }
 
   async function removePrice(id) {
+    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
     await supabase.from("purchase_quote_prices").delete().eq("id", id);
     loadPrices(quoteId);
   }

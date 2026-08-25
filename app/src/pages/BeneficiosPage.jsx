@@ -84,6 +84,7 @@ function EmployeeBenefitsEditor() {
   }
 
   async function removeAssignment(id) {
+    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
     await supabase.from("employee_benefits").delete().eq("id", id);
     loadAssignments();
   }

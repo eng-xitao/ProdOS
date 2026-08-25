@@ -85,6 +85,7 @@ function MaintenanceEditor({ onChange }) {
   }
 
   async function removeRecord(id) {
+    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
     await supabase.from("maintenance_records").delete().eq("id", id);
     loadRecords(assetId);
   }
