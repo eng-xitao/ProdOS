@@ -17,6 +17,8 @@ import CentrosCustoPage from "./pages/CentrosCustoPage";
 import TransportadorasPage from "./pages/TransportadorasPage";
 import ProducaoPage from "./pages/ProducaoPage";
 import ApontamentoProducaoPage from "./pages/ApontamentoProducaoPage";
+import ParadasProducaoPage from "./pages/ParadasProducaoPage";
+import TiposOrdemPage from "./pages/TiposOrdemPage";
 import NecessidadeMateriaisPage from "./pages/NecessidadeMateriaisPage";
 import CapacidadePage from "./pages/CapacidadePage";
 import QualidadeChecklistPage from "./pages/QualidadeChecklistPage";
@@ -123,6 +125,8 @@ function PrivateArea() {
         <Route path="/transportadoras" element={<TransportadorasPage />} />
         <Route path="/producao" element={<ProducaoPage />} />
         <Route path="/apontamento-producao" element={<ApontamentoProducaoPage />} />
+        <Route path="/paradas-producao" element={<ParadasProducaoPage />} />
+        <Route path="/tipos-ordem" element={<TiposOrdemPage />} />
         <Route path="/mrp/materiais" element={<NecessidadeMateriaisPage />} />
         <Route path="/mrp/capacidade" element={<CapacidadePage />} />
         <Route path="/qualidade/checklist" element={<QualidadeChecklistPage />} />

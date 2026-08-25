@@ -15,6 +15,8 @@ export default function RecebimentoProducaoPage() {
   const [history, setHistory] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [warehouseByOrder, setWarehouseByOrder] = useState({});
+  const [batchByOrder, setBatchByOrder] = useState({});
+  const [expiryByOrder, setExpiryByOrder] = useState({});
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState("");
 
@@ -88,6 +90,20 @@ export default function RecebimentoProducaoPage() {
       reference_code: order.code,
     });
 
+    const batchNumber = batchByOrder[order.id];
+    if (batchNumber) {
+      await supabase.from("stock_batches").insert({
+        company_id: company.id,
+        product_id: order.product_id,
+        warehouse_id: warehouseId,
+        batch_number: batchNumber,
+        expiry_date: expiryByOrder[order.id] || null,
+        quantity: order.quantity,
+        received_date: new Date().toISOString().slice(0, 10),
+        production_order_id: order.id,
+      });
+    }
+
     await supabase.from("production_orders").update({
       stock_entry_done: true,
       stock_entry_at: new Date().toISOString(),
@@ -114,7 +130,8 @@ export default function RecebimentoProducaoPage() {
         <h1 style={styles.title}>Recebimento de Produção</h1>
         <p style={styles.subtitle}>
           Ordens de produção que ainda não tiveram o resultado lançado no estoque.
-          Escolha o almoxarifado de destino e confirme para dar entrada.
+          Escolha o almoxarifado de destino e confirme para dar entrada. Informe lote e
+          validade se quiser rastrear esse produto acabado depois.
         </p>
       </header>
 
@@ -131,6 +148,8 @@ export default function RecebimentoProducaoPage() {
                 <th style={styles.th}>Produto</th>
                 <th style={styles.th}>Quantidade</th>
                 <th style={styles.th}>Almoxarifado de destino</th>
+                <th style={styles.th}>Lote (opcional)</th>
+                <th style={styles.th}>Validade (opcional)</th>
                 <th style={styles.th}></th>
               </tr>
             </thead>
@@ -149,6 +168,22 @@ export default function RecebimentoProducaoPage() {
                       <option value="">Selecione...</option>
                       {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                     </select>
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={{ ...styles.input, width: 90 }}
+                      value={batchByOrder[o.id] ?? ""}
+                      onChange={(e) => setBatchByOrder((prev) => ({ ...prev, [o.id]: e.target.value }))}
+                      placeholder="Ex: L2026-08"
+                    />
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      style={{ ...styles.input, width: 130 }}
+                      type="date"
+                      value={expiryByOrder[o.id] ?? ""}
+                      onChange={(e) => setExpiryByOrder((prev) => ({ ...prev, [o.id]: e.target.value }))}
+                    />
                   </td>
                   <td style={{ ...styles.td, textAlign: "right" }}>
                     <button style={styles.confirmBtn} onClick={() => confirmEntry(o)} disabled={processing === o.id} type="button">

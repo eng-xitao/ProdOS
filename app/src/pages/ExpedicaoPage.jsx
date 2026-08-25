@@ -14,6 +14,7 @@ export default function ExpedicaoPage() {
   const [shipmentId, setShipmentId] = useState("");
   const [shipmentDetails, setShipmentDetails] = useState(null);
   const [items, setItems] = useState([]);
+  const [batchesByProduct, setBatchesByProduct] = useState({});
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -48,9 +49,28 @@ export default function ExpedicaoPage() {
     if (!sid) { setItems([]); return; }
     const { data } = await supabase
       .from("shipment_items")
-      .select("id, quantity, product_id, products:product_id (sku, name, unit)")
+      .select("id, quantity, product_id, batch_id, products:product_id (sku, name, unit)")
       .eq("shipment_id", sid);
     setItems(data ?? []);
+
+    const { data: shipment } = await supabase.from("shipments").select("warehouse_id").eq("id", sid).single();
+    if (shipment?.warehouse_id && data && data.length > 0) {
+      const productIds = [...new Set(data.map((it) => it.product_id))];
+      const { data: batches } = await supabase
+        .from("stock_batches")
+        .select("id, product_id, batch_number, expiry_date, quantity")
+        .eq("warehouse_id", shipment.warehouse_id)
+        .in("product_id", productIds)
+        .gt("quantity", 0);
+      const grouped = {};
+      (batches ?? []).forEach((b) => {
+        grouped[b.product_id] = grouped[b.product_id] ?? [];
+        grouped[b.product_id].push(b);
+      });
+      setBatchesByProduct(grouped);
+    } else {
+      setBatchesByProduct({});
+    }
   }
 
   useEffect(() => {
@@ -122,6 +142,11 @@ export default function ExpedicaoPage() {
     setItems((prev) => prev.map((it) => (it.id === itemId ? { ...it, quantity: qty } : it)));
   }
 
+  async function updateItemBatch(itemId, batchId) {
+    await supabase.from("shipment_items").update({ batch_id: batchId || null }).eq("id", itemId);
+    setItems((prev) => prev.map((it) => (it.id === itemId ? { ...it, batch_id: batchId || null } : it)));
+  }
+
   async function confirmDeparture() {
     if (!selectedShipment || items.length === 0) return;
     setProcessing(true);
@@ -175,13 +200,17 @@ export default function ExpedicaoPage() {
     if (!selectedShipment || !shipmentDetails) return;
     const customer = shipmentDetails.sales_orders?.customers;
 
-    const rows = items.map((it) => `
+    const rows = items.map((it) => {
+      const batch = (batchesByProduct[it.product_id] ?? []).find((b) => b.id === it.batch_id);
+      return `
       <tr>
         <td>${it.products?.sku ?? ""}</td>
         <td>${it.products?.name ?? ""}</td>
         <td>${it.quantity} ${it.products?.unit ?? ""}</td>
+        <td>${batch?.batch_number ?? "—"}</td>
       </tr>
-    `).join("");
+    `;
+    }).join("");
 
     const html = `
       ${brandHeader(company, "ROMANEIO DE EXPEDIÇÃO", [
@@ -205,7 +234,7 @@ export default function ExpedicaoPage() {
       </div>
       <div class="section-title">Carga</div>
       <table>
-        <thead><tr><th>SKU</th><th>Produto</th><th>Quantidade</th></tr></thead>
+        <thead><tr><th>SKU</th><th>Produto</th><th>Quantidade</th><th>Lote</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <div class="notes-box"><strong>Observações da entrega:</strong></div>
@@ -301,7 +330,7 @@ export default function ExpedicaoPage() {
             <div style={styles.tableWrap}>
               <table style={styles.table}>
                 <thead>
-                  <tr><th style={styles.th}>Produto</th><th style={styles.th}>Quantidade sendo entregue</th></tr>
+                  <tr><th style={styles.th}>Produto</th><th style={styles.th}>Quantidade sendo entregue</th><th style={styles.th}>Lote</th></tr>
                 </thead>
                 <tbody>
                   {items.map((it) => (
@@ -324,6 +353,26 @@ export default function ExpedicaoPage() {
                           </div>
                         ) : (
                           `${it.quantity} ${it.products?.unit ?? ""}`
+                        )}
+                      </td>
+                      <td style={styles.td}>
+                        {(batchesByProduct[it.product_id] ?? []).length === 0 ? (
+                          <span style={styles.dim}>—</span>
+                        ) : selectedShipment?.status === "preparando" ? (
+                          <select
+                            style={styles.qtyInput}
+                            value={it.batch_id ?? ""}
+                            onChange={(e) => updateItemBatch(it.id, e.target.value)}
+                          >
+                            <option value="">Selecione o lote...</option>
+                            {(batchesByProduct[it.product_id] ?? []).map((b) => (
+                              <option key={b.id} value={b.id}>
+                                {b.batch_number} ({b.quantity} disp.{b.expiry_date ? ` · val. ${new Date(b.expiry_date + "T00:00:00").toLocaleDateString("pt-BR")}` : ""})
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          (batchesByProduct[it.product_id] ?? []).find((b) => b.id === it.batch_id)?.batch_number ?? "—"
                         )}
                       </td>
                     </tr>

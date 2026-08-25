@@ -26,6 +26,8 @@ const NAV_SECTIONS = [
     items: [
       { to: "/producao", label: "Ordens de Produção", icon: "⚙" },
       { to: "/apontamento-producao", label: "Apontamento de Produção", icon: "◷" },
+      { to: "/paradas-producao", label: "Paradas de Produção", icon: "⏸" },
+      { to: "/tipos-ordem", label: "Tipos de Ordem", icon: "▦" },
       { to: "/mrp/materiais", label: "Necessidade de Materiais", icon: "▼" },
       { to: "/mrp/capacidade", label: "Plano Mestre de Produção", icon: "▲" },
       { to: "/qualidade/checklist", label: "Checklist de Qualidade", icon: "☑" },

@@ -10,6 +10,7 @@ export default function ProducaoPage() {
   const [stages, setStages] = useState([]);
   const [products, setProducts] = useState([]);
   const [salesOrders, setSalesOrders] = useState([]);
+  const [orderTypes, setOrderTypes] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -19,10 +20,12 @@ export default function ProducaoPage() {
       supabase.from("production_stages").select("id, name").order("sort_order", { ascending: true }),
       supabase.from("products").select("id, sku, name").order("name"),
       supabase.from("sales_orders").select("id, code").order("code"),
-    ]).then(([stagesRes, productsRes, salesOrdersRes]) => {
+      supabase.from("production_order_types").select("id, name, prefix").order("name"),
+    ]).then(([stagesRes, productsRes, salesOrdersRes, typesRes]) => {
       setStages(stagesRes.data ?? []);
       setProducts(productsRes.data ?? []);
       setSalesOrders(salesOrdersRes.data ?? []);
+      setOrderTypes(typesRes.data ?? []);
       setLoaded(true);
     });
   }, [company?.id]);
@@ -30,6 +33,7 @@ export default function ProducaoPage() {
   const stageOptions = stages.map((s) => ({ value: s.id, label: s.name }));
   const productOptions = products.map((p) => ({ value: p.id, label: `${p.sku} — ${p.name}` }));
   const salesOrderOptions = salesOrders.map((o) => ({ value: o.id, label: o.code }));
+  const orderTypeOptions = orderTypes.map((t) => ({ value: t.id, label: `${t.name} (${t.prefix})` }));
 
   if (loaded && stages.length === 0) {
     return (
@@ -60,6 +64,16 @@ export default function ProducaoPage() {
         autoGenerateCode={{ field: "code", rpc: "next_production_order_code" }}
         fields={[
           { key: "code", label: "Código", placeholder: "Gerado automaticamente", required: true },
+          { key: "order_type_id", label: "Tipo de Ordem", type: "select", options: orderTypeOptions },
+          {
+            key: "priority", label: "Prioridade", type: "select", quickEdit: true,
+            options: [
+              { value: "baixa", label: "Baixa" },
+              { value: "normal", label: "Normal" },
+              { value: "alta", label: "Alta" },
+              { value: "urgente", label: "Urgente" },
+            ],
+          },
           { key: "product_id", label: "Produto", type: "select", required: true, options: productOptions },
           { key: "quantity", label: "Quantidade", type: "number", required: true },
           { key: "stage_id", label: "Etapa", type: "select", required: true, options: stageOptions, quickEdit: true },
