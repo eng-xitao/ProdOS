@@ -67,6 +67,15 @@ export default function AdminEmpresasPage() {
     setSavingId("");
   }
 
+  async function toggleAddon(company, addonKey) {
+    const current = company.addons ?? [];
+    const next = current.includes(addonKey) ? current.filter((a) => a !== addonKey) : [...current, addonKey];
+    setSavingId(company.id);
+    await supabase.from("companies").update({ addons: next }).eq("id", company.id);
+    await load();
+    setSavingId("");
+  }
+
   async function toggleExpand(companyId) {
     if (expandedId === companyId) {
       setExpandedId("");
@@ -242,6 +251,18 @@ export default function AdminEmpresasPage() {
                   {expandedId === c.id && (
                     <tr>
                       <td colSpan={7} style={{ ...styles.td, background: "var(--panel-2)" }}>
+                        <div style={styles.addonsBox}>
+                          <span style={styles.addonsLabel}>Add-ons (vendidos à parte)</span>
+                          <label style={styles.addonRow}>
+                            <input
+                              type="checkbox"
+                              checked={(c.addons ?? []).includes("XML-NFe")}
+                              onChange={() => toggleAddon(c, "XML-NFe")}
+                              disabled={savingId === c.id}
+                            />
+                            <span>Importação de XML de NF-e (Compras)</span>
+                          </label>
+                        </div>
                         {loadingBilling ? (
                           <span style={styles.dim}>Carregando...</span>
                         ) : billingEvents.length === 0 ? (
@@ -328,6 +349,12 @@ const styles = {
     padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer",
   },
   billingList: { display: "flex", flexDirection: "column", gap: 6, whiteSpace: "normal" },
+  addonsBox: {
+    marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid var(--line)",
+    display: "flex", flexDirection: "column", gap: 8,
+  },
+  addonsLabel: { fontSize: 11, color: "var(--text-dim)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" },
+  addonRow: { display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" },
   billingRow: { display: "flex", justifyContent: "space-between", fontSize: 12.5, maxWidth: 500 },
   error: {
     background: "rgba(217,105,95,0.12)", border: "1px solid var(--red)", color: "var(--red)",

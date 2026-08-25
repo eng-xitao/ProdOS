@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import { confirmDelete } from "../lib/deleteGuard";
 import { useNavigate } from "react-router-dom";
 import ModulePage from "../components/ModulePage";
 import { openPrintWindow, brandHeader, currency, formatDate, sendDocumentEmail } from "../lib/printDocument";
@@ -176,7 +177,7 @@ function QuoteItemsEditor({ onQuoteConverted }) {
   }
 
   async function removeItem(id) {
-    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
+    if (!(await confirmDelete(company))) return;
     await supabase.from("quote_items").delete().eq("id", id);
     loadItems(quoteId);
   }

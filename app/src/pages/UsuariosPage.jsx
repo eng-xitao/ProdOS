@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import { confirmDelete } from "../lib/deleteGuard";
 import { ROLE_LABEL } from "../lib/permissions";
 
 export default function UsuariosPage() {
@@ -79,7 +80,7 @@ export default function UsuariosPage() {
   }
 
   async function cancelInvite(id) {
-    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
+    if (!(await confirmDelete(company))) return;
     await supabase.from("user_invites").delete().eq("id", id);
     loadInvites();
   }

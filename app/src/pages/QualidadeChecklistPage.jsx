@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import { confirmDelete } from "../lib/deleteGuard";
 import { Link } from "react-router-dom";
 
 /**
@@ -54,7 +55,7 @@ export default function QualidadeChecklistPage() {
   }
 
   async function removeItem(id) {
-    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
+    if (!(await confirmDelete(company))) return;
     await supabase.from("quality_checklist_items").delete().eq("id", id);
     loadItems(stageId);
   }

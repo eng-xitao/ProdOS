@@ -7,7 +7,9 @@ export default function FornecedoresPage() {
       title="Fornecedores"
       subtitle="Cadastro de fornecedores"
       emptyLabel="Nenhum fornecedor cadastrado ainda."
+      autoGenerateCode={{ field: "code", rpc: "next_supplier_code" }}
       fields={[
+        { key: "code", label: "Código", placeholder: "Gerado automaticamente", required: true },
         { key: "name", label: "Nome", placeholder: "Nome ou razão social", required: true },
         { key: "document", label: "CPF/CNPJ", placeholder: "00.000.000/0001-00" },
         { key: "email", label: "E-mail", type: "email" },

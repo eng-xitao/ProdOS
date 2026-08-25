@@ -19,6 +19,7 @@ export default function EmpresaPage() {
         phone: company.phone ?? "",
         email: company.email ?? "",
         logo_url: company.logo_url ?? "",
+        delete_pin: company.delete_pin ?? "",
       });
     }
   }, [company]);
@@ -85,7 +86,25 @@ export default function EmpresaPage() {
         <label style={styles.field}>
           <span style={styles.fieldLabel}>URL do logo</span>
           <input style={styles.input} value={form.logo_url ?? ""} onChange={(e) => updateField("logo_url", e.target.value)} placeholder="https://..." />
+          <span style={styles.fieldHint}>Aparece nos documentos impressos (Orçamento, Pedido, Romaneio, Ordem de Produção).</span>
         </label>
+
+        <div style={styles.pinBox}>
+          <label style={styles.field}>
+            <span style={styles.fieldLabel}>PIN de exclusão (opcional)</span>
+            <input
+              style={styles.input}
+              value={form.delete_pin ?? ""}
+              onChange={(e) => updateField("delete_pin", e.target.value)}
+              placeholder="Ex: 4821"
+            />
+            <span style={styles.fieldHint}>
+              Se preenchido, o sistema passa a pedir esse PIN antes de excluir qualquer coisa (em qualquer
+              tela). Compartilhe só com quem você confia pra apagar dados. Deixe em branco pra usar apenas
+              a confirmação simples.
+            </span>
+          </label>
+        </div>
 
         <button style={styles.saveBtn} type="submit" disabled={saving}>
           {saving ? "Salvando..." : "Salvar"}
@@ -105,6 +124,11 @@ const styles = {
   },
   field: { display: "flex", flexDirection: "column", gap: 6 },
   fieldLabel: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" },
+  fieldHint: { fontSize: 11.5, color: "var(--text-dim)", lineHeight: 1.4 },
+  pinBox: {
+    marginTop: 8, padding: 14, background: "rgba(232,163,61,0.08)",
+    border: "1px dashed var(--amber)", borderRadius: "var(--radius)",
+  },
   input: {
     background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
     padding: "9px 10px", color: "var(--text)", fontSize: 13,

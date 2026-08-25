@@ -7,7 +7,9 @@ export default function ClientesPage() {
       title="Clientes"
       subtitle="Cadastro de clientes"
       emptyLabel="Nenhum cliente cadastrado ainda."
+      autoGenerateCode={{ field: "code", rpc: "next_customer_code" }}
       fields={[
+        { key: "code", label: "Código", placeholder: "Gerado automaticamente", required: true },
         { key: "name", label: "Nome", placeholder: "Nome ou razão social", required: true },
         { key: "document", label: "CPF/CNPJ", placeholder: "000.000.000-00" },
         { key: "email", label: "E-mail", type: "email" },

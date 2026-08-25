@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import { confirmDelete } from "../lib/deleteGuard";
 import ModulePage from "../components/ModulePage";
 
 export default function BeneficiosPage() {
@@ -84,7 +85,7 @@ function EmployeeBenefitsEditor() {
   }
 
   async function removeAssignment(id) {
-    if (!window.confirm("Tem certeza que deseja excluir? Essa ação não pode ser desfeita.")) return;
+    if (!(await confirmDelete(company))) return;
     await supabase.from("employee_benefits").delete().eq("id", id);
     loadAssignments();
   }
