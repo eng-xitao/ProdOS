@@ -6,7 +6,7 @@ import CurrencyInput from "../components/CurrencyInput";
 // As mesmas seções que existem no menu — o admin da plataforma
 // escolhe quais delas cada plano libera.
 const ALL_FEATURES = [
-  "Cadastro", "PCP", "Comercial", "Compras", "Logística", "Custos",
+  "Cadastro", "PCP", "Qualidade", "Comercial", "Compras", "Almoxarifado", "Logística", "Custos",
   "Financeiro", "RH", "CRM", "Frotas", "Relatórios", "Configurações", "Fiscal",
 ];
 

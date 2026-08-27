@@ -32,6 +32,11 @@ const NAV_SECTIONS = [
       { to: "/tipos-ordem", label: "Tipos de Ordem", icon: "▦" },
       { to: "/mrp/materiais", label: "Necessidade de Materiais", icon: "▼" },
       { to: "/mrp/capacidade", label: "Plano Mestre de Produção", icon: "▲" },
+    ],
+  },
+  {
+    label: "Qualidade",
+    items: [
       { to: "/qualidade/checklist", label: "Checklist de Qualidade", icon: "☑" },
       { to: "/qualidade/inspecao", label: "Inspeção de Qualidade", icon: "☑" },
       { to: "/qualidade/nao-conformidades", label: "Não Conformidades", icon: "⚠" },
@@ -53,8 +58,13 @@ const NAV_SECTIONS = [
     items: [
       { to: "/cotacoes", label: "Cotações", icon: "◐" },
       { to: "/pedidos-compra", label: "Pedidos de Compra", icon: "▼" },
-      { to: "/almoxarifado", label: "Almoxarifado", icon: "▥" },
       { to: "/importar-xml-nfe", label: "Importar XML NF-e", icon: "📄" },
+    ],
+  },
+  {
+    label: "Almoxarifado",
+    items: [
+      { to: "/almoxarifado", label: "Estoque de Materiais", icon: "▥" },
     ],
   },
   {
