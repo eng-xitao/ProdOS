@@ -12,6 +12,7 @@ const NAV_SECTIONS = [
       { to: "/fornecedores", label: "Fornecedores", icon: "◇" },
       { to: "/contatos", label: "Contatos", icon: "◈" },
       { to: "/produtos", label: "Produtos", icon: "◆" },
+      { to: "/estrutura-produto", label: "Estrutura do Produto (BOM)", icon: "▤" },
       { to: "/etapas", label: "Etapas", icon: "→" },
       { to: "/centros-trabalho", label: "Centros de Trabalho", icon: "▣" },
       { to: "/almoxarifados", label: "Almoxarifados", icon: "▥" },
@@ -25,6 +26,7 @@ const NAV_SECTIONS = [
     label: "PCP",
     items: [
       { to: "/producao", label: "Ordens de Produção", icon: "⚙" },
+      { to: "/imprimir-ordem-producao", label: "Imprimir Ordem de Produção", icon: "🖨" },
       { to: "/apontamento-producao", label: "Apontamento de Produção", icon: "◷" },
       { to: "/paradas-producao", label: "Paradas de Produção", icon: "⏸" },
       { to: "/tipos-ordem", label: "Tipos de Ordem", icon: "▦" },

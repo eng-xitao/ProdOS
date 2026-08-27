@@ -8,6 +8,7 @@ import ClientesPage from "./pages/ClientesPage";
 import FornecedoresPage from "./pages/FornecedoresPage";
 import ContatosPage from "./pages/ContatosPage";
 import ProdutosPage from "./pages/ProdutosPage";
+import EstruturaProdutoPage from "./pages/EstruturaProdutoPage";
 import EtapasPage from "./pages/EtapasPage";
 import CentrosTrabalhoPage from "./pages/CentrosTrabalhoPage";
 import AlmoxarifadosPage from "./pages/AlmoxarifadosPage";
@@ -16,6 +17,7 @@ import CondicoesPagamentoPage from "./pages/CondicoesPagamentoPage";
 import CentrosCustoPage from "./pages/CentrosCustoPage";
 import TransportadorasPage from "./pages/TransportadorasPage";
 import ProducaoPage from "./pages/ProducaoPage";
+import ImprimirOrdemProducaoPage from "./pages/ImprimirOrdemProducaoPage";
 import ApontamentoProducaoPage from "./pages/ApontamentoProducaoPage";
 import ParadasProducaoPage from "./pages/ParadasProducaoPage";
 import TiposOrdemPage from "./pages/TiposOrdemPage";
@@ -117,6 +119,7 @@ function PrivateArea() {
         <Route path="/fornecedores" element={<FornecedoresPage />} />
         <Route path="/contatos" element={<ContatosPage />} />
         <Route path="/produtos" element={<ProdutosPage />} />
+        <Route path="/estrutura-produto" element={<EstruturaProdutoPage />} />
         <Route path="/etapas" element={<EtapasPage />} />
         <Route path="/centros-trabalho" element={<CentrosTrabalhoPage />} />
         <Route path="/almoxarifados" element={<AlmoxarifadosPage />} />
@@ -125,6 +128,7 @@ function PrivateArea() {
         <Route path="/centros-custo" element={<CentrosCustoPage />} />
         <Route path="/transportadoras" element={<TransportadorasPage />} />
         <Route path="/producao" element={<ProducaoPage />} />
+        <Route path="/imprimir-ordem-producao" element={<ImprimirOrdemProducaoPage />} />
         <Route path="/apontamento-producao" element={<ApontamentoProducaoPage />} />
         <Route path="/paradas-producao" element={<ParadasProducaoPage />} />
         <Route path="/tipos-ordem" element={<TiposOrdemPage />} />
