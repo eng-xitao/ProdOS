@@ -146,18 +146,6 @@ const NAV_SECTIONS = [
       { to: "/meus-dados-lgpd", label: "Meus Dados (LGPD)", icon: "🔒" },
     ],
   },
-  {
-    label: "Administração",
-    platformAdminOnly: true,
-    items: [
-      { to: "/admin/empresas", label: "Empresas", icon: "🏢", platformRoles: ["super_admin", "comercial", "financeiro"] },
-      { to: "/admin/aprovacoes", label: "Aprovações", icon: "✓", platformRoles: ["super_admin", "comercial"] },
-      { to: "/admin/planos", label: "Planos", icon: "⚙", platformRoles: ["super_admin"] },
-      { to: "/admin/administradores", label: "Administradores", icon: "👤", platformRoles: ["super_admin"] },
-      { to: "/admin/suporte", label: "Suporte", icon: "?", platformRoles: ["super_admin", "suporte"] },
-      { to: "/admin/lgpd", label: "Solicitações LGPD", icon: "🔒", platformRoles: ["super_admin", "comercial"] },
-    ],
-  },
 ];
 
 export default function Layout() {

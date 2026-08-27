@@ -42,12 +42,6 @@ import RescisaoPage from "./pages/RescisaoPage";
 import BeneficiosPage from "./pages/BeneficiosPage";
 import EmpresaPage from "./pages/EmpresaPage";
 import UsuariosPage from "./pages/UsuariosPage";
-import PlanosAdminPage from "./pages/PlanosAdminPage";
-import AprovacoesPage from "./pages/AprovacoesPage";
-import AdminEmpresasPage from "./pages/AdminEmpresasPage";
-import AdminUsuariosPage from "./pages/AdminUsuariosPage";
-import AdminSuportePage from "./pages/AdminSuportePage";
-import AdminLgpdPage from "./pages/AdminLgpdPage";
 import SuportePage from "./pages/SuportePage";
 import MeusDadosLGPDPage from "./pages/MeusDadosLGPDPage";
 import PrivacidadePage from "./pages/PrivacidadePage";
@@ -168,14 +162,8 @@ function PrivateArea() {
         <Route path="/empresa" element={<EmpresaPage />} />
         <Route path="/fiscal" element={<FiscalPage />} />
         <Route path="/usuarios" element={<UsuariosPage />} />
-        <Route path="/admin/empresas" element={<AdminEmpresasPage />} />
-        <Route path="/admin/administradores" element={<AdminUsuariosPage />} />
-        <Route path="/admin/suporte" element={<AdminSuportePage />} />
-        <Route path="/admin/lgpd" element={<AdminLgpdPage />} />
         <Route path="/suporte" element={<SuportePage />} />
         <Route path="/meus-dados-lgpd" element={<MeusDadosLGPDPage />} />
-        <Route path="/admin/planos" element={<PlanosAdminPage />} />
-        <Route path="/admin/aprovacoes" element={<AprovacoesPage />} />
         <Route path="/assinatura" element={<AssinaturaPage />} />
         <Route path="/plano-contas" element={<PlanoContasPage />} />
         <Route path="/sac" element={<SACPage />} />
