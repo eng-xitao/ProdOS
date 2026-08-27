@@ -7,7 +7,7 @@ import CurrencyInput from "../components/CurrencyInput";
 // escolhe quais delas cada plano libera.
 const ALL_FEATURES = [
   "Cadastro", "PCP", "Comercial", "Compras", "Logística", "Custos",
-  "Financeiro", "RH", "CRM", "Frotas", "Relatórios", "Configurações",
+  "Financeiro", "RH", "CRM", "Frotas", "Relatórios", "Configurações", "Fiscal",
 ];
 
 export default function PlanosAdminPage() {
