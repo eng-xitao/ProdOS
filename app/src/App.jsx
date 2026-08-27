@@ -200,6 +200,7 @@ function RootRoutes() {
   return (
     <Routes>
       <Route path="/login" element={!loading && session ? <Navigate to="/" replace /> : <AuthPage />} />
+      <Route path="/cadastro" element={!loading && session ? <Navigate to="/" replace /> : <AuthPage initialMode="signup" />} />
       <Route path="/reset-senha" element={<ResetSenhaPage />} />
       <Route path="/privacidade" element={<PrivacidadePage />} />
       <Route path="/termos" element={<TermosPage />} />

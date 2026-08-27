@@ -3,9 +3,9 @@ import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import logoFull from "../assets/logo-full.png";
 
-export default function AuthPage() {
+export default function AuthPage({ initialMode = "login" }) {
   const { signIn, signUp, requestPasswordReset } = useAuth();
-  const [mode, setMode] = useState("signup"); // "signup" | "login" | "forgot"
+  const [mode, setMode] = useState(initialMode); // "signup" | "login" | "forgot"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -121,25 +121,9 @@ export default function AuthPage() {
         </div>
         <p style={styles.tagline}>Sistema operacional da produção — produção, estoque, vendas e financeiro num só lugar, para qualquer segmento.</p>
 
-        {mode !== "forgot" && (
-          <div style={styles.tabs}>
-            <button
-              style={{ ...styles.tab, ...(mode === "signup" ? styles.tabActive : {}) }}
-              onClick={() => { setMode("signup"); setError(""); setNotice(""); }}
-              type="button"
-            >
-              Criar conta
-            </button>
-            <button
-              style={{ ...styles.tab, ...(mode === "login" ? styles.tabActive : {}) }}
-              onClick={() => { setMode("login"); setError(""); setNotice(""); }}
-              type="button"
-            >
-              Entrar
-            </button>
-          </div>
-        )}
-
+        {/* A opção de criar conta ficou fora da tela inicial de propósito —
+            o cadastro acontece por convite (Configurações > Usuários) ou
+            por link direto (/cadastro), depois do contato comercial. */}
         {mode === "forgot" && (
           <div style={styles.forgotHeader}>
             <span style={styles.forgotTitle}>Redefinir senha</span>
@@ -236,6 +220,16 @@ export default function AuthPage() {
               style={styles.forgotLink}
             >
               Esqueci minha senha
+            </button>
+          )}
+
+          {mode === "signup" && (
+            <button
+              type="button"
+              onClick={() => { setMode("login"); setError(""); setNotice(""); }}
+              style={styles.forgotLink}
+            >
+              Já tem conta? Entrar
             </button>
           )}
 
