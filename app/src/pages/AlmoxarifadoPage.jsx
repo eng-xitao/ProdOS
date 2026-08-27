@@ -23,6 +23,7 @@ export default function AlmoxarifadoPage() {
   const { company } = useAuth();
   const [warehouses, setWarehouses] = useState([]);
   const [products, setProducts] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [warehouseId, setWarehouseId] = useState("");
   const [levels, setLevels] = useState([]);
   const [batches, setBatches] = useState([]);
@@ -36,6 +37,7 @@ export default function AlmoxarifadoPage() {
   const [adjustBatchNumber, setAdjustBatchNumber] = useState("");
   const [adjustExpiryDate, setAdjustExpiryDate] = useState("");
   const [adjustBatchId, setAdjustBatchId] = useState(""); // pra saída: de qual lote descontar
+  const [adjustLocationId, setAdjustLocationId] = useState("");
 
   const [showNewItemForm, setShowNewItemForm] = useState(false);
   const [newItemSku, setNewItemSku] = useState("");
@@ -68,25 +70,43 @@ export default function AlmoxarifadoPage() {
     setExpiringBatches(data ?? []);
   }
 
+  async function loadLocations(wid) {
+    if (!wid) { setLocations([]); return; }
+    const { data } = await supabase.from("warehouse_locations").select("id, code").eq("warehouse_id", wid).order("code");
+    setLocations(data ?? []);
+  }
+
   async function loadLevels(wid) {
     if (!wid) { setLevels([]); setBatches([]); return; }
     setLoading(true);
 
     const [{ data: allProducts, error: productsError }, { data: existingLevels, error: levelsError }, { data: batchesData }] = await Promise.all([
       supabase.from("products").select("id, sku, name, unit").order("name"),
-      supabase.from("stock_levels").select("id, quantity, product_id").eq("warehouse_id", wid),
+      supabase.from("stock_levels").select("id, quantity, product_id, location_id, warehouse_locations:location_id (code)").eq("warehouse_id", wid),
       supabase.from("stock_batches").select("id, product_id, batch_number, expiry_date, quantity").eq("warehouse_id", wid).gt("quantity", 0).order("expiry_date", { ascending: true, nullsFirst: false }),
     ]);
 
     if (productsError) setError(productsError.message);
     if (levelsError) setError(levelsError.message);
 
-    const levelByProduct = Object.fromEntries((existingLevels ?? []).map((l) => [l.product_id, l]));
+    // Um produto pode ter mais de um registro de estoque nesse
+    // almoxarifado (um por localização) — soma tudo pra mostrar o
+    // total, e guarda o detalhe por localização à parte.
+    const totalByProduct = {};
+    const byProductLocations = {};
+    (existingLevels ?? []).forEach((l) => {
+      totalByProduct[l.product_id] = (totalByProduct[l.product_id] ?? 0) + Number(l.quantity);
+      if (l.location_id) {
+        byProductLocations[l.product_id] = byProductLocations[l.product_id] ?? [];
+        byProductLocations[l.product_id].push({ code: l.warehouse_locations?.code, quantity: l.quantity });
+      }
+    });
 
     const merged = (allProducts ?? []).map((p) => ({
-      id: levelByProduct[p.id]?.id ?? `empty-${p.id}`,
+      id: `${p.id}`,
       product_id: p.id,
-      quantity: levelByProduct[p.id]?.quantity ?? 0,
+      quantity: totalByProduct[p.id] ?? 0,
+      locationDetail: byProductLocations[p.id] ?? [],
       products: p,
     }));
 
@@ -102,7 +122,9 @@ export default function AlmoxarifadoPage() {
 
   useEffect(() => {
     loadLevels(warehouseId);
+    loadLocations(warehouseId);
     setAdjustBatchId("");
+    setAdjustLocationId("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [warehouseId]);
 
@@ -118,17 +140,24 @@ export default function AlmoxarifadoPage() {
       return;
     }
 
-    const existing = levels.find((l) => l.product_id === adjustProductId);
-    const hasRealRow = existing && !String(existing.id).startsWith("empty-");
-    const delta = adjustType === "entrada" ? Number(adjustQty) : -Number(adjustQty);
-    const newQuantity = Math.max(0, Number(existing?.quantity ?? 0) + delta);
+    const { data: existingRow } = await supabase
+      .from("stock_levels")
+      .select("id, quantity")
+      .eq("product_id", adjustProductId)
+      .eq("warehouse_id", warehouseId)
+      .eq("location_id", adjustLocationId || null)
+      .maybeSingle();
 
-    if (hasRealRow) {
-      const { error } = await supabase.from("stock_levels").update({ quantity: newQuantity, updated_at: new Date().toISOString() }).eq("id", existing.id);
+    const delta = adjustType === "entrada" ? Number(adjustQty) : -Number(adjustQty);
+    const newQuantity = Math.max(0, Number(existingRow?.quantity ?? 0) + delta);
+
+    if (existingRow) {
+      const { error } = await supabase.from("stock_levels").update({ quantity: newQuantity, updated_at: new Date().toISOString() }).eq("id", existingRow.id);
       if (error) setError(error.message);
     } else {
       const { error } = await supabase.from("stock_levels").insert({
-        company_id: company.id, product_id: adjustProductId, warehouse_id: warehouseId, quantity: newQuantity,
+        company_id: company.id, product_id: adjustProductId, warehouse_id: warehouseId,
+        location_id: adjustLocationId || null, quantity: newQuantity,
       });
       if (error) setError(error.message);
     }
@@ -160,7 +189,7 @@ export default function AlmoxarifadoPage() {
       notes: adjustBatchNumber ? `Lote ${adjustBatchNumber}` : "Ajuste manual",
     });
 
-    setAdjustProductId(""); setAdjustQty(""); setAdjustBatchNumber(""); setAdjustExpiryDate(""); setAdjustBatchId("");
+    setAdjustProductId(""); setAdjustQty(""); setAdjustBatchNumber(""); setAdjustExpiryDate(""); setAdjustBatchId(""); setAdjustLocationId("");
     loadLevels(warehouseId);
     loadExpiringBatches();
   }
@@ -296,6 +325,15 @@ export default function AlmoxarifadoPage() {
               <span style={styles.fieldLabel}>Quantidade</span>
               <input style={styles.input} type="number" step="any" value={adjustQty} onChange={(e) => setAdjustQty(e.target.value)} required />
             </label>
+            {locations.length > 0 && (
+              <label style={styles.field}>
+                <span style={styles.fieldLabel}>Localização (opcional)</span>
+                <select style={styles.input} value={adjustLocationId} onChange={(e) => setAdjustLocationId(e.target.value)}>
+                  <option value="">Sem localização específica</option>
+                  {locations.map((l) => <option key={l.id} value={l.id}>{l.code}</option>)}
+                </select>
+              </label>
+            )}
 
             {adjustType === "entrada" && (
               <>
@@ -335,7 +373,7 @@ export default function AlmoxarifadoPage() {
             <div style={styles.tableWrap}>
               <table style={styles.table}>
                 <thead>
-                  <tr><th style={styles.th}>SKU</th><th style={styles.th}>Produto</th><th style={styles.th}>Quantidade</th></tr>
+                  <tr><th style={styles.th}>SKU</th><th style={styles.th}>Produto</th><th style={styles.th}>Quantidade</th><th style={styles.th}>Localizações</th></tr>
                 </thead>
                 <tbody>
                   {levels.map((l) => (
@@ -343,6 +381,11 @@ export default function AlmoxarifadoPage() {
                       <td style={styles.td}>{l.products?.sku}</td>
                       <td style={styles.td}>{l.products?.name}</td>
                       <td style={styles.td}>{Number(l.quantity).toLocaleString("pt-BR")} {l.products?.unit}</td>
+                      <td style={styles.td}>
+                        {l.locationDetail.length === 0
+                          ? "—"
+                          : l.locationDetail.map((d) => `${d.code} (${Number(d.quantity).toLocaleString("pt-BR")})`).join(", ")}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

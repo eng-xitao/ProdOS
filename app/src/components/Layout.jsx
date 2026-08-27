@@ -65,6 +65,7 @@ const NAV_SECTIONS = [
     label: "Almoxarifado",
     items: [
       { to: "/almoxarifado", label: "Estoque de Materiais", icon: "▥" },
+      { to: "/localizacoes-almoxarifado", label: "Localizações", icon: "▦" },
     ],
   },
   {
