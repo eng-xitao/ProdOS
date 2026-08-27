@@ -27,8 +27,12 @@ export default function CotacoesPage() {
   );
 }
 
+function statusLabel(status) {
+  return { aberta: "Aberta", aguardando_aprovacao: "Aguardando aprovação", fechada: "Fechada", rejeitada: "Rejeitada" }[status] ?? status;
+}
+
 function QuoteWorkspace({ onClosed }) {
-  const { company } = useAuth();
+  const { company, profile } = useAuth();
   const navigate = useNavigate();
   const [quotes, setQuotes] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -158,7 +162,7 @@ function QuoteWorkspace({ onClosed }) {
     loadPrices(quoteId);
   }
 
-  async function closeQuote() {
+  async function submitForApproval() {
     if (!winningSupplier || items.length === 0) return;
     setClosing(true);
     setError("");
@@ -176,6 +180,32 @@ function QuoteWorkspace({ onClosed }) {
       return;
     }
 
+    await supabase.from("purchase_quotes").update({
+      status: "aguardando_aprovacao",
+      winning_supplier_id: winningSupplier,
+    }).eq("id", quoteId);
+
+    setClosing(false);
+    onClosed();
+  }
+
+  async function approveAndGeneratePO() {
+    setClosing(true);
+    setError("");
+
+    const matched = items
+      .map((it) => {
+        const priceEntry = prices.find((p) => p.supplier_id === selectedQuote.winning_supplier_id && p.product_id === it.product_id);
+        return priceEntry ? { product_id: it.product_id, quantity: it.quantity, unit_price: priceEntry.unit_price } : null;
+      })
+      .filter(Boolean);
+
+    if (matched.length === 0) {
+      setError("O fornecedor não tem preço informado para nenhum item desta cotação.");
+      setClosing(false);
+      return;
+    }
+
     const total = matched.reduce((sum, it) => sum + Number(it.quantity) * Number(it.unit_price), 0);
 
     const { data: order, error: orderError } = await supabase
@@ -183,7 +213,7 @@ function QuoteWorkspace({ onClosed }) {
       .insert({
         company_id: company.id,
         code: `PC-${selectedQuote.code}`,
-        supplier_id: winningSupplier,
+        supplier_id: selectedQuote.winning_supplier_id,
         quote_id: quoteId,
         status: "aberto",
         order_date: new Date().toISOString().slice(0, 10),
@@ -204,11 +234,27 @@ function QuoteWorkspace({ onClosed }) {
     const { error: itemsError } = await supabase.from("purchase_order_items").insert(orderItems);
     if (itemsError) { setError(itemsError.message); setClosing(false); return; }
 
-    await supabase.from("purchase_quotes").update({ status: "fechada", winning_supplier_id: winningSupplier }).eq("id", quoteId);
+    await supabase.from("purchase_quotes").update({
+      status: "fechada",
+      approved_by: profile?.id ?? null,
+      approved_at: new Date().toISOString(),
+    }).eq("id", quoteId);
 
     setClosing(false);
     onClosed();
     navigate("/pedidos-compra");
+  }
+
+  async function rejectQuote() {
+    const reason = window.prompt("Motivo da rejeição (aparece pra quem montou a cotação):");
+    if (reason === null) return;
+    setError("");
+    await supabase.from("purchase_quotes").update({
+      status: "aberta",
+      rejection_reason: reason || null,
+      winning_supplier_id: null,
+    }).eq("id", quoteId);
+    onClosed();
   }
 
   function buildQuoteHtml() {
@@ -232,7 +278,7 @@ function QuoteWorkspace({ onClosed }) {
     return `
       ${brandHeader(company, "COTAÇÃO DE COMPRA", [
         ["Nº", selectedQuote.code],
-        ["Status", selectedQuote.status === "aberta" ? "Aberta" : "Fechada"],
+        ["Status", statusLabel(selectedQuote.status)],
       ])}
       <div class="section-title">Itens Necessários</div>
       <table>
@@ -304,7 +350,7 @@ function QuoteWorkspace({ onClosed }) {
         <select style={styles.input} value={quoteId} onChange={(e) => setQuoteId(e.target.value)} onFocus={loadQuotes}>
           <option value="">Selecione uma cotação...</option>
           {quotes.map((q) => (
-            <option key={q.id} value={q.id}>{q.code} — {q.status === "aberta" ? "Aberta" : "Fechada"}</option>
+            <option key={q.id} value={q.id}>{q.code} — {statusLabel(q.status)}</option>
           ))}
         </select>
       </label>
@@ -482,16 +528,37 @@ function QuoteWorkspace({ onClosed }) {
                       ))}
                     </select>
                   </label>
-                  <button style={styles.convertBtn} onClick={closeQuote} disabled={closing || !winningSupplier} type="button">
-                    {closing ? "Fechando..." : "Fechar cotação e gerar Pedido de Compra"}
+                  <button style={styles.convertBtn} onClick={submitForApproval} disabled={closing || !winningSupplier} type="button">
+                    {closing ? "Enviando..." : "Enviar pra aprovação"}
                   </button>
                 </div>
+              )}
+              {selectedQuote?.rejection_reason && selectedQuote?.status === "aberta" && (
+                <p style={styles.rejectionNotice}>
+                  ⚠ Rejeitada anteriormente: {selectedQuote.rejection_reason}
+                </p>
               )}
             </>
           )}
 
+          {selectedQuote?.status === "aguardando_aprovacao" && (
+            <div style={styles.approvalBox}>
+              <p style={styles.approvalTitle}>Aguardando homologação</p>
+              <p style={{ ...styles.dim, marginBottom: 14 }}>
+                Fornecedor escolhido: <strong>{suppliers.find((s) => s.id === selectedQuote.winning_supplier_id)?.name ?? "—"}</strong>.
+                Aprovando, o Pedido de Compra é gerado automaticamente.
+              </p>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button style={styles.approveBtn} onClick={approveAndGeneratePO} disabled={closing} type="button">
+                  {closing ? "Aprovando..." : "✓ Aprovar e gerar Pedido de Compra"}
+                </button>
+                <button style={styles.rejectBtn} onClick={rejectQuote} type="button">✕ Rejeitar</button>
+              </div>
+            </div>
+          )}
+
           {selectedQuote?.status === "fechada" && (
-            <p style={{ ...styles.dim, marginTop: 12 }}>Esta cotação já foi fechada e gerou um Pedido de Compra.</p>
+            <p style={{ ...styles.dim, marginTop: 12 }}>Esta cotação já foi aprovada e gerou um Pedido de Compra.</p>
           )}
         </>
       )}
@@ -528,6 +595,22 @@ const styles = {
     padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", height: 38, whiteSpace: "nowrap",
   },
   dim: { color: "var(--text-dim)", fontSize: 14 },
+  approvalBox: {
+    marginTop: 16, padding: 18, background: "rgba(232,163,61,0.08)",
+    border: "1px solid var(--amber)", borderRadius: "var(--radius)", maxWidth: 640,
+  },
+  approvalTitle: { fontSize: 14, fontWeight: 700, color: "var(--amber)", margin: "0 0 8px" },
+  approveBtn: {
+    background: "var(--green)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
+    padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer",
+  },
+  rejectBtn: {
+    background: "transparent", color: "var(--red)", border: "1px solid var(--red)", borderRadius: "var(--radius)",
+    padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer",
+  },
+  rejectionNotice: {
+    marginTop: 12, fontSize: 12.5, color: "var(--red)", maxWidth: 640,
+  },
   tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", maxWidth: 760, marginBottom: 8 },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
