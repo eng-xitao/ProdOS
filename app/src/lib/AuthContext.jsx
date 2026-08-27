@@ -10,6 +10,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
 
+  const [impersonation, setImpersonation] = useState(null);
+
   async function loadProfileAndCompany(userId) {
     const { data: profileData } = await supabase
       .from("profiles")
@@ -19,16 +21,42 @@ export function AuthProvider({ children }) {
 
     setProfile(profileData ?? null);
 
-    if (profileData?.company_id) {
+    // A empresa "ativa" pode ser a própria, ou — se for equipe da
+    // plataforma com uma personificação ativa (suporte a cliente) —
+    // a empresa personificada. current_company_id() já resolve isso.
+    const { data: activeCompanyId } = await supabase.rpc("current_company_id");
+
+    if (activeCompanyId) {
       const { data: companyData } = await supabase
         .from("companies")
         .select("*, plans:plan_id (name, price, features, addon_prices)")
-        .eq("id", profileData.company_id)
+        .eq("id", activeCompanyId)
         .single();
       setCompany(companyData ?? null);
     } else {
       setCompany(null);
     }
+
+    if (profileData?.platform_role) {
+      const { data: activeImpersonation } = await supabase
+        .from("platform_impersonations")
+        .select("id, company_id, companies:company_id (name)")
+        .eq("staff_profile_id", userId)
+        .gt("expires_at", new Date().toISOString())
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setImpersonation(activeImpersonation ?? null);
+    } else {
+      setImpersonation(null);
+    }
+  }
+
+  async function stopImpersonating() {
+    if (impersonation) {
+      await supabase.from("platform_impersonations").delete().eq("id", impersonation.id);
+    }
+    if (session?.user) await loadProfileAndCompany(session.user.id);
   }
 
   useEffect(() => {
@@ -94,11 +122,12 @@ export function AuthProvider({ children }) {
   }
 
   async function refreshCompany() {
-    if (!profile?.company_id) return;
+    const { data: activeCompanyId } = await supabase.rpc("current_company_id");
+    if (!activeCompanyId) return;
     const { data: companyData } = await supabase
       .from("companies")
       .select("*, plans:plan_id (name, price, features, addon_prices)")
-      .eq("id", profile.company_id)
+      .eq("id", activeCompanyId)
       .single();
     setCompany(companyData ?? null);
   }
@@ -115,7 +144,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, profile, company, loading, profileLoading, signUp, signIn, signOut, refreshCompany, requestPasswordReset, updatePassword }}
+      value={{ session, profile, company, loading, profileLoading, signUp, signIn, signOut, refreshCompany, requestPasswordReset, updatePassword, impersonation, stopImpersonating }}
     >
       {children}
     </AuthContext.Provider>

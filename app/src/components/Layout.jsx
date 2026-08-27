@@ -149,7 +149,7 @@ const NAV_SECTIONS = [
 ];
 
 export default function Layout() {
-  const { profile, company, signOut } = useAuth();
+  const { profile, company, signOut, impersonation, stopImpersonating } = useAuth();
   const location = useLocation();
 
   const planFeatures = company?.plans?.features ?? [];
@@ -283,6 +283,14 @@ export default function Layout() {
       </aside>
 
       <main style={styles.main}>
+        {impersonation && (
+          <div style={styles.impersonationBanner}>
+            <span>
+              👁 Você está vendo como <strong>{impersonation.companies?.name ?? "essa empresa"}</strong> — modo suporte, acesso temporário.
+            </span>
+            <button style={styles.impersonationBtn} onClick={stopImpersonating} type="button">Sair desse modo</button>
+          </div>
+        )}
         {isBlocked ? (
           <div style={styles.blocked}>
             <h1 style={styles.blockedTitle}>Acesso não permitido</h1>
@@ -300,6 +308,15 @@ export default function Layout() {
 }
 
 const styles = {
+  impersonationBanner: {
+    display: "flex", justifyContent: "space-between", alignItems: "center",
+    background: "var(--amber)", color: "#FFFFFF", padding: "10px 20px",
+    fontSize: 13, fontWeight: 600, marginBottom: 16, borderRadius: "var(--radius)",
+  },
+  impersonationBtn: {
+    background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.4)", color: "#FFFFFF",
+    borderRadius: "var(--radius)", padding: "6px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+  },
   shell: { display: "flex", minHeight: "100%" },
   sidebar: {
     width: 236,
