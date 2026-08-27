@@ -6,7 +6,7 @@ import { useAuth } from "../lib/AuthContext";
  * da empresa (Configurações → Dados da Empresa) e o título do
  * relatório.
  */
-export default function PrintHeader({ title }) {
+export default function PrintHeader({ title, subtitle }) {
   const { company } = useAuth();
   const now = new Date().toLocaleString("pt-BR");
 
@@ -25,6 +25,7 @@ export default function PrintHeader({ title }) {
         <div style={styles.generatedAt}>Gerado em {now}</div>
       </div>
       <h1 style={styles.title}>{title}</h1>
+      {subtitle && <p style={styles.subtitle}>{subtitle}</p>}
     </div>
   );
 }
@@ -44,4 +45,5 @@ const styles = {
   detail: { fontSize: 11 },
   generatedAt: { fontSize: 11 },
   title: { fontSize: 18, margin: "0 0 4px" },
+  subtitle: { fontSize: 12, margin: 0, color: "#333" },
 };

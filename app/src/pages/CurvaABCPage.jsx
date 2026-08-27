@@ -4,6 +4,8 @@ import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { Empty, currency, tooltipStyle } from "./RelatorioVendasPage";
 import DateRangeFilter from "../components/DateRangeFilter";
+import PrintHeader from "../components/PrintHeader";
+import PrintButton, { rangeLabel } from "../components/PrintButton";
 
 const CLASS_COLOR = { A: "#2F9E68", B: "#2563EB", C: "#C9483D" };
 
@@ -63,13 +65,17 @@ export default function CurvaABCPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 20 }}>
-        <h1 style={styles.title}>Curva ABC de Produtos</h1>
-        <p style={styles.subtitle}>
-          Classificação por valor vendido (soma de quantidade × preço nos Pedidos de Venda).
-          Classe A = até 80% do valor acumulado, B = até 95%, C = o restante.
-        </p>
+      <header style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }} className="no-print">
+        <div>
+          <h1 style={styles.title}>Curva ABC de Produtos</h1>
+          <p style={styles.subtitle}>
+            Classificação por valor vendido (soma de quantidade × preço nos Pedidos de Venda).
+            Classe A = até 80% do valor acumulado, B = até 95%, C = o restante.
+          </p>
+        </div>
+        <PrintButton />
       </header>
+      <PrintHeader title="Curva ABC de Produtos" subtitle={rangeLabel(range)} />
 
       <DateRangeFilter onChange={setRange} />
 

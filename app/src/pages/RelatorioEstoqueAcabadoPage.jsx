@@ -3,37 +3,59 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, currency, tooltipStyle } from "./RelatorioVendasPage";
+import PrintHeader from "../components/PrintHeader";
+import PrintButton from "../components/PrintButton";
 
+/**
+ * Relatório de Estoque — Produto Acabado. Usa stock_levels (estoque
+ * por produto E por almoxarifado) em vez de um número único do
+ * produto — permite filtrar por local e mostra corretamente quando
+ * o mesmo item está espalhado em mais de um almoxarifado.
+ */
 export default function RelatorioEstoqueAcabadoPage() {
   const { company } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [warehouses, setWarehouses] = useState([]);
+  const [warehouseId, setWarehouseId] = useState("");
   const [totalValue, setTotalValue] = useState(0);
   const [topByValue, setTopByValue] = useState([]);
   const [zeroStock, setZeroStock] = useState([]);
   const [lowStock, setLowStock] = useState([]);
 
   useEffect(() => {
-    if (company?.id) calculate();
+    if (company?.id) {
+      supabase.from("warehouses").select("id, name").order("name").then(({ data }) => setWarehouses(data ?? []));
+      calculate();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company?.id]);
+  }, [company?.id, warehouseId]);
 
   async function calculate() {
     setLoading(true);
     const { data: products } = await supabase
       .from("products")
-      .select("sku, name, stock_quantity, min_stock, sale_price, unit")
+      .select("id, sku, name, min_stock, sale_price, unit")
       .eq("type", "acabado");
+
+    let levelsQuery = supabase.from("stock_levels").select("product_id, warehouse_id, quantity");
+    if (warehouseId) levelsQuery = levelsQuery.eq("warehouse_id", warehouseId);
+    const { data: levels } = await levelsQuery;
+
+    const qtyByProduct = {};
+    (levels ?? []).forEach((l) => {
+      qtyByProduct[l.product_id] = (qtyByProduct[l.product_id] ?? 0) + Number(l.quantity);
+    });
 
     let total = 0;
     const zeros = [];
     const lows = [];
 
     const rows = (products ?? []).map((p) => {
-      const qty = Number(p.stock_quantity);
+      const qty = qtyByProduct[p.id] ?? 0;
       const value = qty * Number(p.sale_price);
       total += value;
-      if (qty === 0) zeros.push(p);
-      else if (Number(p.min_stock) > 0 && qty < Number(p.min_stock)) lows.push(p);
+      if (qty === 0) zeros.push({ ...p, stock_quantity: qty });
+      else if (Number(p.min_stock) > 0 && qty < Number(p.min_stock)) lows.push({ ...p, stock_quantity: qty });
       return { name: `${p.sku} — ${p.name}`, value };
     }).sort((a, b) => b.value - a.value).slice(0, 8);
 
@@ -44,15 +66,29 @@ export default function RelatorioEstoqueAcabadoPage() {
     setLoading(false);
   }
 
+  const warehouseLabel = warehouseId ? warehouses.find((w) => w.id === warehouseId)?.name ?? "" : "Todos os almoxarifados";
+
   return (
     <div>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={styles.title}>Relatório de Estoque — Produto Acabado</h1>
-        <p style={styles.subtitle}>
-          Valor em estoque (a preço de venda):{" "}
-          <strong style={{ color: "var(--amber)" }}>{currency(totalValue)}</strong>
-        </p>
+      <header style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }} className="no-print">
+        <div>
+          <h1 style={styles.title}>Relatório de Estoque — Produto Acabado</h1>
+          <p style={styles.subtitle}>
+            Valor em estoque (a preço de venda):{" "}
+            <strong style={{ color: "var(--amber)" }}>{currency(totalValue)}</strong>
+          </p>
+        </div>
+        <PrintButton />
       </header>
+      <PrintHeader title="Relatório de Estoque — Produto Acabado" subtitle={`Local: ${warehouseLabel} · Valor: R$ ${currency(totalValue)}`} />
+
+      <div style={styles.filterRow} className="no-print">
+        <label style={styles.fieldLabel}>Almoxarifado</label>
+        <select style={styles.select} value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
+          <option value="">Todos os almoxarifados</option>
+          {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+        </select>
+      </div>
 
       {loading ? (
         <p style={styles.dim}>Calculando...</p>
@@ -119,6 +155,12 @@ const styles = {
   title: { fontFamily: "var(--font-display)", fontSize: 22, margin: 0 },
   subtitle: { color: "var(--text-dim)", fontSize: 13, margin: "6px 0 0" },
   dim: { color: "var(--text-dim)", fontSize: 13 },
+  filterRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 20 },
+  fieldLabel: { fontSize: 12, color: "var(--text-dim)", fontWeight: 600 },
+  select: {
+    background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
+    padding: "7px 10px", color: "var(--text)", fontSize: 13,
+  },
   grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 },
   card: { background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "var(--radius)", padding: 20 },
   cardTitle: { fontFamily: "var(--font-display)", fontSize: 15, margin: "0 0 14px" },

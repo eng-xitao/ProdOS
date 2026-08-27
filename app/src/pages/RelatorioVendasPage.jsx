@@ -3,6 +3,8 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import DateRangeFilter from "../components/DateRangeFilter";
+import PrintHeader from "../components/PrintHeader";
+import PrintButton, { rangeLabel } from "../components/PrintButton";
 
 export default function RelatorioVendasPage() {
   const { company } = useAuth();
@@ -76,10 +78,14 @@ export default function RelatorioVendasPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={styles.title}>Relatório de Vendas</h1>
-        <p style={styles.subtitle}>Baseado nos Pedidos de Venda cadastrados.</p>
+      <header style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }} className="no-print">
+        <div>
+          <h1 style={styles.title}>Relatório de Vendas</h1>
+          <p style={styles.subtitle}>Baseado nos Pedidos de Venda cadastrados.</p>
+        </div>
+        <PrintButton />
       </header>
+      <PrintHeader title="Relatório de Vendas" subtitle={rangeLabel(range)} />
 
       <DateRangeFilter onChange={setRange} />
 

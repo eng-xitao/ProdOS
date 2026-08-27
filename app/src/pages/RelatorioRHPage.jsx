@@ -4,6 +4,8 @@ import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, formatMonth, currency, tooltipStyle } from "./RelatorioVendasPage";
 import DateRangeFilter from "../components/DateRangeFilter";
+import PrintHeader from "../components/PrintHeader";
+import PrintButton, { rangeLabel } from "../components/PrintButton";
 
 /**
  * Relatório de RH: primeira visão consolidada do custo de folha —
@@ -62,10 +64,14 @@ export default function RelatorioRHPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={styles.title}>Relatório de RH — Custo de Folha</h1>
-        <p style={styles.subtitle}>Baseado nas folhas de pagamento já lançadas.</p>
+      <header style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }} className="no-print">
+        <div>
+          <h1 style={styles.title}>Relatório de RH — Custo de Folha</h1>
+          <p style={styles.subtitle}>Baseado nas folhas de pagamento já lançadas.</p>
+        </div>
+        <PrintButton />
       </header>
+      <PrintHeader title="Relatório de RH — Custo de Folha" subtitle={rangeLabel(range)} />
 
       <DateRangeFilter onChange={setRange} />
 

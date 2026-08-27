@@ -4,6 +4,8 @@ import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, formatMonth, currency, tooltipStyle } from "./RelatorioVendasPage";
 import DateRangeFilter from "../components/DateRangeFilter";
+import PrintHeader from "../components/PrintHeader";
+import PrintButton, { rangeLabel } from "../components/PrintButton";
 
 const STATUS_LABEL = { processando: "Processando", autorizado: "Autorizada", erro: "Erro", cancelado: "Cancelada" };
 
@@ -64,16 +66,23 @@ export default function RelatorioFiscalPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={styles.title}>Relatório Fiscal — Notas Emitidas</h1>
-        <p style={styles.subtitle}>
-          Total faturado com nota autorizada:{" "}
-          <strong style={{ color: "var(--green)" }}>{currency(totalAuthorized)}</strong>
-          {errorCount > 0 && (
-            <> · <strong style={{ color: "var(--red)" }}>{errorCount} nota(s) com erro</strong></>
-          )}
-        </p>
+      <header style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }} className="no-print">
+        <div>
+          <h1 style={styles.title}>Relatório Fiscal — Notas Emitidas</h1>
+          <p style={styles.subtitle}>
+            Total faturado com nota autorizada:{" "}
+            <strong style={{ color: "var(--green)" }}>{currency(totalAuthorized)}</strong>
+            {errorCount > 0 && (
+              <> · <strong style={{ color: "var(--red)" }}>{errorCount} nota(s) com erro</strong></>
+            )}
+          </p>
+        </div>
+        <PrintButton />
       </header>
+      <PrintHeader
+        title="Relatório Fiscal — Notas Emitidas"
+        subtitle={`${rangeLabel(range)} · Total autorizado: R$ ${currency(totalAuthorized)}`}
+      />
 
       <DateRangeFilter onChange={setRange} />
 

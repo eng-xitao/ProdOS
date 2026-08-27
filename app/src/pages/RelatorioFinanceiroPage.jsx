@@ -4,6 +4,8 @@ import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, currency, tooltipStyle } from "./RelatorioVendasPage";
 import DateRangeFilter from "../components/DateRangeFilter";
+import PrintHeader from "../components/PrintHeader";
+import PrintButton, { rangeLabel } from "../components/PrintButton";
 
 const BUCKETS = [
   { key: "0-30", label: "1 a 30 dias", min: 1, max: 30 },
@@ -77,13 +79,20 @@ export default function RelatorioFinanceiroPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={styles.title}>Relatório Financeiro — Inadimplência</h1>
-        <p style={styles.subtitle}>
-          Total vencido e não pago:{" "}
-          <strong style={{ color: "var(--red)" }}>{currency(totalOverdue)}</strong>
-        </p>
+      <header style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }} className="no-print">
+        <div>
+          <h1 style={styles.title}>Relatório Financeiro — Inadimplência</h1>
+          <p style={styles.subtitle}>
+            Total vencido e não pago:{" "}
+            <strong style={{ color: "var(--red)" }}>{currency(totalOverdue)}</strong>
+          </p>
+        </div>
+        <PrintButton />
       </header>
+      <PrintHeader
+        title="Relatório Financeiro — Inadimplência"
+        subtitle={`${rangeLabel(range)} · Total vencido: R$ ${currency(totalOverdue)}`}
+      />
 
       <DateRangeFilter onChange={setRange} />
 

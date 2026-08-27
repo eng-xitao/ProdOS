@@ -3,6 +3,8 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, currency, tooltipStyle } from "./RelatorioVendasPage";
+import PrintHeader from "../components/PrintHeader";
+import PrintButton from "../components/PrintButton";
 
 export default function RelatorioAlmoxarifadoPage() {
   const { company } = useAuth();
@@ -37,10 +39,14 @@ export default function RelatorioAlmoxarifadoPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={styles.title}>Relatório de Almoxarifado</h1>
-        <p style={styles.subtitle}>Valor e distribuição de itens por local de estoque.</p>
+      <header style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }} className="no-print">
+        <div>
+          <h1 style={styles.title}>Relatório de Almoxarifado</h1>
+          <p style={styles.subtitle}>Valor e distribuição de itens por local de estoque.</p>
+        </div>
+        <PrintButton />
       </header>
+      <PrintHeader title="Relatório de Almoxarifado" subtitle="Comparativo entre todos os almoxarifados" />
 
       {loading ? (
         <p style={styles.dim}>Calculando...</p>

@@ -4,6 +4,8 @@ import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, formatMonth, tooltipStyle } from "./RelatorioVendasPage";
 import DateRangeFilter from "../components/DateRangeFilter";
+import PrintHeader from "../components/PrintHeader";
+import PrintButton, { rangeLabel } from "../components/PrintButton";
 
 export default function RelatorioProducaoPage() {
   const { company } = useAuth();
@@ -80,10 +82,14 @@ export default function RelatorioProducaoPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={styles.title}>Relatório de Produção</h1>
-        <p style={styles.subtitle}>Baseado nas Ordens de Produção cadastradas.</p>
+      <header style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }} className="no-print">
+        <div>
+          <h1 style={styles.title}>Relatório de Produção</h1>
+          <p style={styles.subtitle}>Baseado nas Ordens de Produção cadastradas.</p>
+        </div>
+        <PrintButton />
       </header>
+      <PrintHeader title="Relatório de Produção" subtitle={rangeLabel(range)} />
 
       <DateRangeFilter onChange={setRange} />
 

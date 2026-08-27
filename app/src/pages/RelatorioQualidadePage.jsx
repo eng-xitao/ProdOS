@@ -4,6 +4,8 @@ import { useAuth } from "../lib/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartCard, Empty, tooltipStyle } from "./RelatorioVendasPage";
 import DateRangeFilter from "../components/DateRangeFilter";
+import PrintHeader from "../components/PrintHeader";
+import PrintButton, { rangeLabel } from "../components/PrintButton";
 
 /**
  * Relatório de Qualidade/Refugo: reúne os dados que os módulos de
@@ -81,10 +83,14 @@ export default function RelatorioQualidadePage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={styles.title}>Relatório de Qualidade e Refugo</h1>
-        <p style={styles.subtitle}>Baseado nas Inspeções de Qualidade, Não Conformidades e refugo apontado na produção.</p>
+      <header style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }} className="no-print">
+        <div>
+          <h1 style={styles.title}>Relatório de Qualidade e Refugo</h1>
+          <p style={styles.subtitle}>Baseado nas Inspeções de Qualidade, Não Conformidades e refugo apontado na produção.</p>
+        </div>
+        <PrintButton />
       </header>
+      <PrintHeader title="Relatório de Qualidade e Refugo" subtitle={rangeLabel(range)} />
 
       <DateRangeFilter onChange={setRange} />
 
