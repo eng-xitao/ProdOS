@@ -57,6 +57,7 @@ const NAV_SECTIONS = [
   {
     label: "Compras",
     items: [
+      { to: "/sugestoes-compra", label: "Sugestões de Compra", icon: "💡" },
       { to: "/cotacoes", label: "Cotações", icon: "◐" },
       { to: "/pedidos-compra", label: "Pedidos de Compra", icon: "▼" },
       { to: "/importar-xml-nfe", label: "Importar XML NF-e", icon: "📄" },

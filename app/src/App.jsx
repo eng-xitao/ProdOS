@@ -79,6 +79,7 @@ import CreditoCobrancaPage from "./pages/CreditoCobrancaPage";
 import AnaliseCentroCustoPage from "./pages/AnaliseCentroCustoPage";
 import DREPage from "./pages/DREPage";
 import CotacoesPage from "./pages/CotacoesPage";
+import SugestoesCompraPage from "./pages/SugestoesCompraPage";
 import PedidosCompraPage from "./pages/PedidosCompraPage";
 import ImportarXmlNfePage from "./pages/ImportarXmlNfePage";
 import AlmoxarifadoPage from "./pages/AlmoxarifadoPage";
@@ -145,6 +146,7 @@ function PrivateArea() {
         <Route path="/transferencias" element={<TransferenciasPage />} />
         <Route path="/historico-movimentacoes" element={<HistoricoMovimentacoesPage />} />
         <Route path="/cotacoes" element={<CotacoesPage />} />
+        <Route path="/sugestoes-compra" element={<SugestoesCompraPage />} />
         <Route path="/pedidos-compra" element={<PedidosCompraPage />} />
         <Route path="/importar-xml-nfe" element={<ImportarXmlNfePage />} />
         <Route path="/almoxarifado" element={<AlmoxarifadoPage />} />

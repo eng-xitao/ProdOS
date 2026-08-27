@@ -50,6 +50,8 @@ export default function ProdutosPage() {
             : { key: "unit", label: "Unidade", placeholder: "Cadastre em Cadastro → Unidades de Medida" },
           { key: "stock_quantity", label: "Estoque atual", type: "number" },
           { key: "min_stock", label: "Estoque mínimo", type: "number" },
+          { key: "reorder_point", label: "Ponto de pedido", type: "number", placeholder: "Se vazio, usa o estoque mínimo" },
+          { key: "max_stock", label: "Estoque máximo", type: "number", placeholder: "Usado pra calcular quanto sugerir comprar" },
           { key: "ncm", label: "NCM (fiscal)", placeholder: "Ex: 73181500 — necessário pra emitir NF-e" },
           { key: "cfop_padrao", label: "CFOP padrão (venda)", placeholder: "5102" },
           { key: "cost", label: "Custo", type: "currency" },
