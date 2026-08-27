@@ -39,8 +39,20 @@ export function AuthProvider({ children }) {
     // precisamos chamar getSession() por fora também. Ter os dois
     // rodando em paralelo foi o que causava a corrida (um terminando
     // antes do outro, liberando a tela cedo demais).
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
+
+      // Renovação automática de token (ex: voltou pra aba depois de um
+      // tempo fora) não precisa recarregar perfil/empresa — já temos
+      // esse dado, e recarregar aqui é o que causava o piscar/delay.
+      if (event === "TOKEN_REFRESHED") {
+        if (!initialCheckDone) {
+          initialCheckDone = true;
+          setLoading(false);
+        }
+        return;
+      }
+
       if (session?.user) {
         setProfileLoading(true);
         await loadProfileAndCompany(session.user.id);
