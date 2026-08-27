@@ -32,6 +32,7 @@ const NAV_SECTIONS = [
       { to: "/tipos-ordem", label: "Tipos de Ordem", icon: "▦" },
       { to: "/mrp/materiais", label: "Necessidade de Materiais", icon: "▼" },
       { to: "/mrp/capacidade", label: "Plano Mestre de Produção", icon: "▲" },
+      { to: "/requisicao-material", label: "Requisição de Material", icon: "📋" },
     ],
   },
   {
@@ -65,6 +66,7 @@ const NAV_SECTIONS = [
     label: "Almoxarifado",
     items: [
       { to: "/almoxarifado", label: "Estoque de Materiais", icon: "▥" },
+      { to: "/requisicao-material", label: "Requisição de Material", icon: "📋" },
       { to: "/localizacoes-almoxarifado", label: "Localizações", icon: "▦" },
     ],
   },
