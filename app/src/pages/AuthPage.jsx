@@ -15,6 +15,7 @@ export default function AuthPage({ initialMode = "login" }) {
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [segment, setSegment] = useState("");
+  const [productKey, setProductKey] = useState("prodos");
 
   const [cnpj, setCnpj] = useState("");
   const [cnpjChecking, setCnpjChecking] = useState(false);
@@ -91,7 +92,7 @@ export default function AuthPage({ initialMode = "login" }) {
     setLoading(true);
 
     if (mode === "signup") {
-      const { error } = await signUp({ email, password, fullName, companyName, segment, cnpj: cnpj.replace(/\D/g, ""), address });
+      const { error } = await signUp({ email, password, fullName, companyName, segment, cnpj: cnpj.replace(/\D/g, ""), address, productKey });
       if (error) {
         setError(traduzErro(error.message));
       } else {
@@ -144,6 +145,12 @@ export default function AuthPage({ initialMode = "login" }) {
                 Foi convidado por e-mail? Cadastre-se normalmente usando o mesmo e-mail do
                 convite — o campo "Nome da empresa" abaixo será ignorado nesse caso.
               </p>
+              <Field label="Qual sistema você quer assinar?">
+                <select style={styles.input} value={productKey} onChange={(e) => setProductKey(e.target.value)}>
+                  <option value="prodos">ProdOS — ERP completo</option>
+                  <option value="prodlog">ProdLog — WMS (gestão de armazém)</option>
+                </select>
+              </Field>
               <Field label="CNPJ">
                 <input
                   style={styles.input}

@@ -99,13 +99,13 @@ export function AuthProvider({ children }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function signUp({ email, password, fullName, companyName, segment, cnpj, address }) {
+  async function signUp({ email, password, fullName, companyName, segment, cnpj, address, productKey }) {
     return supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: fullName, company_name: companyName, segment, cnpj,
+          full_name: fullName, company_name: companyName, segment, cnpj, product_key: productKey || "prodos",
           logradouro: address?.logradouro, numero: address?.numero, bairro: address?.bairro,
           municipio: address?.municipio, uf: address?.uf, cep: address?.cep,
         },
