@@ -114,9 +114,9 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    label: "Frotas",
+    label: "Bens/Ativos",
     items: [
-      { to: "/frotas", label: "Frotas e Equipamentos", icon: "▶" },
+      { to: "/frotas", label: "Bens e Ativos", icon: "▶" },
     ],
   },
   {
