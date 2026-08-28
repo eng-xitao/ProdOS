@@ -61,19 +61,22 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let initialCheckDone = false;
+    let loadedUserId = null;
 
     // onAuthStateChange já dispara sozinho com a sessão atual assim
     // que o listener é registrado (evento INITIAL_SESSION) — não
     // precisamos chamar getSession() por fora também. Ter os dois
     // rodando em paralelo foi o que causava a corrida (um terminando
     // antes do outro, liberando a tela cedo demais).
-    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
 
-      // Renovação automática de token (ex: voltou pra aba depois de um
-      // tempo fora) não precisa recarregar perfil/empresa — já temos
-      // esse dado, e recarregar aqui é o que causava o piscar/delay.
-      if (event === "TOKEN_REFRESHED") {
+      // O navegador dispara esse evento de novo toda vez que a aba
+      // volta a ficar visível — mesmo sem o usuário ter mudado. Se já
+      // carregamos o perfil dessa mesma pessoa, não precisa recarregar
+      // do zero (isso é o que causava o delay/piscar toda vez que
+      // voltava pra aba).
+      if (session?.user && loadedUserId === session.user.id) {
         if (!initialCheckDone) {
           initialCheckDone = true;
           setLoading(false);
@@ -84,10 +87,12 @@ export function AuthProvider({ children }) {
       if (session?.user) {
         setProfileLoading(true);
         await loadProfileAndCompany(session.user.id);
+        loadedUserId = session.user.id;
         setProfileLoading(false);
       } else {
         setProfile(null);
         setCompany(null);
+        loadedUserId = null;
         setProfileLoading(false);
       }
       if (!initialCheckDone) {
