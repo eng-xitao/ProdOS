@@ -50,6 +50,7 @@ const NAV_SECTIONS = [
       { to: "/etapas-comercial", label: "Etapas", icon: "→" },
       { to: "/orcamentos", label: "Orçamentos", icon: "▤" },
       { to: "/pedidos-venda", label: "Pedidos de Venda", icon: "◆" },
+      { to: "/cronograma-entregas", label: "Cronograma de Entregas", icon: "📅" },
       { to: "/notas-fiscais", label: "Notas Fiscais", icon: "🧾", planFeature: "Fiscal" },
       { to: "/sac", label: "SAC — Atendimento", icon: "◈", planFeature: "CRM" },
     ],

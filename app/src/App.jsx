@@ -83,6 +83,7 @@ import OportunidadesPage from "./pages/OportunidadesPage";
 import EtapasComercialPage from "./pages/EtapasComercialPage";
 import OrcamentosPage from "./pages/OrcamentosPage";
 import PedidosVendaPage from "./pages/PedidosVendaPage";
+import CronogramaEntregasPage from "./pages/CronogramaEntregasPage";
 import "./theme.css";
 
 function PrivateArea() {
@@ -150,6 +151,7 @@ function PrivateArea() {
         <Route path="/etapas-comercial" element={<EtapasComercialPage />} />
         <Route path="/orcamentos" element={<OrcamentosPage />} />
         <Route path="/pedidos-venda" element={<PedidosVendaPage />} />
+        <Route path="/cronograma-entregas" element={<CronogramaEntregasPage />} />
         <Route path="/contas-receber" element={<ContasReceberPage />} />
         <Route path="/custos-margem" element={<CustosPage />} />
         <Route path="/colaboradores" element={<ColaboradoresPage />} />
