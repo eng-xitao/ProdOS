@@ -28,7 +28,7 @@ export default function AssinaturaPage() {
 
   async function loadPlans() {
     setLoading(true);
-    const { data } = await supabase.from("plans").select("*").eq("active", true).order("sort_order");
+    const { data } = await supabase.from("plans").select("*").eq("active", true).eq("product_key", "prodos").order("sort_order");
     setPlans(data ?? []);
     setLoading(false);
   }
