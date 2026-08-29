@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/AuthContext";
 import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
@@ -194,13 +194,38 @@ function PrivateArea() {
   );
 }
 
+// Quem clica em "Assinar ProdLog" (ou outro produto) já logado no
+// ProdOS não pode simplesmente cair no dashboard do ProdOS — isso
+// ignora o que a pessoa realmente queria. Manda pra assinatura do
+// produto certo, usando a mesma sessão.
+const PRODUCT_ASSINATURA_URL = {
+  prodlog: "https://prodlog-wms.vercel.app/assinatura",
+};
+
+function CadastroRoute() {
+  const { session, loading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const produto = searchParams.get("produto");
+
+  if (loading) return null;
+  if (session) {
+    const externalUrl = produto && PRODUCT_ASSINATURA_URL[produto];
+    if (externalUrl) {
+      window.location.href = externalUrl;
+      return null;
+    }
+    return <Navigate to="/" replace />;
+  }
+  return <AuthPage initialMode="signup" />;
+}
+
 function RootRoutes() {
   const { session, loading } = useAuth();
 
   return (
     <Routes>
       <Route path="/login" element={!loading && session ? <Navigate to="/" replace /> : <AuthPage />} />
-      <Route path="/cadastro" element={!loading && session ? <Navigate to="/" replace /> : <AuthPage initialMode="signup" />} />
+      <Route path="/cadastro" element={<CadastroRoute />} />
       <Route path="/reset-senha" element={<ResetSenhaPage />} />
       <Route path="/privacidade" element={<PrivacidadePage />} />
       <Route path="/termos" element={<TermosPage />} />

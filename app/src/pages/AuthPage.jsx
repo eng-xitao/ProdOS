@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import logoFull from "../assets/logo-full.png";
 
 export default function AuthPage({ initialMode = "login" }) {
   const { signIn, signUp, requestPasswordReset } = useAuth();
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState(initialMode); // "signup" | "login" | "forgot"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -15,7 +17,7 @@ export default function AuthPage({ initialMode = "login" }) {
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [segment, setSegment] = useState("");
-  const [productKey, setProductKey] = useState("prodos");
+  const [productKey, setProductKey] = useState(searchParams.get("produto") === "prodlog" ? "prodlog" : "prodos");
 
   const [cnpj, setCnpj] = useState("");
   const [cnpjChecking, setCnpjChecking] = useState(false);
