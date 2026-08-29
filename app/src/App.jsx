@@ -105,7 +105,7 @@ function PrivateArea() {
   // Trava o sistema inteiro até o primeiro pagamento ser confirmado —
   // não existe mais período de teste. Admin da plataforma sempre entra,
   // pra conseguir dar suporte mesmo em empresas ainda não pagantes.
-  if (profile && !profile.is_platform_admin && company && company.subscription_status !== "active") {
+  if (profile && !profile.is_platform_admin && company && !["active", "vitalicio"].includes(company.subscription_status)) {
     return <PagamentoPendentePage status={company.subscription_status} />;
   }
 

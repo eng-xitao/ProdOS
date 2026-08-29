@@ -7,6 +7,7 @@ const STATUS_LABEL = {
   active: "Ativa",
   overdue: "Pagamento em atraso",
   canceled: "Cancelada",
+  vitalicio: "Vitalícia",
 };
 
 const STATUS_COLOR = {
@@ -14,6 +15,7 @@ const STATUS_COLOR = {
   active: "var(--green)",
   overdue: "var(--red)",
   canceled: "var(--red)",
+  vitalicio: "var(--blue, #2563EB)",
 };
 
 export default function AssinaturaPage() {
@@ -108,7 +110,7 @@ export default function AssinaturaPage() {
             {STATUS_LABEL[company?.subscription_status] ?? "—"}
           </div>
         </div>
-        {company?.subscription_status === "active" && (
+        {["active","vitalicio"].includes(company?.subscription_status) && (
           <button style={styles.cancelBtn} onClick={cancelSubscription} disabled={canceling} type="button">
             {canceling ? "Cancelando..." : "Cancelar assinatura"}
           </button>
@@ -122,7 +124,7 @@ export default function AssinaturaPage() {
       ) : (
         <div style={styles.grid}>
           {plans.map((plan) => {
-            const isCurrent = plan.id === currentPlanId && company?.subscription_status === "active";
+            const isCurrent = plan.id === currentPlanId && ["active","vitalicio"].includes(company?.subscription_status);
             const hasPromo = plan.promo_active && plan.promo_price != null;
             const basePrice = hasPromo ? Number(plan.promo_price) : Number(plan.price);
             const extraSeats = Math.max((userCount ?? 0) - (plan.included_users ?? 2), 0);
