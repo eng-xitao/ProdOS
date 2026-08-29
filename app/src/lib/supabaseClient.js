@@ -9,4 +9,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Nunca guarda a sessão entre acessos — toda vez que a pessoa
+    // abrir o sistema (aba nova, F5, ou depois de sair), precisa
+    // digitar e-mail e senha de novo. Decisão de segurança.
+    persistSession: false,
+  },
+});
