@@ -30,6 +30,7 @@ export default function OportunidadesPage() {
   useEffect(() => { if (company?.id) loadAll(); }, [company?.id]);
 
   const open = opportunities.filter(o => o.status === "aberta");
+  const selected = opportunities.find(o => o.id === selectedId) || null;
   const metrics = useMemo(() => {
     const won = opportunities.filter(o => o.status === "ganha"), lost = opportunities.filter(o => o.status === "perdida"), decided = won.length + lost.length;
     return { open: open.length, value: open.reduce((s,o)=>s+Number(o.estimated_value||0),0), conversion: decided ? won.length / decided * 100 : null, won: won.length, lost: lost.length, wonValue: won.reduce((s,o)=>s+Number(o.estimated_value||0),0) };
