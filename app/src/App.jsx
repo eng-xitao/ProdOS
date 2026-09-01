@@ -33,13 +33,6 @@ import TransferenciasPage from "./pages/TransferenciasPage";
 import HistoricoMovimentacoesPage from "./pages/HistoricoMovimentacoesPage";
 import ContasReceberPage from "./pages/ContasReceberPage";
 import CustosPage from "./pages/CustosPage";
-import ColaboradoresPage from "./pages/ColaboradoresPage";
-import JornadasTrabalhoPage from "./pages/JornadasTrabalhoPage";
-import FeriasPage from "./pages/FeriasPage";
-import FolhaPagamentoPage from "./pages/FolhaPagamentoPage";
-import DecimoTerceiroPage from "./pages/DecimoTerceiroPage";
-import RescisaoPage from "./pages/RescisaoPage";
-import BeneficiosPage from "./pages/BeneficiosPage";
 import EmpresaPage from "./pages/EmpresaPage";
 import UsuariosPage from "./pages/UsuariosPage";
 import SuportePage from "./pages/SuportePage";
@@ -63,7 +56,6 @@ import RelatorioProducaoPage from "./pages/RelatorioProducaoPage";
 import CurvaABCPage from "./pages/CurvaABCPage";
 import RelatorioQualidadePage from "./pages/RelatorioQualidadePage";
 import RelatorioFinanceiroPage from "./pages/RelatorioFinanceiroPage";
-import RelatorioRHPage from "./pages/RelatorioRHPage";
 import RelatorioFiscalPage from "./pages/RelatorioFiscalPage";
 import ContasPagarPage from "./pages/ContasPagarPage";
 import LancamentosPage from "./pages/LancamentosPage";
@@ -88,23 +80,9 @@ import "./theme.css";
 
 function PrivateArea() {
   const { session, profile, company, loading, profileLoading } = useAuth();
-
-  if (loading) {
-    return <div style={{ padding: 40, color: "var(--text-dim)" }}>Carregando...</div>;
-  }
-
+  if (loading) return <div style={{ padding: 40, color: "var(--text-dim)" }}>Carregando...</div>;
   if (!session) return <Navigate to="/login" replace />;
-
-  // Espera profile/company terminarem de carregar antes de decidir
-  // qualquer coisa — sem isso, a tela normal pisca por uma fração de
-  // segundo antes do bloqueio de aprovação aparecer.
-  if (profileLoading) {
-    return <div style={{ padding: 40, color: "var(--text-dim)" }}>Carregando...</div>;
-  }
-
-  // Trava o sistema inteiro até o primeiro pagamento ser confirmado —
-  // não existe mais período de teste. Admin da plataforma sempre entra,
-  // pra conseguir dar suporte mesmo em empresas ainda não pagantes.
+  if (profileLoading) return <div style={{ padding: 40, color: "var(--text-dim)" }}>Carregando...</div>;
   if (profile && !profile.is_platform_admin && company && !["active", "vitalicio"].includes(company.subscription_status)) {
     return <PagamentoPendentePage status={company.subscription_status} />;
   }
@@ -154,13 +132,6 @@ function PrivateArea() {
         <Route path="/cronograma-entregas" element={<CronogramaEntregasPage />} />
         <Route path="/contas-receber" element={<ContasReceberPage />} />
         <Route path="/custos-margem" element={<CustosPage />} />
-        <Route path="/colaboradores" element={<ColaboradoresPage />} />
-        <Route path="/jornadas-trabalho" element={<JornadasTrabalhoPage />} />
-        <Route path="/ferias" element={<FeriasPage />} />
-        <Route path="/folha-pagamento" element={<FolhaPagamentoPage />} />
-        <Route path="/decimo-terceiro" element={<DecimoTerceiroPage />} />
-        <Route path="/rescisao" element={<RescisaoPage />} />
-        <Route path="/beneficios" element={<BeneficiosPage />} />
         <Route path="/empresa" element={<EmpresaPage />} />
         <Route path="/fiscal" element={<FiscalPage />} />
         <Route path="/usuarios" element={<UsuariosPage />} />
@@ -180,7 +151,6 @@ function PrivateArea() {
         <Route path="/curva-abc" element={<CurvaABCPage />} />
         <Route path="/relatorio-qualidade" element={<RelatorioQualidadePage />} />
         <Route path="/relatorio-financeiro" element={<RelatorioFinanceiroPage />} />
-        <Route path="/relatorio-rh" element={<RelatorioRHPage />} />
         <Route path="/relatorio-fiscal" element={<RelatorioFiscalPage />} />
         <Route path="/contas-pagar" element={<ContasPagarPage />} />
         <Route path="/lancamentos" element={<LancamentosPage />} />
@@ -194,26 +164,16 @@ function PrivateArea() {
   );
 }
 
-// Quem clica em "Assinar ProdLog" (ou outro produto) já logado no
-// ProdOS não pode simplesmente cair no dashboard do ProdOS — isso
-// ignora o que a pessoa realmente queria. Manda pra assinatura do
-// produto certo, usando a mesma sessão.
-const PRODUCT_ASSINATURA_URL = {
-  prodlog: "https://prodlog-wms.vercel.app/assinatura",
-};
+const PRODUCT_ASSINATURA_URL = { prodlog: "https://prodlog-wms.vercel.app/assinatura" };
 
 function CadastroRoute() {
   const { session, loading } = useAuth();
   const [searchParams] = useSearchParams();
   const produto = searchParams.get("produto");
-
   if (loading) return null;
   if (session) {
     const externalUrl = produto && PRODUCT_ASSINATURA_URL[produto];
-    if (externalUrl) {
-      window.location.href = externalUrl;
-      return null;
-    }
+    if (externalUrl) { window.location.href = externalUrl; return null; }
     return <Navigate to="/" replace />;
   }
   return <AuthPage initialMode="signup" />;
@@ -221,7 +181,6 @@ function CadastroRoute() {
 
 function RootRoutes() {
   const { session, loading } = useAuth();
-
   return (
     <Routes>
       <Route path="/login" element={!loading && session ? <Navigate to="/" replace /> : <AuthPage />} />
