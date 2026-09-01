@@ -1,89 +1,60 @@
 /* =========================================================
    Design tokens — identidade "painel operacional claro"
-   Paleta: bege claro + azul industrial (troca do tema escuro
-   + âmbar original, mantendo os mesmos nomes de variável pra
-   não precisar editar cada tela individualmente).
    ========================================================= */
 :root {
-  --ink: #F7F5F1;          /* fundo principal, bege claro (não branco puro) */
-  --panel: #FFFFFF;        /* superfícies elevadas */
-  --panel-2: #F1EEE7;      /* superfícies mais elevadas ainda (inputs) */
-  --line: #E3E0D8;         /* divisórias */
-  --text: #2B2B2B;         /* texto principal */
-  --text-dim: #8A8780;     /* texto secundário */
-  --amber: #2563EB;        /* acento — mantém o nome da variável, agora azul */
-  --amber-dim: #DCE9FB;
-  --green: #2F9E68;        /* status positivo, ajustado pro contraste em fundo claro */
-  --red: #C9483D;          /* status negativo, ajustado pro contraste em fundo claro */
-  --radius: 6px;
+  --ink: #F7F5F1; --panel: #FFFFFF; --panel-2: #F1EEE7; --line: #E3E0D8;
+  --text: #2B2B2B; --text-dim: #8A8780; --amber: #2563EB; --amber-dim: #DCE9FB;
+  --green: #2F9E68; --red: #C9483D; --radius: 6px;
   --font-display: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 }
-
 * { box-sizing: border-box; }
-
-html, body, #root {
-  height: 100%;
-  margin: 0;
-}
-
-body {
-  background: var(--ink);
-  color: var(--text);
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-}
-
-button, input, select, textarea {
-  font-family: inherit;
-}
-
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--ink); color: var(--text); font-family: var(--font-body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+button, input, select, textarea { font-family: inherit; }
 a { color: inherit; }
-
 ::selection { background: var(--amber-dim); color: var(--text); }
-
-/* Scrollbar discreta */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
-/* Foco visível para acessibilidade */
-:focus-visible {
-  outline: 2px solid var(--amber);
-  outline-offset: 2px;
+/* Responsividade global: celular, tablet, notebook, desktop e telas ultrawide. */
+img, svg, video, canvas { max-width: 100%; }
+button, input, select, textarea { max-width: 100%; }
+table { max-width: 100%; }
+@media (max-width: 1200px) {
+  body { font-size: 14px; }
+  .page, .content, .module-page { max-width: 100% !important; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
+@media (max-width: 900px) {
+  .responsive-grid, .grid, .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  table { display: block; overflow-x: auto; white-space: nowrap; }
+  .modal, [role="dialog"] { max-width: calc(100vw - 28px) !important; }
 }
+@media (max-width: 700px) {
+  .responsive-grid, .grid, .cards-grid { grid-template-columns: 1fr !important; }
+  form { max-width: 100%; }
+  input, select, textarea { min-width: 0 !important; }
+}
+@media (max-width: 560px) {
+  body { font-size: 13px; }
+  h1 { font-size: clamp(20px, 6vw, 28px); }
+  h2 { font-size: clamp(17px, 5vw, 23px); }
+  .modal, [role="dialog"] { width: calc(100vw - 20px) !important; max-height: calc(100vh - 20px) !important; overflow: auto !important; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
-/* =========================================================
-   Impressão — layout limpo em preto e branco, escondendo
-   menu, botões e o que não faz sentido no papel.
-   ========================================================= */
+/* Impressão */
 .print-only { display: none; }
-
 @media print {
   .no-print { display: none !important; }
   .print-only { display: block !important; }
-
-  body, #root {
-    background: #fff !important;
-  }
-
-  * {
-    color: #000 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-
-  table, th, td {
-    border: 1px solid #999 !important;
-  }
+  body, #root { background: #fff !important; }
+  * { color: #000 !important; background: transparent !important; box-shadow: none !important; }
+  table, th, td { border: 1px solid #999 !important; }
   table { border-collapse: collapse !important; width: 100% !important; }
   th, td { padding: 6px 8px !important; }
-
   button { display: none !important; }
-
   main { padding: 0 !important; }
 }
