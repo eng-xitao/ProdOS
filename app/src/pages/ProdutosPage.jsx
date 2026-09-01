@@ -17,6 +17,7 @@ export default function ProdutosPage() {
   const { company } = useAuth();
   const [units, setUnits] = useState([]);
   const [printing, setPrinting] = useState(false);
+  const [printFamily, setPrintFamily] = useState("all");
 
   useEffect(() => {
     if (!company?.id) return;
@@ -33,28 +34,35 @@ export default function ProdutosPage() {
     if (!company?.id || printing) return;
     setPrinting(true);
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("products")
       .select("sku,name,type,unit,stock_quantity,min_stock,reorder_point,max_stock,ncm,cfop_padrao,cost,sale_price,lead_time_days,created_at")
       .eq("company_id", company.id)
-      .order("type", { ascending: true })
       .order("name", { ascending: true });
 
+    if (printFamily !== "all") query = query.eq("type", printFamily);
+
+    const { data, error } = await query;
     setPrinting(false);
+
     if (error) {
       window.alert(`Não foi possível gerar a impressão: ${error.message}`);
       return;
     }
 
     const rows = data ?? [];
-    const grouped = Object.entries(TYPE_LABEL)
-      .map(([type, label]) => ({ type, label, rows: rows.filter((r) => r.type === type) }))
-      .filter((group) => group.rows.length > 0);
+    const selectedLabel = printFamily === "all" ? "Todas as famílias" : TYPE_LABEL[printFamily];
 
-    if (!grouped.length) {
-      window.alert("Não há produtos cadastrados para imprimir.");
+    if (!rows.length) {
+      window.alert(`Não há produtos cadastrados para a família selecionada: ${selectedLabel}.`);
       return;
     }
+
+    const grouped = printFamily === "all"
+      ? Object.entries(TYPE_LABEL)
+          .map(([type, label]) => ({ type, label, rows: rows.filter((r) => r.type === type) }))
+          .filter((group) => group.rows.length > 0)
+      : [{ type: printFamily, label: TYPE_LABEL[printFamily], rows }];
 
     const money = (value) => Number(value ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     const number = (value) => Number(value ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
@@ -97,7 +105,7 @@ export default function ProdutosPage() {
       return;
     }
 
-    win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Cadastro de Produtos — ProdOS</title>
+    win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Cadastro de Produtos — ${esc(selectedLabel)}</title>
       <style>
         @page { size: A4 landscape; margin: 12mm; }
         * { box-sizing: border-box; }
@@ -117,7 +125,7 @@ export default function ProdutosPage() {
         .num { text-align:right; white-space:nowrap; }
         .footer { margin-top:12px; padding-top:7px; border-top:1px solid #cfd4dc; color:#667085; font-size:8px; display:flex; justify-content:space-between; }
       </style></head><body>
-      <header class="header"><div><div class="brand">ProdOS</div><div class="title">Cadastro de Produtos por Família</div><div class="meta">Empresa: ${esc(company?.name)} · Emitido em ${esc(now)}</div></div><div class="meta">Documento gerado pelo cadastro de produtos</div></header>
+      <header class="header"><div><div class="brand">ProdOS</div><div class="title">Cadastro de Produtos — ${esc(selectedLabel)}</div><div class="meta">Empresa: ${esc(company?.name)} · Emitido em ${esc(now)}</div></div><div class="meta">Documento gerado pelo cadastro de produtos</div></header>
       ${sections}
       <div class="footer"><span>ProdOS — Cadastro de Produtos</span><span>Documento para impressão</span></div>
       <script>window.onload=function(){window.focus();window.print();}</script>
@@ -128,8 +136,17 @@ export default function ProdutosPage() {
   return (
     <div>
       <div style={styles.toolbar} className="no-print">
+        <label style={styles.familyControl}>
+          <span style={styles.familyLabel}>Família para impressão</span>
+          <select value={printFamily} onChange={(e) => setPrintFamily(e.target.value)} style={styles.familySelect} disabled={printing}>
+            <option value="all">Todas as famílias</option>
+            {TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
         <button type="button" style={styles.printBtn} onClick={imprimirPorFamilia} disabled={printing}>
-          {printing ? "Preparando impressão..." : "🖨 Imprimir por família"}
+          {printing ? "Preparando impressão..." : "🖨 Imprimir"}
         </button>
       </div>
       <ModulePage
@@ -160,7 +177,19 @@ export default function ProdutosPage() {
 }
 
 const styles = {
-  toolbar: { display: "flex", justifyContent: "flex-end", marginBottom: 10 },
+  toolbar: { display: "flex", justifyContent: "flex-end", alignItems: "flex-end", gap: 10, marginBottom: 10, flexWrap: "wrap" },
+  familyControl: { display: "flex", flexDirection: "column", gap: 4 },
+  familyLabel: { fontSize: 11, fontWeight: 600, color: "var(--text-dim)" },
+  familySelect: {
+    minWidth: 210,
+    background: "var(--surface, #fff)",
+    color: "var(--text, #1d2430)",
+    border: "1px solid var(--line)",
+    borderRadius: "var(--radius)",
+    padding: "9px 12px",
+    fontSize: 13,
+    cursor: "pointer",
+  },
   printBtn: {
     background: "transparent",
     color: "var(--text-dim)",
