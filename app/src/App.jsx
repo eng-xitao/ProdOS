@@ -70,7 +70,7 @@ import ImportarXmlNfePage from "./pages/ImportarXmlNfePage";
 import AlmoxarifadoPage from "./pages/AlmoxarifadoPage";
 import RequisicaoMaterialPage from "./pages/RequisicaoMaterialPage";
 import LocalizacoesAlmoxarifadoPage from "./pages/LocalizacoesAlmoxarifadoPage";
-import OportunidadesPage from "./pages/OportunidadesPage";
+import CRMPage from "./pages/CRMPage";
 import EtapasComercialPage from "./pages/EtapasComercialPage";
 import OrcamentosPage from "./pages/OrcamentosPage";
 import PedidosVendaPage from "./pages/PedidosVendaPage";
@@ -124,7 +124,7 @@ function PrivateArea() {
         <Route path="/almoxarifado" element={<AlmoxarifadoPage />} />
         <Route path="/requisicao-material" element={<RequisicaoMaterialPage />} />
         <Route path="/localizacoes-almoxarifado" element={<LocalizacoesAlmoxarifadoPage />} />
-        <Route path="/oportunidades" element={<OportunidadesPage />} />
+        <Route path="/oportunidades" element={<CRMPage />} />
         <Route path="/etapas-comercial" element={<EtapasComercialPage />} />
         <Route path="/orcamentos" element={<OrcamentosPage />} />
         <Route path="/pedidos-venda" element={<PedidosVendaPage />} />
