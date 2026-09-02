@@ -7,12 +7,15 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [company, setCompany] = useState(null);
+  const [productAccess, setProductAccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
 
   const [impersonation, setImpersonation] = useState(null);
 
   async function loadProfileAndCompany(userId) {
+    setProductAccess(false);
+
     const { data: profileData } = await supabase
       .from("profiles")
       .select("*")
@@ -37,7 +40,15 @@ export function AuthProvider({ children }) {
       setCompany(null);
     }
 
-    if (profileData?.platform_role) {
+    // A autorização do produto é centralizada no ProdCore/Supabase.
+    // Em caso de erro, falhamos fechado: sem confirmação, sem acesso.
+    const { data: hasAccess, error: accessError } = await supabase.rpc(
+      "has_product_access",
+      { p_product_key: "prodos" }
+    );
+    setProductAccess(accessError ? false : hasAccess === true);
+
+    if (profileData?.platform_role || profileData?.is_platform_admin) {
       const { data: activeImpersonation } = await supabase
         .from("platform_impersonations")
         .select("id, company_id, companies:company_id (name)")
@@ -74,8 +85,7 @@ export function AuthProvider({ children }) {
       // O navegador dispara esse evento de novo toda vez que a aba
       // volta a ficar visível — mesmo sem o usuário ter mudado. Se já
       // carregamos o perfil dessa mesma pessoa, não precisa recarregar
-      // do zero (isso é o que causava o delay/piscar toda vez que
-      // voltava pra aba).
+      // do zero.
       if (session?.user && loadedUserId === session.user.id) {
         if (!initialCheckDone) {
           initialCheckDone = true;
@@ -92,6 +102,7 @@ export function AuthProvider({ children }) {
       } else {
         setProfile(null);
         setCompany(null);
+        setProductAccess(false);
         loadedUserId = null;
         setProfileLoading(false);
       }
@@ -149,7 +160,22 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, profile, company, loading, profileLoading, signUp, signIn, signOut, refreshCompany, requestPasswordReset, updatePassword, impersonation, stopImpersonating }}
+      value={{
+        session,
+        profile,
+        company,
+        productAccess,
+        loading,
+        profileLoading,
+        signUp,
+        signIn,
+        signOut,
+        refreshCompany,
+        requestPasswordReset,
+        updatePassword,
+        impersonation,
+        stopImpersonating,
+      }}
     >
       {children}
     </AuthContext.Provider>
