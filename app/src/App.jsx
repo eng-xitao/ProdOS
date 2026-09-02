@@ -40,7 +40,6 @@ import MeusDadosLGPDPage from "./pages/MeusDadosLGPDPage";
 import PrivacidadePage from "./pages/PrivacidadePage";
 import TermosPage from "./pages/TermosPage";
 import SolicitarDemoPage from "./pages/SolicitarDemoPage";
-import PagamentoPendentePage from "./pages/PagamentoPendentePage";
 import AssinaturaPage from "./pages/AssinaturaPage";
 import PlanoContasPage from "./pages/PlanoContasPage";
 import SACPage from "./pages/SACPage";
@@ -79,13 +78,13 @@ import CronogramaEntregasPage from "./pages/CronogramaEntregasPage";
 import "./theme.css";
 
 function PrivateArea() {
-  const { session, profile, company, loading, profileLoading } = useAuth();
+  const { session, profile, loading, profileLoading, productAccess } = useAuth();
   if (loading) return <div style={{ padding: 40, color: "var(--text-dim)" }}>Carregando...</div>;
   if (!session) return <Navigate to="/login" replace />;
   if (profileLoading) return <div style={{ padding: 40, color: "var(--text-dim)" }}>Carregando...</div>;
-  if (profile && !profile.is_platform_admin && company && !["active", "vitalicio"].includes(company.subscription_status)) {
-    return <PagamentoPendentePage status={company.subscription_status} />;
-  }
+
+  const isPlatformStaff = Boolean(profile?.platform_role || profile?.is_platform_admin);
+  if (!isPlatformStaff && !productAccess) return <Navigate to="/assinatura?produto=prodos" replace />;
 
   return (
     <Routes>
