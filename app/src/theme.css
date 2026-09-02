@@ -19,30 +19,84 @@ a { color: inherit; }
 ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
 :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
-/* Responsividade global: celular, tablet, notebook, desktop e telas ultrawide. */
+/* Responsividade global */
 img, svg, video, canvas { max-width: 100%; }
 button, input, select, textarea { max-width: 100%; }
 table { max-width: 100%; }
+.prodos-mobile-menu-btn, .prodos-mobile-close-row, .prodos-mobile-backdrop { display: none; }
+.prodos-nav-link { min-height: 38px; }
+
 @media (max-width: 1200px) {
   body { font-size: 14px; }
   .page, .content, .module-page { max-width: 100% !important; }
+  .prodos-main { padding: 24px !important; }
 }
+
 @media (max-width: 900px) {
   .responsive-grid, .grid, .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   table { display: block; overflow-x: auto; white-space: nowrap; }
   .modal, [role="dialog"] { max-width: calc(100vw - 28px) !important; }
+  .prodos-main { padding: 20px !important; }
+  .prodos-sidebar { width: 220px !important; }
 }
+
 @media (max-width: 700px) {
   .responsive-grid, .grid, .cards-grid { grid-template-columns: 1fr !important; }
   form { max-width: 100%; }
   input, select, textarea { min-width: 0 !important; }
+  .prodos-main { padding: 16px !important; padding-top: 68px !important; }
+  .prodos-sidebar {
+    position: fixed !important; z-index: 1000 !important; inset: 0 auto 0 0 !important;
+    width: min(86vw, 320px) !important; max-width: 320px !important;
+    transform: translateX(-105%); transition: transform .22s ease;
+    box-shadow: 8px 0 30px rgba(0,0,0,.14); padding: 12px 12px 16px !important;
+  }
+  .prodos-sidebar.is-mobile-open { transform: translateX(0); }
+  .prodos-mobile-menu-btn {
+    display: flex; align-items: center; gap: 8px; position: fixed; z-index: 900;
+    top: 12px; left: 12px; height: 42px; padding: 0 13px;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--panel); color: var(--text); font-size: 14px; font-weight: 700;
+    box-shadow: 0 3px 12px rgba(0,0,0,.08); cursor: pointer;
+  }
+  .prodos-mobile-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 950;
+    width: 100%; height: 100%; border: 0; padding: 0;
+    background: rgba(0,0,0,.32); cursor: pointer;
+  }
+  .prodos-sidebar.is-mobile-open { z-index: 1000; }
+  .prodos-mobile-close-row { display: flex; justify-content: flex-end; height: 34px; }
+  .prodos-mobile-close-row button {
+    width: 34px; height: 34px; border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--panel-2); color: var(--text); font-size: 24px; line-height: 1; cursor: pointer;
+  }
+  .prodos-sidebar .brand { margin-bottom: 14px !important; padding: 0 6px !important; }
+  .prodos-sidebar .brand img { width: 132px !important; }
+  .prodos-sidebar .prodos-navigation { overflow-y: auto; min-height: 0; }
+  .prodos-sidebar .prodos-nav-link { min-height: 40px; padding: 9px 10px !important; font-size: 13px !important; }
+  .prodos-sidebar .prodos-nav-link span:last-child { display: inline !important; white-space: normal; }
+  .prodos-sidebar .sectionToggle { min-height: 40px; font-size: 11px !important; }
+  .prodos-sidebar .sidebarFooter { margin-top: 10px !important; }
+  .prodos-main .page-header, .prodos-main .header, .prodos-main .toolbar { flex-wrap: wrap !important; }
+  .prodos-main button { max-width: 100%; }
 }
+
 @media (max-width: 560px) {
   body { font-size: 13px; }
   h1 { font-size: clamp(20px, 6vw, 28px); }
   h2 { font-size: clamp(17px, 5vw, 23px); }
   .modal, [role="dialog"] { width: calc(100vw - 20px) !important; max-height: calc(100vh - 20px) !important; overflow: auto !important; }
+  .prodos-main { padding: 12px !important; padding-top: 66px !important; }
+  .prodos-sidebar { width: min(90vw, 320px) !important; }
+  .prodos-sidebar .sectionItems { gap: 1px !important; }
+  .prodos-sidebar .prodos-nav-link { font-size: 12.5px !important; }
+  .prodos-main table { font-size: 12px; }
 }
+
+@media (min-width: 701px) {
+  .prodos-mobile-menu-btn, .prodos-mobile-close-row, .prodos-mobile-backdrop { display: none !important; }
+}
+
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
 /* Impressão */
