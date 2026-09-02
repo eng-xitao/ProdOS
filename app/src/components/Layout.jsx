@@ -24,7 +24,7 @@ export default function Layout() {
   const {profile,company,signOut,impersonation,stopImpersonating}=useAuth();
   const location=useLocation();
   const [mobileOpen,setMobileOpen]=useState(false);
-  const [openSections,setOpenSections]=useState(()=>Object.fromEntries(NAV_SECTIONS.map(s=>[s.label,s.items.some(i=>i.to===location.pathname)])));
+  const [openSection,setOpenSection]=useState(()=>{const active=NAV_SECTIONS.find(s=>s.items.some(i=>i.to===location.pathname));return active?active.label:null;});
   const planFeatures=company?.plans?.features??[];
   const isPlatformAdmin=!!profile?.is_platform_admin;
   const isPlanUnrestricted=PLAN_UNRESTRICTED_ROLES.includes(profile?.role);
@@ -33,16 +33,16 @@ export default function Layout() {
   const currentItem=currentSection?.items.find(i=>i.to===location.pathname);
   const isBlocked=currentSection?currentSection.platformAdminOnly?!profile?.is_platform_admin||(currentItem?.platformRoles&&!currentItem.platformRoles.includes(profile?.platform_role)):!hasAccess(profile?.role,currentSection.label)||(currentSection.label!=="Configurações"&&!isPlanUnrestricted&&!planFeatures.includes(currentSection.label))||(currentItem?.planFeature&&!isPlanUnrestricted&&!planFeatures.includes(currentItem.planFeature)):false;
 
-  useEffect(()=>{setOpenSections(prev=>{const next={...prev};NAV_SECTIONS.forEach(s=>{if(s.items.some(i=>i.to===location.pathname))next[s.label]=true});return next})},[location.pathname]);
+  useEffect(()=>{const active=NAV_SECTIONS.find(s=>s.items.some(i=>i.to===location.pathname));if(active)setOpenSection(active.label)},[location.pathname]);
   useEffect(()=>{setMobileOpen(false)},[location.pathname]);
   useEffect(()=>{document.body.style.overflow=mobileOpen?"hidden":"";return()=>{document.body.style.overflow=""}},[mobileOpen]);
-  function toggleSection(label){setOpenSections(prev=>({...prev,[label]:!prev[label]}));}
+  function toggleSection(label){setOpenSection(prev=>prev===label?null:label);}
 
   const navigation=(<nav className="prodos-navigation" style={styles.nav}>
     <NavLink to="/" end className="prodos-nav-link" style={({isActive})=>({...styles.navItem,...(isActive?styles.navItemActive:{}),marginBottom:10})}>
       <span style={styles.navIcon}>◧</span><span>Painel</span>
     </NavLink>
-    {visibleSections.map(section=>{const isOpen=!!openSections[section.label];return <div key={section.label} style={styles.section}>
+    {visibleSections.map(section=>{const isOpen=openSection===section.label;return <div key={section.label} style={styles.section}>
       <button type="button" onClick={()=>toggleSection(section.label)} style={styles.sectionToggle} aria-expanded={isOpen}>
         <span style={{...styles.chevron,transform:isOpen?"rotate(90deg)":"rotate(0deg)"}}>›</span><span>{section.label}</span>
       </button>
