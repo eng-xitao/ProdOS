@@ -148,6 +148,11 @@ function OrderDrawer({ orderId, company, onClose, onRefresh }) {
   const [generating, setGenerating] = useState(false);
   const [receivablesMsg, setReceivablesMsg] = useState("");
 
+  const [stockByProduct, setStockByProduct] = useState({});
+  const [linkedOrders, setLinkedOrders] = useState([]);
+  const [generatingOps, setGeneratingOps] = useState(false);
+  const [opsMsg, setOpsMsg] = useState("");
+
   const [newProductId, setNewProductId] = useState("");
   const [newQuantity, setNewQuantity] = useState("1");
   const [newUnitPrice, setNewUnitPrice] = useState("");
@@ -155,14 +160,18 @@ function OrderDrawer({ orderId, company, onClose, onRefresh }) {
 
   async function load() {
     setLoading(true); setError("");
-    const [{ data: o, error: oe }, { data: it }, { data: p }, { data: terms }] = await Promise.all([
+    const [{ data: o, error: oe }, { data: it }, { data: p }, { data: terms }, { data: prodOrders }] = await Promise.all([
       supabase.from("sales_orders").select("id, code, status, order_date, total_value, customer_id, receivable_generated, customers:customer_id (name, document, email, phone, address)").eq("id", orderId).single(),
-      supabase.from("sales_order_items").select("id, quantity, unit_price, discount_percent, product_id, products:product_id (sku, name)").eq("sales_order_id", orderId),
+      supabase.from("sales_order_items").select("id, quantity, unit_price, discount_percent, product_id, products:product_id (sku, name, stock_quantity)").eq("sales_order_id", orderId),
       supabase.from("products").select("id, sku, name, sale_price").order("name"),
       supabase.from("payment_terms").select("id, name, installments, days_between").order("name"),
+      supabase.from("production_orders").select("id, code, product_id, quantity, status").eq("sales_order_id", orderId),
     ]);
     if (oe) { setError(oe.message); setLoading(false); return; }
-    setOrder(o); setItems(it ?? []); setProducts(p ?? []); setPaymentTerms(terms ?? []);
+    setOrder(o); setItems(it ?? []); setProducts(p ?? []); setPaymentTerms(terms ?? []); setLinkedOrders(prodOrders ?? []);
+    const stockMap = {};
+    (it ?? []).forEach((line) => { stockMap[line.product_id] = Number(line.products?.stock_quantity ?? 0); });
+    setStockByProduct(stockMap);
     if (o?.customer_id) {
       const { data: contacts } = await supabase.from("contacts").select("id, name, department, email").eq("customer_id", o.customer_id);
       setCustomerContacts(contacts ?? []);
@@ -173,6 +182,36 @@ function OrderDrawer({ orderId, company, onClose, onRefresh }) {
   useEffect(() => { load(); }, [orderId]);
 
   const total = items.reduce((sum, it) => sum + Number(it.quantity) * Number(it.unit_price) * (1 - Number(it.discount_percent) / 100), 0);
+
+  const itemsNeedingProduction = items.filter((it) => {
+    const alreadyLinked = linkedOrders.some((po) => po.product_id === it.product_id);
+    const stock = stockByProduct[it.product_id] ?? 0;
+    return !alreadyLinked && stock < Number(it.quantity);
+  });
+
+  async function generateProductionOrders() {
+    if (!itemsNeedingProduction.length) return;
+    setGeneratingOps(true); setOpsMsg(""); setError("");
+
+    const rows = itemsNeedingProduction.map((it) => {
+      const stock = stockByProduct[it.product_id] ?? 0;
+      const missing = Number(it.quantity) - stock;
+      return {
+        company_id: company.id,
+        code: `OP-${order.code}-${it.products?.sku ?? it.product_id.slice(0, 6)}`,
+        product_id: it.product_id,
+        quantity: missing,
+        sales_order_id: orderId,
+        status: "planejada",
+      };
+    });
+
+    const { error: insertError } = await supabase.from("production_orders").insert(rows);
+    if (insertError) { setError(insertError.message); setGeneratingOps(false); return; }
+    setOpsMsg(`${rows.length} ordem(ns) de produção gerada(s) — veja em PCP → Ordens de Produção.`);
+    setGeneratingOps(false);
+    await load();
+  }
 
   async function syncTotal(newTotal) {
     await supabase.from("sales_orders").update({ total_value: newTotal }).eq("id", orderId);
@@ -340,9 +379,16 @@ function OrderDrawer({ orderId, company, onClose, onRefresh }) {
               <div style={styles.itemList}>
                 {items.map((it) => {
                   const line = Number(it.quantity) * Number(it.unit_price) * (1 - Number(it.discount_percent) / 100);
+                  const stock = stockByProduct[it.product_id] ?? 0;
+                  const short = stock < Number(it.quantity);
+                  const alreadyLinked = linkedOrders.some((po) => po.product_id === it.product_id);
                   return (
                     <div key={it.id} style={styles.itemRow}>
-                      <span>{it.products?.sku} — {it.products?.name}</span>
+                      <span>
+                        {it.products?.sku} — {it.products?.name}
+                        {short && !alreadyLinked && <span style={styles.stockWarning}> · ⚠ estoque {stock}, faltam {Number(it.quantity) - stock}</span>}
+                        {alreadyLinked && <span style={styles.stockOk}> · ✓ OP já gerada</span>}
+                      </span>
                       <span>{it.quantity} × {currency(it.unit_price)} ({it.discount_percent}%)</span>
                       <b>{currency(line)}</b>
                       <button style={styles.removeMini} onClick={() => removeItem(it.id)} type="button">✕</button>
@@ -350,6 +396,17 @@ function OrderDrawer({ orderId, company, onClose, onRefresh }) {
                   );
                 })}
                 <div style={styles.totalLine}><span>Total</span><strong>{currency(total)}</strong></div>
+              </div>
+            )}
+
+            {itemsNeedingProduction.length > 0 && (
+              <div style={styles.opsBox}>
+                <p style={styles.opsTitle}>⚙ Produção necessária</p>
+                <p style={styles.dim}>{itemsNeedingProduction.length} produto(s) sem estoque suficiente pra atender esse pedido.</p>
+                {opsMsg && <div style={styles.success}>{opsMsg}</div>}
+                <button style={styles.opsBtn} onClick={generateProductionOrders} disabled={generatingOps} type="button">
+                  {generatingOps ? "Gerando..." : `Gerar Ordem${itemsNeedingProduction.length > 1 ? "s" : ""} de Produção (${itemsNeedingProduction.length})`}
+                </button>
               </div>
             )}
 
@@ -411,6 +468,11 @@ const styles = {
   itemRow: { display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: 10, alignItems: "center", padding: "9px 0", borderTop: "1px solid var(--line)", fontSize: 12.5 },
   removeMini: { background: "transparent", border: 0, color: "var(--danger)", cursor: "pointer", fontSize: 13 },
   totalLine: { display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--line)", fontSize: 15 },
+  stockWarning: { color: "var(--danger)", fontSize: 11.5, fontWeight: 700 },
+  stockOk: { color: "var(--green)", fontSize: 11.5, fontWeight: 700 },
+  opsBox: { marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--line)", background: "rgba(232,163,61,0.06)", border: "1px solid var(--amber)", borderRadius: 8, padding: 14 },
+  opsTitle: { fontWeight: 700, fontSize: 14, margin: "0 0 4px" },
+  opsBtn: { marginTop: 10, background: "var(--amber)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, cursor: "pointer" },
   receivablesBox: { marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--line)" },
   receivablesTitle: { fontWeight: 700, fontSize: 14, margin: "0 0 4px" },
   receivablesRow: { display: "flex", gap: 8, marginTop: 10 },
