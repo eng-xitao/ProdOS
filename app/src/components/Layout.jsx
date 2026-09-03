@@ -4,19 +4,106 @@ import { useAuth } from "../lib/AuthContext";
 import logoFull from "../assets/logo-full.png";
 import { hasAccess, ROLE_LABEL, PLAN_UNRESTRICTED_ROLES } from "../lib/permissions";
 
+/*
+ * Estrutura funcional do ERP:
+ * PCP = planeja, calcula necessidades, capacidade e programa.
+ * Produção = executa as OPs, registra apontamentos/paradas e controla qualidade.
+ * Estoque/Logística = movimenta, recebe, separa, expede e entrega.
+ * Evitamos colocar a mesma função operacional em mais de um módulo.
+ */
 const NAV_SECTIONS = [
-  { label:"CRM", icon:"◎", items:[{to:"/oportunidades",label:"Oportunidades",icon:"◈"},{to:"/etapas-comercial",label:"Etapas do Funil",icon:"→"},{to:"/clientes",label:"Clientes",icon:"◎"},{to:"/contatos",label:"Contatos",icon:"◈"}] },
-  { label:"Comercial", icon:"◆", items:[{to:"/orcamentos",label:"Orçamentos",icon:"▤"},{to:"/pedidos-venda",label:"Pedidos de Venda",icon:"◆"},{to:"/cronograma-entregas",label:"Cronograma de Entregas",icon:"📅"},{to:"/sac",label:"SAC — Atendimento",icon:"◈",planFeature:"CRM"}] },
-  { label:"Estoque", icon:"▥", items:[{to:"/estoque",label:"Estoque de Produtos",icon:"▤"},{to:"/almoxarifado",label:"Estoque de Materiais",icon:"▥"},{to:"/transferencias",label:"Transferências",icon:"⇄"},{to:"/historico-movimentacoes",label:"Movimentações",icon:"◷"},{to:"/recebimento-producao",label:"Recebimento da Produção",icon:"◆"},{to:"/localizacoes-almoxarifado",label:"Localizações",icon:"▦"}] },
-  { label:"Compras", icon:"◇", items:[{to:"/sugestoes-compra",label:"Sugestões de Compra",icon:"💡"},{to:"/requisicao-material",label:"Solicitações de Material",icon:"📋"},{to:"/cotacoes",label:"Cotações",icon:"◐"},{to:"/pedidos-compra",label:"Pedidos de Compra",icon:"▼"},{to:"/importar-xml-nfe",label:"Recebimento / XML NF-e",icon:"📄"}] },
-  { label:"PCP", icon:"▲", items:[{to:"/mrp/materiais",label:"MRP — Necessidade de Materiais",icon:"▼"},{to:"/mrp/capacidade",label:"Plano Mestre / Capacidade",icon:"▲"},{to:"/producao",label:"Ordens de Produção",icon:"⚙"},{to:"/apontamento-producao",label:"Apontamentos",icon:"◷"},{to:"/paradas-producao",label:"Paradas",icon:"⏸"},{to:"/imprimir-ordem-producao",label:"Imprimir OP",icon:"🖨"}] },
-  { label:"Producao", icon:"⚙", items:[{to:"/producao",label:"Fila de Produção",icon:"⚙"},{to:"/apontamento-producao",label:"Apontamentos",icon:"◷"},{to:"/paradas-producao",label:"Paradas",icon:"⏸"},{to:"/qualidade/checklist",label:"Checklists de Qualidade",icon:"☑"},{to:"/qualidade/inspecao",label:"Inspeções",icon:"☑"},{to:"/qualidade/nao-conformidades",label:"Não Conformidades",icon:"⚠"}] },
-  { label:"Logistica", icon:"▶", items:[{to:"/expedicao",label:"Expedição",icon:"▶"},{to:"/recebimento-producao",label:"Recebimento",icon:"◆"},{to:"/transferencias",label:"Transferências",icon:"⇄"},{to:"/cronograma-entregas",label:"Entregas",icon:"📅"}] },
-  { label:"Frotas", icon:"🚛", items:[{to:"/frotas",label:"Bens e Ativos / Frotas",icon:"▶"}] },
-  { label:"Fiscal", icon:"🧾", items:[{to:"/notas-fiscais",label:"Notas Fiscais",icon:"🧾"},{to:"/fiscal",label:"Configuração Fiscal",icon:"⚙"},{to:"/importar-xml-nfe",label:"Importar XML NF-e",icon:"📄"}] },
-  { label:"Financeiro", icon:"$", items:[{to:"/contas-receber",label:"Contas a Receber",icon:"◈"},{to:"/contas-pagar",label:"Contas a Pagar",icon:"◑"},{to:"/fluxo-caixa",label:"Fluxo de Caixa",icon:"≈"},{to:"/tesouraria",label:"Tesouraria",icon:"▣"},{to:"/credito-cobranca",label:"Crédito e Cobrança",icon:"◐"},{to:"/lancamentos",label:"Lançamentos",icon:"$"},{to:"/plano-contas",label:"Plano de Contas",icon:"☰"}] },
-  { label:"Gestao", icon:"📊", items:[{to:"/relatorio-vendas",label:"Comercial / Vendas",icon:"▲"},{to:"/relatorio-compras",label:"Compras",icon:"▼"},{to:"/relatorio-estoque-acabado",label:"Estoque de Produtos",icon:"▤"},{to:"/relatorio-estoque-materiais",label:"Materiais",icon:"▥"},{to:"/relatorio-producao",label:"Produção",icon:"⚙"},{to:"/relatorio-qualidade",label:"Qualidade e Refugo",icon:"☑"},{to:"/relatorio-financeiro",label:"Financeiro",icon:"◑"},{to:"/analise-centro-custo",label:"Centros de Custo",icon:"◑"},{to:"/dre",label:"DRE Gerencial",icon:"▦"},{to:"/curva-abc",label:"Curva ABC",icon:"%"},{to:"/relatorio-fiscal",label:"Fiscal",icon:"🧾"}] },
-  { label:"Cadastros", icon:"▣", items:[{to:"/empresa",label:"Empresa",icon:"▣"},{to:"/clientes",label:"Clientes",icon:"◎"},{to:"/fornecedores",label:"Fornecedores",icon:"◇"},{to:"/produtos",label:"Produtos",icon:"◆"},{to:"/estrutura-produto",label:"Estrutura do Produto (BOM)",icon:"▤"},{to:"/etapas",label:"Etapas de Produção",icon:"→"},{to:"/centros-trabalho",label:"Centros de Trabalho",icon:"▣"},{to:"/almoxarifados",label:"Almoxarifados",icon:"▥"},{to:"/unidades-medida",label:"Unidades de Medida",icon:"%"},{to:"/condicoes-pagamento",label:"Condições de Pagamento",icon:"◐"},{to:"/centros-custo",label:"Centros de Custo",icon:"◑"},{to:"/transportadoras",label:"Transportadoras",icon:"▶"},{to:"/tipos-ordem",label:"Tipos de Ordem",icon:"▦"}] },
+  { label:"CRM", icon:"◎", items:[
+    {to:"/oportunidades",label:"Oportunidades",icon:"◈"},
+    {to:"/etapas-comercial",label:"Etapas do Funil",icon:"→"},
+    {to:"/clientes",label:"Clientes",icon:"◎"},
+    {to:"/contatos",label:"Contatos",icon:"◈"}
+  ]},
+  { label:"Comercial", icon:"◆", items:[
+    {to:"/orcamentos",label:"Orçamentos",icon:"▤"},
+    {to:"/pedidos-venda",label:"Pedidos de Venda",icon:"◆"},
+    {to:"/cronograma-entregas",label:"Cronograma de Entregas",icon:"📅"},
+    {to:"/sac",label:"SAC — Atendimento",icon:"◈",planFeature:"CRM"}
+  ]},
+  { label:"Estoque", icon:"▥", items:[
+    {to:"/estoque",label:"Estoque de Produtos",icon:"▤"},
+    {to:"/almoxarifado",label:"Estoque de Materiais",icon:"▥"},
+    {to:"/transferencias",label:"Transferências",icon:"⇄"},
+    {to:"/historico-movimentacoes",label:"Movimentações",icon:"◷"},
+    {to:"/recebimento-producao",label:"Recebimento da Produção",icon:"◆"},
+    {to:"/localizacoes-almoxarifado",label:"Localizações",icon:"▦"}
+  ]},
+  { label:"Compras", icon:"◇", items:[
+    {to:"/sugestoes-compra",label:"Sugestões de Compra",icon:"💡"},
+    {to:"/requisicao-material",label:"Solicitações de Material",icon:"📋"},
+    {to:"/cotacoes",label:"Cotações",icon:"◐"},
+    {to:"/pedidos-compra",label:"Pedidos de Compra",icon:"▼"},
+    {to:"/importar-xml-nfe",label:"Recebimento / XML NF-e",icon:"📄"}
+  ]},
+  { label:"PCP", icon:"▲", items:[
+    {to:"/mrp/materiais",label:"MRP — Necessidade de Materiais",icon:"▼"},
+    {to:"/mrp/capacidade",label:"Plano Mestre / Capacidade",icon:"▲"},
+    {to:"/producao",label:"Planejamento de OPs",icon:"⚙"},
+    {to:"/cronograma-producao",label:"Programação da Produção",icon:"📅"},
+    {to:"/carga-centros-trabalho",label:"Carga dos Centros de Trabalho",icon:"▣"}
+  ]},
+  { label:"Producao", icon:"⚙", items:[
+    {to:"/producao",label:"Fila de Produção",icon:"⚙"},
+    {to:"/apontamento-producao",label:"Apontamentos de Produção",icon:"◷"},
+    {to:"/paradas-producao",label:"Paradas de Produção",icon:"⏸"},
+    {to:"/qualidade/checklist",label:"Checklists de Qualidade",icon:"☑"},
+    {to:"/qualidade/inspecao",label:"Inspeções",icon:"☑"},
+    {to:"/qualidade/nao-conformidades",label:"Não Conformidades",icon:"⚠"}
+  ]},
+  { label:"Logistica", icon:"▶", items:[
+    {to:"/expedicao",label:"Expedição",icon:"▶"},
+    {to:"/cronograma-entregas",label:"Entregas",icon:"📅"},
+    {to:"/transferencias",label:"Transferências entre Estoques",icon:"⇄"}
+  ]},
+  { label:"Frotas", icon:"🚛", items:[
+    {to:"/frotas",label:"Bens e Ativos / Frotas",icon:"▶"}
+  ]},
+  { label:"Fiscal", icon:"🧾", items:[
+    {to:"/notas-fiscais",label:"Notas Fiscais",icon:"🧾"},
+    {to:"/fiscal",label:"Configuração Fiscal",icon:"⚙"},
+    {to:"/importar-xml-nfe",label:"Importar XML NF-e",icon:"📄"}
+  ]},
+  { label:"Financeiro", icon:"$", items:[
+    {to:"/contas-receber",label:"Contas a Receber",icon:"◈"},
+    {to:"/contas-pagar",label:"Contas a Pagar",icon:"◑"},
+    {to:"/fluxo-caixa",label:"Fluxo de Caixa",icon:"≈"},
+    {to:"/tesouraria",label:"Tesouraria",icon:"▣"},
+    {to:"/credito-cobranca",label:"Crédito e Cobrança",icon:"◐"},
+    {to:"/lancamentos",label:"Lançamentos",icon:"$"},
+    {to:"/plano-contas",label:"Plano de Contas",icon:"☰"}
+  ]},
+  { label:"Gestao", icon:"📊", items:[
+    {to:"/relatorio-vendas",label:"Comercial / Vendas",icon:"▲"},
+    {to:"/relatorio-compras",label:"Compras",icon:"▼"},
+    {to:"/relatorio-estoque-acabado",label:"Estoque de Produtos",icon:"▤"},
+    {to:"/relatorio-estoque-materiais",label:"Materiais",icon:"▥"},
+    {to:"/relatorio-producao",label:"Produção",icon:"⚙"},
+    {to:"/relatorio-qualidade",label:"Qualidade e Refugo",icon:"☑"},
+    {to:"/relatorio-financeiro",label:"Financeiro",icon:"◑"},
+    {to:"/analise-centro-custo",label:"Centros de Custo",icon:"◑"},
+    {to:"/dre",label:"DRE Gerencial",icon:"▦"},
+    {to:"/curva-abc",label:"Curva ABC",icon:"%"},
+    {to:"/relatorio-fiscal",label:"Fiscal",icon:"🧾"}
+  ]},
+  { label:"Cadastros", icon:"▣", items:[
+    {to:"/empresa",label:"Empresa",icon:"▣"},
+    {to:"/clientes",label:"Clientes",icon:"◎"},
+    {to:"/fornecedores",label:"Fornecedores",icon:"◇"},
+    {to:"/produtos",label:"Produtos",icon:"◆"},
+    {to:"/estrutura-produto",label:"Estrutura do Produto (BOM)",icon:"▤"},
+    {to:"/etapas",label:"Etapas de Produção",icon:"→"},
+    {to:"/centros-trabalho",label:"Centros de Trabalho",icon:"▣"},
+    {to:"/almoxarifados",label:"Almoxarifados",icon:"▥"},
+    {to:"/unidades-medida",label:"Unidades de Medida",icon:"%"},
+    {to:"/condicoes-pagamento",label:"Condições de Pagamento",icon:"◐"},
+    {to:"/centros-custo",label:"Centros de Custo",icon:"◑"},
+    {to:"/transportadoras",label:"Transportadoras",icon:"▶"},
+    {to:"/tipos-ordem",label:"Tipos de Ordem",icon:"▦"}
+  ]},
 ];
 
 export default function Layout(){
