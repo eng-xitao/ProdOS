@@ -184,7 +184,7 @@ function CRMDrawer({ opportunity:o, stages, customers, products, company, profil
   async function loadDetails() {
     const [a,it] = await Promise.all([
       supabase.from("opportunity_interactions").select("id,type,note,created_at,profiles:author_profile_id(full_name)").eq("opportunity_id",o.id).order("created_at",{ascending:false}),
-      supabase.from("opportunity_items").select("id,quantity,unit_price,discount_percent,products:product_id(sku,name,unit)").eq("opportunity_id",o.id).order("created_at"),
+      supabase.from("opportunity_items").select("id,product_id,quantity,unit_price,discount_percent,products:product_id(sku,name,unit)").eq("opportunity_id",o.id).order("created_at"),
     ]);
     setActivities(a.data||[]); setItems(it.data||[]);
   }
@@ -225,6 +225,32 @@ function CRMDrawer({ opportunity:o, stages, customers, products, company, profil
     setSaving(false);
   }
 
+  async function generateQuote() {
+    setSaving(true); setMessage("");
+    // Se já existe um orçamento pra essa oportunidade, não duplica —
+    // só leva direto pra ele.
+    const { data: existing } = await supabase.from("quotes").select("id, code").eq("opportunity_id", o.id).maybeSingle();
+    if (existing) { navigate(`/orcamentos?abrir=${existing.id}`); setSaving(false); return; }
+
+    if (!items.length) { setMessage("Adicione produtos de interesse antes de gerar o orçamento (aba Resumo)."); setSaving(false); return; }
+    const code = `ORC-${String(o.opportunity_number).padStart(6, "0")}`;
+    const { data: quote, error } = await supabase.from("quotes").insert({
+      company_id: company.id, code, customer_id: o.customer_id, opportunity_id: o.id,
+      status: "rascunho", valid_until: o.expected_close_date || null,
+      notes: `Origem: OPP-${String(o.opportunity_number).padStart(6, "0")}`,
+    }).select("id").single();
+    if (error) { setMessage(error.message); setSaving(false); return; }
+
+    const { error: itemsError } = await supabase.from("quote_items").insert(items.map((it) => ({
+      company_id: company.id, quote_id: quote.id, product_id: it.product_id,
+      quantity: it.quantity, unit_price: it.unit_price, discount_percent: it.discount_percent || 0,
+    })));
+    if (itemsError) { setMessage(itemsError.message); setSaving(false); return; }
+
+    setSaving(false);
+    navigate(`/orcamentos?abrir=${quote.id}`);
+  }
+
   const current=stages.findIndex(s=>s.id===o.stage_id);
   const total=items.reduce((a,it)=>a+Number(it.quantity||0)*Number(it.unit_price||0)*(1-Number(it.discount_percent||0)/100),0);
 
@@ -239,7 +265,7 @@ function CRMDrawer({ opportunity:o, stages, customers, products, company, profil
       <div style={S.infoGrid}><Info label="Cliente" value={o.customers?.name||"—"}/><Info label="Responsável" value={o.profiles?.full_name||profile?.full_name||"—"}/><Info label="Valor" value={currency(total||o.estimated_value)}/><Info label="Fechamento" value={formatDate(o.expected_close_date)}/></div>
       <section style={S.section}><h3>O que fazer agora</h3><p style={S.help}>Use os botões abaixo. O CRM registra automaticamente a etapa e o histórico.</p><div style={S.bigActions}><button style={S.green} onClick={()=>setStatus("ganha")} disabled={saving || o.status!=="aberta"}>✓ Marcar como ganha</button><button style={S.danger} onClick={()=>setStatus("perdida")} disabled={saving || o.status!=="aberta"}>× Marcar como perdida</button></div></section>
       <section style={S.section}><h3>Produtos e valor</h3>{items.length ? items.map(it=><div key={it.id} style={S.itemRow}><span>{it.products?.name||"Produto"}<small>{it.quantity} {it.products?.unit||""}</small></span><b>{currency(Number(it.quantity)*Number(it.unit_price))}</b></div>) : <div style={S.empty}>Nenhum produto vinculado.</div>}</section>
-      <button style={S.secondaryWide} onClick={()=>navigate(`/orcamentos?oportunidade=${o.id}`)}>Ir para Orçamentos →</button>
+      <button style={S.secondaryWide} onClick={generateQuote} disabled={saving}>{saving?"Processando...":"📄 Gerar Orçamento com esses itens →"}</button>
     </div>}
 
     {tab === "qualificacao" && <div style={S.body}><section style={S.section}><h3>Qualificação comercial</h3><p style={S.help}>Preencha o que você descobriu com o cliente. Depois clique em <strong>Salvar qualificação</strong>.</p><div style={S.form}>
