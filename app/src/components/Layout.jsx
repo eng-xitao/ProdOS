@@ -17,20 +17,20 @@ const NAV_SECTIONS = [
   { label:"Compras", icon:"◇", items:[
     {to:"/sugestoes-compra",label:"Sugestões de Compra",icon:"💡"},{to:"/requisicao-material",label:"Solicitações de Material",icon:"📋"},{to:"/cotacoes",label:"Cotações",icon:"◐"},{to:"/pedidos-compra",label:"Pedidos de Compra",icon:"▼"},{to:"/importar-xml-nfe",label:"Recebimento / XML NF-e",icon:"📄"}
   ]},
-  /* PCP somente planeja. Não duplica apontamentos, paradas ou fila operacional. */
+  /* PCP somente planeja: necessidades de materiais e capacidade. As OPs sao executadas em Producao. */
   { label:"PCP", icon:"▲", items:[
-    {to:"/mrp/materiais",label:"MRP — Necessidade de Materiais",icon:"▼"},{to:"/mrp/capacidade",label:"Plano Mestre / Capacidade",icon:"▲"},{to:"/producao",label:"Ordens de Produção / Planejamento",icon:"⚙"}
+    {to:"/mrp/materiais",label:"MRP — Necessidade de Materiais",icon:"▼"},{to:"/mrp/capacidade",label:"Plano Mestre / Capacidade",icon:"▲"}
   ]},
-  /* Produção executa as OPs planejadas pelo PCP. */
+  /* Producao executa as OPs, registra apontamentos/paradas e controla qualidade. */
   { label:"Producao", icon:"⚙", items:[
-    {to:"/producao",label:"Fila de Produção",icon:"⚙"},{to:"/apontamento-producao",label:"Apontamentos de Produção",icon:"◷"},{to:"/paradas-producao",label:"Paradas de Produção",icon:"⏸"},{to:"/imprimir-ordem-producao",label:"Imprimir OP",icon:"🖨"},{to:"/qualidade/checklist",label:"Checklists de Qualidade",icon:"☑"},{to:"/qualidade/inspecao",label:"Inspeções",icon:"☑"},{to:"/qualidade/nao-conformidades",label:"Não Conformidades",icon:"⚠"}
+    {to:"/producao",label:"Ordens de Produção / Fila",icon:"⚙"},{to:"/apontamento-producao",label:"Apontamentos de Produção",icon:"◷"},{to:"/paradas-producao",label:"Paradas de Produção",icon:"⏸"},{to:"/imprimir-ordem-producao",label:"Imprimir OP",icon:"🖨"},{to:"/qualidade/checklist",label:"Checklists de Qualidade",icon:"☑"},{to:"/qualidade/inspecao",label:"Inspeções",icon:"☑"},{to:"/qualidade/nao-conformidades",label:"Não Conformidades",icon:"⚠"}
   ]},
   { label:"Logistica", icon:"▶", items:[
     {to:"/expedicao",label:"Expedição",icon:"▶"},{to:"/cronograma-entregas",label:"Entregas",icon:"📅"}
   ]},
   { label:"Frotas", icon:"🚛", items:[{to:"/frotas",label:"Bens e Ativos / Frotas",icon:"▶"}]},
   { label:"Fiscal", icon:"🧾", items:[
-    {to:"/notas-fiscais",label:"Notas Fiscais",icon:"🧾"},{to:"/fiscal",label:"Configuração Fiscal",icon:"⚙"},{to:"/importar-xml-nfe",label:"Importar XML NF-e",icon:"📄"}
+    {to:"/notas-fiscais",label:"Notas Fiscais",icon:"🧾"},{to:"/fiscal",label:"Configuração Fiscal",icon:"⚙"}
   ]},
   { label:"Financeiro", icon:"$", items:[
     {to:"/contas-receber",label:"Contas a Receber",icon:"◈"},{to:"/contas-pagar",label:"Contas a Pagar",icon:"◑"},{to:"/fluxo-caixa",label:"Fluxo de Caixa",icon:"≈"},{to:"/tesouraria",label:"Tesouraria",icon:"▣"},{to:"/credito-cobranca",label:"Crédito e Cobrança",icon:"◐"},{to:"/lancamentos",label:"Lançamentos",icon:"$"},{to:"/plano-contas",label:"Plano de Contas",icon:"☰"}
