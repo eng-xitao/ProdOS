@@ -1,15 +1,15 @@
 /**
- * Mapa de acesso por papel. `null` significa acesso total.
- * RH permanece fora do ProdOS; gestão de pessoas é feita no ProdPersonal.
+ * Acesso por papel aos processos do ProdOS.
+ * Gestao de pessoas pertence ao ProdPersonal e nao ao ProdOS.
  */
 export const ROLE_ACCESS = {
   master: null,
   admin: null,
-  gerente: ["Cadastro", "PCP", "Qualidade", "Comercial", "Compras", "Almoxarifado", "Logística", "Custos", "Financeiro", "Bens/Ativos", "Relatórios"],
-  vendas: ["Comercial"],
-  compras: ["Compras", "Almoxarifado"],
-  producao: ["PCP", "Qualidade", "Logística", "Bens/Ativos"],
-  financeiro: ["Financeiro", "Custos", "Relatórios"],
+  gerente: ["CRM", "Comercial", "Estoque", "Compras", "PCP", "Producao", "Logistica", "Frotas", "Fiscal", "Financeiro", "Gestao", "Cadastros"],
+  vendas: ["CRM", "Comercial"],
+  compras: ["Estoque", "Compras", "Cadastros"],
+  producao: ["Estoque", "PCP", "Producao", "Logistica", "Frotas", "Cadastros"],
+  financeiro: ["Financeiro", "Gestao", "Cadastros"],
 };
 
 export const ROLE_LABEL = {
@@ -18,7 +18,7 @@ export const ROLE_LABEL = {
   gerente: "Gerente",
   vendas: "Vendas",
   compras: "Compras",
-  producao: "Produção",
+  producao: "Producao",
   financeiro: "Financeiro",
 };
 
@@ -27,9 +27,7 @@ export const PLAN_UNRESTRICTED_ROLES = ["master", "admin"];
 
 export function hasAccess(role, sectionLabel) {
   if (sectionLabel === "RH") return false;
-  if (!role) return false;
-  if (!(role in ROLE_ACCESS)) return false;
+  if (!role || !(role in ROLE_ACCESS)) return false;
   const allowed = ROLE_ACCESS[role];
-  if (allowed === null) return true;
-  return allowed.includes(sectionLabel);
+  return allowed === null || allowed.includes(sectionLabel);
 }
