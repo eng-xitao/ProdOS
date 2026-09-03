@@ -178,15 +178,17 @@ function CRMDrawer({ opportunity:o, stages, customers, products, company, profil
   const [activity,setActivity]=useState("");
   const [activities,setActivities]=useState([]);
   const [items,setItems]=useState([]);
+  const [stageHistory,setStageHistory]=useState([]);
   const [message,setMessage]=useState("");
   const [saving,setSaving]=useState(false);
 
   async function loadDetails() {
-    const [a,it] = await Promise.all([
+    const [a,it,sh] = await Promise.all([
       supabase.from("opportunity_interactions").select("id,type,note,created_at,profiles:author_profile_id(full_name)").eq("opportunity_id",o.id).order("created_at",{ascending:false}),
       supabase.from("opportunity_items").select("id,product_id,quantity,unit_price,discount_percent,products:product_id(sku,name,unit)").eq("opportunity_id",o.id).order("created_at"),
+      supabase.from("opportunity_stage_history").select("id,from_stage_id,to_stage_id,created_at,profiles:actor_profile_id(full_name)").eq("opportunity_id",o.id).order("created_at",{ascending:false}),
     ]);
-    setActivities(a.data||[]); setItems(it.data||[]);
+    setActivities(a.data||[]); setItems(it.data||[]); setStageHistory(sh.data||[]);
   }
   useEffect(()=>{loadDetails();},[o.id]);
 
@@ -210,8 +212,13 @@ function CRMDrawer({ opportunity:o, stages, customers, products, company, profil
 
   async function moveStage(stageId) {
     setSaving(true); setMessage("");
+    const fromStageId = o.stage_id;
     const {error}=await supabase.from("opportunities").update({stage_id:stageId}).eq("id",o.id).eq("company_id",company.id).select("id").single();
-    if(error) setMessage(error.message); else { setMessage("✓ Etapa atualizada."); await onRefresh(); }
+    if(error){ setMessage(error.message); setSaving(false); return; }
+    await supabase.from("opportunity_stage_history").insert({ company_id: company.id, opportunity_id: o.id, from_stage_id: fromStageId, to_stage_id: stageId, actor_profile_id: profile?.id || null });
+    setMessage("✓ Etapa atualizada.");
+    await onRefresh();
+    await loadDetails();
     setSaving(false);
   }
 
@@ -258,7 +265,7 @@ function CRMDrawer({ opportunity:o, stages, customers, products, company, profil
     <div style={S.drawerHeader}><div><span style={S.code}>OPP-{String(o.opportunity_number??0).padStart(6,"0")}</span><h2 style={S.drawerTitle}>{o.title}</h2><span style={S.cardCustomer}>{o.customers?.name||"Cliente não informado"}</span></div><button style={S.close} onClick={onClose}>✕</button></div>
     <div style={S.stepper}>{stages.map((s,i)=><button key={s.id} disabled={saving} onClick={()=>moveStage(s.id)} style={{...S.step,...(i===current?S.stepCurrent:{}),...(i<current?S.stepDone:{})}}><span>{i<current?"✓":i+1}</span>{s.name}</button>)}</div>
     <div style={S.nextBox}><strong>Próximo passo</strong><span>{qualification.next || "Ainda não definido"}</span>{qualification.nextDate && <small>{formatDate(qualification.nextDate)}</small>}<button onClick={()=>setTab("qualificacao")} style={S.linkBtn}>Definir próximo passo →</button></div>
-    <div style={S.tabs}>{[["resumo","Resumo"],["qualificacao","Qualificação"],["atividades","Atividades"]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{...S.tab,...(tab===k?S.tabActive:{})}}>{l}</button>)}</div>
+    <div style={S.tabs}>{[["resumo","Resumo"],["qualificacao","Qualificação"],["linha-tempo","Linha do tempo"]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{...S.tab,...(tab===k?S.tabActive:{})}}>{l}</button>)}</div>
     {message && <div style={S.message}>{message}</div>}
 
     {tab === "resumo" && <div style={S.body}>
@@ -279,7 +286,24 @@ function CRMDrawer({ opportunity:o, stages, customers, products, company, profil
       <button style={S.primaryWide} onClick={saveQualification} disabled={saving}>{saving?"Salvando...":"💾 Salvar qualificação"}</button>
     </div></section></div>}
 
-    {tab === "atividades" && <div style={S.body}><section style={S.section}><h3>Registrar contato</h3><p style={S.help}>Escolha como falou com o cliente e escreva o que aconteceu.</p><form onSubmit={addActivity} style={S.activityBox}><label><span style={S.label}>Canal do contato</span><select style={S.input} value={channel} onChange={e=>setChannel(e.target.value)}>{CHANNELS.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label style={{gridColumn:"1/-1"}}><span style={S.label}>O que foi tratado?</span><textarea style={S.textarea} rows={4} value={activity} onChange={e=>setActivity(e.target.value)} placeholder="Ex.: Cliente pediu proposta para 500 unidades e retorno até sexta-feira."/></label><button style={S.primaryWide} disabled={saving}>{saving?"Registrando...":"+ Registrar contato"}</button></form></section><section style={S.section}><h3>Histórico</h3><div style={S.history}>{activities.map(a=><div key={a.id} style={S.historyItem}><div><b>{CHANNELS.find(x=>x[0]===a.type)?.[1] || a.type}</b><small>{formatDate(a.created_at)} · {a.profiles?.full_name||"Usuário"}</small></div><p>{a.note}</p></div>)}{!activities.length&&<div style={S.empty}>Nenhum contato registrado ainda.</div>}</div></section></div>}
+    {tab === "linha-tempo" && <div style={S.body}>
+      <section style={S.section}><h3>Registrar contato</h3><p style={S.help}>Escolha como falou com o cliente e escreva o que aconteceu — entra na linha do tempo abaixo.</p><form onSubmit={addActivity} style={S.activityBox}><label><span style={S.label}>Canal do contato</span><select style={S.input} value={channel} onChange={e=>setChannel(e.target.value)}>{CHANNELS.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label style={{gridColumn:"1/-1"}}><span style={S.label}>O que foi tratado?</span><textarea style={S.textarea} rows={4} value={activity} onChange={e=>setActivity(e.target.value)} placeholder="Ex.: Cliente pediu proposta para 500 unidades e retorno até sexta-feira."/></label><button style={S.primaryWide} disabled={saving}>{saving?"Registrando...":"+ Registrar contato"}</button></form></section>
+      <section style={S.section}><h3>Linha do tempo</h3><div style={S.history}>
+        {(() => {
+          const events = [
+            { kind: "criacao", created_at: o.created_at, label: "Oportunidade criada", detail: o.profiles?.full_name || "Sistema" },
+            ...stageHistory.map(h => ({ kind: "etapa", created_at: h.created_at, label: `Etapa: ${stages.find(s=>s.id===h.from_stage_id)?.name || "Início"} → ${stages.find(s=>s.id===h.to_stage_id)?.name || "—"}`, detail: h.profiles?.full_name || "Sistema" })),
+            ...activities.map(a => ({ kind: "contato", created_at: a.created_at, label: CHANNELS.find(x=>x[0]===a.type)?.[1] || a.type, detail: a.note, author: a.profiles?.full_name })),
+          ].sort((x,y) => new Date(y.created_at) - new Date(x.created_at));
+          return events.length ? events.map((e,i) => (
+            <div key={i} style={S.historyItem}>
+              <div><b>{e.kind==="etapa"?"➜ ":e.kind==="criacao"?"✦ ":"💬 "}{e.label}</b><small>{formatDate(e.created_at)} · {e.author||e.detail}</small></div>
+              {e.kind==="contato" && <p>{e.detail}</p>}
+            </div>
+          )) : <div style={S.empty}>Nenhum evento ainda.</div>;
+        })()}
+      </div></section>
+    </div>}
   </aside></div>;
 }
 
