@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img" aria-labelledby="title desc">
+  <title id="title">ProdLog</title>
+  <desc id="desc">Logotipo ProdLog com símbolo de armazenagem e empilhadeira</desc>
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#075FE8"/>
+      <stop offset="1" stop-color="#1677F5"/>
+    </linearGradient>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06295F"/>
+      <stop offset="1" stop-color="#0B3A82"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(12 12)">
+    <path d="M72 10 160 48 160 146 72 108Z" fill="url(#blue)"/>
+    <path d="M72 10 8 48 8 146 72 108Z" fill="url(#navy)"/>
+    <path d="M72 10 160 48 96 86 8 48Z" fill="#0A3470"/>
+    <path d="M40 55h29c18 0 30 11 30 28 0 17-12 28-30 28H58v-19h10c7 0 12-3 12-9s-5-9-12-9H58v60H40Z" fill="#FFF" opacity=".98"/>
+    <g fill="#FFF" stroke="#FFF" stroke-width="3" stroke-linejoin="round">
+      <path d="M99 99h12v31H99z"/>
+      <path d="M108 101h22v5h-22z"/>
+      <path d="M126 83h5v35h-5z"/>
+      <path d="M130 84h16v5h-16z"/>
+      <path d="M130 94h16v5h-16z"/>
+      <circle cx="108" cy="136" r="9" fill="none"/>
+      <circle cx="139" cy="136" r="9" fill="none"/>
+      <path d="M99 132V105c0-5 4-9 9-9h12l8 10v26h-8v-19h-13v19z"/>
+    </g>
+  </g>
+  <text x="198" y="113" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="800" font-style="italic" letter-spacing="-4">
+    <tspan fill="#082E69">Prod</tspan><tspan fill="#1269EA">Log</tspan>
+  </text>
+</svg>
