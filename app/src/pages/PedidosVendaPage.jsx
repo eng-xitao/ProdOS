@@ -9,7 +9,7 @@ const STATUS_LABEL = { aberto: "Aberto", faturado: "Faturado", entregue: "Entreg
 const STATUS_COLOR = { aberto: "var(--text-dim)", faturado: "#2563EB", entregue: "var(--green)", cancelado: "var(--danger)" };
 
 export default function PedidosVendaPage() {
-  const { company } = useAuth();
+  const { company, profile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [orders, setOrders] = useState([]);
@@ -97,7 +97,7 @@ export default function PedidosVendaPage() {
       {showNew && <NewOrderModal customers={customers} onClose={() => setShowNew(false)} onCreate={createOrder} />}
 
       {selectedId && (
-        <OrderDrawer orderId={selectedId} company={company} onClose={() => setSelectedId("")} onRefresh={loadAll} />
+        <OrderDrawer orderId={selectedId} company={company} profile={profile} onClose={() => setSelectedId("")} onRefresh={loadAll} />
       )}
     </div>
   );
@@ -132,7 +132,7 @@ function NewOrderModal({ customers, onClose, onCreate }) {
   );
 }
 
-function OrderDrawer({ orderId, company, onClose, onRefresh }) {
+function OrderDrawer({ orderId, company, profile, onClose, onRefresh }) {
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
   const [products, setProducts] = useState([]);
@@ -184,9 +184,9 @@ function OrderDrawer({ orderId, company, onClose, onRefresh }) {
   const total = items.reduce((sum, it) => sum + Number(it.quantity) * Number(it.unit_price) * (1 - Number(it.discount_percent) / 100), 0);
 
   const itemsNeedingProduction = items.filter((it) => {
-    const alreadyLinked = linkedOrders.some((po) => po.product_id === it.product_id);
+    const activeLink = linkedOrders.find((po) => po.product_id === it.product_id && po.status !== "rejeitada");
     const stock = stockByProduct[it.product_id] ?? 0;
-    return !alreadyLinked && stock < Number(it.quantity);
+    return !activeLink && stock < Number(it.quantity);
   });
 
   async function generateProductionOrders() {
@@ -202,13 +202,14 @@ function OrderDrawer({ orderId, company, onClose, onRefresh }) {
         product_id: it.product_id,
         quantity: missing,
         sales_order_id: orderId,
-        status: "planejada",
+        status: "solicitada",
+        requested_by: profile?.id || null,
       };
     });
 
     const { error: insertError } = await supabase.from("production_orders").insert(rows);
     if (insertError) { setError(insertError.message); setGeneratingOps(false); return; }
-    setOpsMsg(`${rows.length} ordem(ns) de produção gerada(s) — veja em PCP → Ordens de Produção.`);
+    setOpsMsg(`${rows.length} solicitação(ões) enviada(s) ao PCP — a produção aguarda aprovação deles.`);
     setGeneratingOps(false);
     await load();
   }
@@ -381,13 +382,15 @@ function OrderDrawer({ orderId, company, onClose, onRefresh }) {
                   const line = Number(it.quantity) * Number(it.unit_price) * (1 - Number(it.discount_percent) / 100);
                   const stock = stockByProduct[it.product_id] ?? 0;
                   const short = stock < Number(it.quantity);
-                  const alreadyLinked = linkedOrders.some((po) => po.product_id === it.product_id);
+                  const linkedOrder = linkedOrders.find((po) => po.product_id === it.product_id && po.status !== "rejeitada");
                   return (
                     <div key={it.id} style={styles.itemRow}>
                       <span>
                         {it.products?.sku} — {it.products?.name}
-                        {short && !alreadyLinked && <span style={styles.stockWarning}> · ⚠ estoque {stock}, faltam {Number(it.quantity) - stock}</span>}
-                        {alreadyLinked && <span style={styles.stockOk}> · ✓ OP já gerada</span>}
+                        {short && !linkedOrder && <span style={styles.stockWarning}> · ⚠ estoque {stock}, faltam {Number(it.quantity) - stock}</span>}
+                        {linkedOrder?.status === "solicitada" && <span style={styles.stockPending}> · ⏳ aguardando aprovação do PCP</span>}
+                        {linkedOrder && ["planejada", "em_andamento"].includes(linkedOrder.status) && <span style={styles.stockOk}> · ✓ em produção</span>}
+                        {linkedOrder?.status === "concluida" && <span style={styles.stockOk}> · ✓ produção concluída</span>}
                       </span>
                       <span>{it.quantity} × {currency(it.unit_price)} ({it.discount_percent}%)</span>
                       <b>{currency(line)}</b>
@@ -402,10 +405,10 @@ function OrderDrawer({ orderId, company, onClose, onRefresh }) {
             {itemsNeedingProduction.length > 0 && (
               <div style={styles.opsBox}>
                 <p style={styles.opsTitle}>⚙ Produção necessária</p>
-                <p style={styles.dim}>{itemsNeedingProduction.length} produto(s) sem estoque suficiente pra atender esse pedido.</p>
+                <p style={styles.dim}>{itemsNeedingProduction.length} produto(s) sem estoque suficiente. A decisão de aprovar e programar é do PCP.</p>
                 {opsMsg && <div style={styles.success}>{opsMsg}</div>}
                 <button style={styles.opsBtn} onClick={generateProductionOrders} disabled={generatingOps} type="button">
-                  {generatingOps ? "Gerando..." : `Gerar Ordem${itemsNeedingProduction.length > 1 ? "s" : ""} de Produção (${itemsNeedingProduction.length})`}
+                  {generatingOps ? "Enviando..." : `Solicitar Produção ao PCP (${itemsNeedingProduction.length})`}
                 </button>
               </div>
             )}
@@ -469,6 +472,7 @@ const styles = {
   removeMini: { background: "transparent", border: 0, color: "var(--danger)", cursor: "pointer", fontSize: 13 },
   totalLine: { display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--line)", fontSize: 15 },
   stockWarning: { color: "var(--danger)", fontSize: 11.5, fontWeight: 700 },
+  stockPending: { color: "var(--amber)", fontSize: 11.5, fontWeight: 700 },
   stockOk: { color: "var(--green)", fontSize: 11.5, fontWeight: 700 },
   opsBox: { marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--line)", background: "rgba(232,163,61,0.06)", border: "1px solid var(--amber)", borderRadius: 8, padding: 14 },
   opsTitle: { fontWeight: 700, fontSize: 14, margin: "0 0 4px" },

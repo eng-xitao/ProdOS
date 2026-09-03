@@ -5,13 +5,24 @@ import { Link } from "react-router-dom";
 import ModulePage from "../components/ModulePage";
 
 export default function ProducaoPage() {
-  const { company } = useAuth();
+  const { company, profile } = useAuth();
   const [stages, setStages] = useState([]);
   const [products, setProducts] = useState([]);
   const [salesOrders, setSalesOrders] = useState([]);
   const [orderTypes, setOrderTypes] = useState([]);
+  const [pending, setPending] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [processingId, setProcessingId] = useState("");
+
+  async function loadPending() {
+    const { data } = await supabase
+      .from("production_orders")
+      .select("id, code, quantity, created_at, products:product_id (sku, name), sales_orders:sales_order_id (code, customers:customer_id (name))")
+      .eq("status", "solicitada")
+      .order("created_at", { ascending: true });
+    setPending(data ?? []);
+  }
 
   useEffect(() => {
     if (!company?.id) return;
@@ -27,7 +38,31 @@ export default function ProducaoPage() {
       setOrderTypes(typesRes.data ?? []);
       setLoaded(true);
     });
+    loadPending();
   }, [company?.id]);
+
+  async function approve(id) {
+    setProcessingId(id);
+    const defaultStage = stages[0]?.id ?? null;
+    await supabase.from("production_orders").update({
+      status: "planejada", approved_by: profile?.id || null, approved_at: new Date().toISOString(), stage_id: defaultStage,
+    }).eq("id", id);
+    setProcessingId("");
+    await loadPending();
+    setRefreshKey((k) => k + 1);
+  }
+
+  async function reject(id) {
+    const reason = window.prompt("Motivo da rejeição (o Comercial vai ver isso):");
+    if (reason === null) return;
+    setProcessingId(id);
+    await supabase.from("production_orders").update({
+      status: "rejeitada", approved_by: profile?.id || null, approved_at: new Date().toISOString(), rejection_reason: reason || null,
+    }).eq("id", id);
+    setProcessingId("");
+    await loadPending();
+    setRefreshKey((k) => k + 1);
+  }
 
   const stageOptions = stages.map((s) => ({ value: s.id, label: s.name }));
   const productOptions = products.map((p) => ({ value: p.id, label: `${p.sku} — ${p.name}` }));
@@ -38,7 +73,7 @@ export default function ProducaoPage() {
     return (
       <div style={styles.notice}>
         Antes de cadastrar ordens de produção, configure ao menos uma etapa do seu processo em{" "}
-        <Link to="/etapas" style={styles.link}>Cadastro → Etapas</Link>.
+        <Link to="/etapas" style={styles.link}>Cadastro → Etapas de Produção</Link>.
       </div>
     );
   }
@@ -54,6 +89,27 @@ export default function ProducaoPage() {
 
   return (
     <div>
+      {pending.length > 0 && (
+        <div style={styles.pendingBox}>
+          <p style={styles.pendingTitle}>⏳ Solicitações do Comercial aguardando sua aprovação ({pending.length})</p>
+          <p style={styles.pendingSub}>O Comercial só solicita — cabe ao PCP decidir se aprova, quando programa e em qual etapa entra.</p>
+          <div style={styles.pendingList}>
+            {pending.map((p) => (
+              <div key={p.id} style={styles.pendingRow}>
+                <div>
+                  <strong>{p.products?.sku} — {p.products?.name}</strong>
+                  <span style={styles.pendingDetail}>{p.quantity} unidade(s) · Pedido {p.sales_orders?.code ?? "—"} ({p.sales_orders?.customers?.name ?? "sem cliente"})</span>
+                </div>
+                <div style={styles.pendingActions}>
+                  <button style={styles.approveBtn} onClick={() => approve(p.id)} disabled={processingId === p.id} type="button">✓ Aprovar</button>
+                  <button style={styles.rejectBtn} onClick={() => reject(p.id)} disabled={processingId === p.id} type="button">✕ Rejeitar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <ModulePage
         key={refreshKey}
         table="production_orders"
@@ -108,4 +164,13 @@ const styles = {
     maxWidth: 620,
   },
   link: { color: "var(--amber)", fontWeight: 600 },
+  pendingBox: { background: "rgba(232,163,61,0.08)", border: "1px solid var(--amber)", borderRadius: "var(--radius)", padding: 18, marginBottom: 24 },
+  pendingTitle: { fontWeight: 700, fontSize: 15, margin: "0 0 4px" },
+  pendingSub: { color: "var(--text-dim)", fontSize: 12.5, margin: "0 0 14px" },
+  pendingList: { display: "flex", flexDirection: "column", gap: 8 },
+  pendingRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "12px 14px", flexWrap: "wrap" },
+  pendingDetail: { display: "block", fontSize: 12, color: "var(--text-dim)", marginTop: 3 },
+  pendingActions: { display: "flex", gap: 8 },
+  approveBtn: { background: "var(--green)", color: "#fff", border: "none", borderRadius: 7, padding: "7px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer" },
+  rejectBtn: { background: "transparent", border: "1px solid var(--danger)", color: "var(--danger)", borderRadius: 7, padding: "7px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer" },
 };
