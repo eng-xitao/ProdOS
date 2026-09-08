@@ -4,10 +4,13 @@ import { useAuth } from "../lib/AuthContext";
 import { Link } from "react-router-dom";
 
 /**
- * Quando uma ordem de produção fica pronta, o produto acabado
+ * Quando uma ordem de produção fica pronta (status concluída — setado
+ * sozinho pelo gatilho que soma os apontamentos), o produto acabado
  * precisa entrar no estoque — sem isso, o sistema "esquece" que
- * o item foi produzido. Esta tela faz esse lançamento, e mantém
- * um histórico de tudo que já foi recebido (nada desaparece).
+ * o item foi produzido. Esta tela só lista ordens já concluídas
+ * (nunca solicitada/planejada/em_andamento, pra não dar entrada em
+ * algo que ainda não foi de fato produzido), faz esse lançamento, e
+ * mantém um histórico de tudo que já foi recebido (nada desaparece).
  */
 export default function RecebimentoProducaoPage() {
   const { company } = useAuth();
@@ -25,6 +28,7 @@ export default function RecebimentoProducaoPage() {
       .from("production_orders")
       .select("id, code, quantity, product_id, products:product_id (sku, name, unit)")
       .eq("stock_entry_done", false)
+      .eq("status", "concluida")
       .order("created_at", { ascending: false });
     setOrders((data ?? []).filter((o) => o.product_id));
   }
@@ -129,9 +133,9 @@ export default function RecebimentoProducaoPage() {
       <header style={{ marginBottom: 20 }}>
         <h1 style={styles.title}>Recebimento de Produção</h1>
         <p style={styles.subtitle}>
-          Ordens de produção que ainda não tiveram o resultado lançado no estoque.
-          Escolha o almoxarifado de destino e confirme para dar entrada. Informe lote e
-          validade se quiser rastrear esse produto acabado depois.
+          Ordens de produção já concluídas (produção confirmada pelos apontamentos) que ainda não tiveram
+          o resultado lançado no estoque. Escolha o almoxarifado de destino e confirme para dar entrada.
+          Informe lote e validade se quiser rastrear esse produto acabado depois.
         </p>
       </header>
 
