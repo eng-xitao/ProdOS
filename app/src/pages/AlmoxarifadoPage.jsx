@@ -30,80 +30,40 @@ export default function AlmoxarifadoPage() {
   const [adjustBatchId, setAdjustBatchId] = useState("");
 
   async function loadWarehouses() {
-    const { data, error: e } = await supabase
-      .from("warehouses")
-      .select("id,name,active,warehouse_type")
-      .eq("company_id", company.id)
-      .eq("active", true)
-      .order("name");
-    if (e) setError(e.message); else setWarehouses(data ?? []);
+    const { data, error: e } = await supabase.from("warehouses").select("id,name,active,warehouse_type").eq("company_id", company.id).eq("active", true).order("name");
+    if (e) setError(e.message); else setWarehouses((data ?? []).filter((w) => !/produto\s+acabado/i.test(w.name || "")));
   }
 
   async function loadProducts() {
-    const { data, error: e } = await supabase
-      .from("products")
-      .select("id,sku,name,unit,type")
-      .eq("company_id", company.id)
-      .in("type", MATERIAL_TYPES)
-      .eq("active", true)
-      .order("name");
+    const { data, error: e } = await supabase.from("products").select("id,sku,name,unit,type").eq("company_id", company.id).in("type", MATERIAL_TYPES).eq("active", true).order("name");
     if (e) setError(e.message); else setProducts(data ?? []);
   }
 
   async function loadExpiringBatches() {
     const limit = new Date();
     limit.setDate(limit.getDate() + EXPIRY_WARNING_DAYS);
-    const { data } = await supabase
-      .from("stock_batches")
-      .select("id,batch_number,expiry_date,quantity,products:product_id(sku,name,unit),warehouses:warehouse_id(name)")
-      .eq("company_id", company.id)
-      .not("expiry_date", "is", null)
-      .lte("expiry_date", limit.toISOString().slice(0, 10))
-      .gt("quantity", 0)
-      .order("expiry_date", { ascending: true });
+    const { data } = await supabase.from("stock_batches").select("id,batch_number,expiry_date,quantity,products:product_id(sku,name,unit),warehouses:warehouse_id(name)").eq("company_id", company.id).not("expiry_date", "is", null).lte("expiry_date", limit.toISOString().slice(0, 10)).gt("quantity", 0).order("expiry_date", { ascending: true });
     setExpiringBatches(data ?? []);
   }
 
   async function loadLocations(wid) {
     if (!wid) { setLocations([]); return; }
-    const { data, error: e } = await supabase
-      .from("warehouse_locations")
-      .select("id,code")
-      .eq("company_id", company.id)
-      .eq("warehouse_id", wid)
-      .order("code");
+    const { data, error: e } = await supabase.from("warehouse_locations").select("id,code").eq("company_id", company.id).eq("warehouse_id", wid).order("code");
     if (e) setError(e.message); else setLocations(data ?? []);
   }
 
   async function loadLevels(wid) {
     if (!wid) { setLevels([]); setBatches([]); return; }
-    setLoading(true);
-    setError("");
-
+    setLoading(true); setError("");
     const [{ data: stock, error: stockError }, { data: batchData, error: batchError }] = await Promise.all([
-      supabase
-        .from("stock_levels")
-        .select("id,quantity,product_id,location_id,products:product_id(id,sku,name,unit,type),warehouse_locations:location_id(code)")
-        .eq("company_id", company.id)
-        .eq("warehouse_id", wid),
-      supabase
-        .from("stock_batches")
-        .select("id,product_id,batch_number,expiry_date,quantity")
-        .eq("company_id", company.id)
-        .eq("warehouse_id", wid)
-        .gt("quantity", 0)
-        .order("expiry_date", { ascending: true, nullsFirst: false }),
+      supabase.from("stock_levels").select("id,quantity,product_id,location_id,products:product_id(id,sku,name,unit,type),warehouse_locations:location_id(code)").eq("company_id", company.id).eq("warehouse_id", wid),
+      supabase.from("stock_batches").select("id,product_id,batch_number,expiry_date,quantity").eq("company_id", company.id).eq("warehouse_id", wid).gt("quantity", 0).order("expiry_date", { ascending: true, nullsFirst: false }),
     ]);
-
     if (stockError) setError(stockError.message);
     if (batchError) setError(batchError.message);
 
     const map = new Map();
-    (products ?? []).forEach((p) => {
-      if (!MATERIAL_TYPES.includes(p.type)) return;
-      map.set(p.id, { id: p.id, product_id: p.id, products: p, quantity: 0, locations: [] });
-    });
-
+    (products ?? []).forEach((p) => map.set(p.id, { id: p.id, product_id: p.id, products: p, quantity: 0, locations: [] }));
     (stock ?? []).forEach((row) => {
       const p = row.products;
       if (!p || !MATERIAL_TYPES.includes(p.type)) return;
@@ -114,23 +74,17 @@ export default function AlmoxarifadoPage() {
       item.quantity += quantity;
       item.locations.push({ id: row.location_id, code: row.warehouse_locations?.code || "Sem localização", quantity });
     });
-
     let rows = Array.from(map.values());
     if (typeFilter) rows = rows.filter((r) => r.products.type === typeFilter);
     if (productFilter) rows = rows.filter((r) => r.product_id === productFilter);
     rows.sort((a, b) => String(a.products.name || "").localeCompare(String(b.products.name || ""), "pt-BR"));
-
     setLevels(rows);
     setBatches(batchData ?? []);
     setLoading(false);
   }
 
   useEffect(() => {
-    if (company?.id) {
-      loadWarehouses();
-      loadProducts();
-      loadExpiringBatches();
-    }
+    if (company?.id) { loadWarehouses(); loadProducts(); loadExpiringBatches(); }
   }, [company?.id]);
 
   useEffect(() => {
@@ -163,23 +117,13 @@ export default function AlmoxarifadoPage() {
     if (adjustType === "entrada" && !adjustLocationId) return setError("Informe a localização de destino da entrada.");
     if (adjustType === "saida" && !adjustLocationId) return setError("Informe a localização de origem da saída.");
 
-    const { data: existing, error: findError } = await supabase
-      .from("stock_levels")
-      .select("id,quantity")
-      .eq("company_id", company.id)
-      .eq("product_id", adjustProductId)
-      .eq("warehouse_id", warehouseId)
-      .eq("location_id", adjustLocationId)
-      .maybeSingle();
+    const { data: existing, error: findError } = await supabase.from("stock_levels").select("id,quantity").eq("company_id", company.id).eq("product_id", adjustProductId).eq("warehouse_id", warehouseId).eq("location_id", adjustLocationId).maybeSingle();
     if (findError) return setError(findError.message);
-
     const current = Number(existing?.quantity ?? 0);
     if (adjustType === "saida" && qty > current) return setError(`Saldo insuficiente nessa localização. Disponível: ${current.toLocaleString("pt-BR")}.`);
     const next = adjustType === "entrada" ? current + qty : current - qty;
 
-    const stockResult = existing
-      ? await supabase.from("stock_levels").update({ quantity: next, updated_at: new Date().toISOString() }).eq("id", existing.id)
-      : await supabase.from("stock_levels").insert({ company_id: company.id, product_id: adjustProductId, warehouse_id: warehouseId, location_id: adjustLocationId, quantity: next });
+    const stockResult = existing ? await supabase.from("stock_levels").update({ quantity: next, updated_at: new Date().toISOString() }).eq("id", existing.id) : await supabase.from("stock_levels").insert({ company_id: company.id, product_id: adjustProductId, warehouse_id: warehouseId, location_id: adjustLocationId, quantity: next });
     if (stockResult.error) return setError(stockResult.error.message);
 
     if (adjustType === "entrada" && adjustBatchNumber) {
@@ -197,12 +141,7 @@ export default function AlmoxarifadoPage() {
     await supabase.from("products").update({ stock_quantity: Math.max(0, Number(product?.stock_quantity ?? 0) + (adjustType === "entrada" ? qty : -qty)) }).eq("company_id", company.id).eq("id", adjustProductId);
     await supabase.from("stock_movements").insert({ company_id: company.id, product_id: adjustProductId, warehouse_id: warehouseId, movement_type: adjustType, quantity: qty, reference_type: "ajuste", notes: `${adjustType === "entrada" ? "Entrada" : "Saída"} manual — localização ${locations.find((l) => l.id === adjustLocationId)?.code || adjustLocationId}${adjustBatchNumber ? ` — lote ${adjustBatchNumber}` : ""}` });
 
-    setAdjustProductId("");
-    setAdjustQty("");
-    setAdjustLocationId("");
-    setAdjustBatchNumber("");
-    setAdjustExpiryDate("");
-    setAdjustBatchId("");
+    setAdjustProductId(""); setAdjustQty(""); setAdjustLocationId(""); setAdjustBatchNumber(""); setAdjustExpiryDate(""); setAdjustBatchId("");
     await Promise.all([loadLevels(warehouseId), loadExpiringBatches()]);
   }
 
@@ -215,24 +154,24 @@ export default function AlmoxarifadoPage() {
     <style>{`
       @media print {
         @page { size: A4 portrait; margin: 14mm 12mm 16mm; }
-        body { background: #fff !important; color: #111 !important; }
-        .screen-only, .stock-material-page form, .stock-material-page .filters, .stock-material-page .expiry-box, .stock-material-page .error-box { display: none !important; }
-        .print-only { display: block !important; }
-        .print-report-header { display: flex !important; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 14px; }
-        .print-logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-        .print-meta { text-align: right; font-size: 10px; line-height: 1.5; color: #444; }
-        .print-title { font-size: 18px; margin: 0 0 4px; }
-        .print-subtitle { font-size: 10px; color: #555; margin: 0; }
-        .print-filters { display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; padding: 8px; border: 1px solid #bbb; }
-        .print-filter-label { display: block; font-size: 8px; text-transform: uppercase; color: #666; margin-bottom: 2px; }
-        .print-filter-value { font-size: 10px; font-weight: 700; }
-        .stock-material-page .tableWrap { border: 1px solid #777 !important; overflow: visible !important; }
-        .stock-material-page table { font-size: 10px !important; }
-        .stock-material-page th { background: #eee !important; color: #111 !important; border: 1px solid #aaa !important; padding: 7px 8px !important; }
-        .stock-material-page td { color: #111 !important; border: 1px solid #bbb !important; padding: 7px 8px !important; background: #fff !important; }
-        .print-footer { display: flex !important; justify-content: space-between; border-top: 1px solid #aaa; margin-top: 12px; padding-top: 6px; font-size: 8px; color: #555; }
+        body { background:#fff !important; color:#111 !important; }
+        .screen-only,.stock-material-page form,.stock-material-page .filters,.stock-material-page .expiry-box,.stock-material-page .error-box { display:none !important; }
+        .print-only { display:block !important; }
+        .print-report-header { display:flex !important; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #222; padding-bottom:10px; margin-bottom:14px; }
+        .print-logo { font-size:22px; font-weight:800; letter-spacing:-.5px; }
+        .print-meta { text-align:right; font-size:10px; line-height:1.5; color:#444; }
+        .print-title { font-size:18px; margin:0 0 4px; }
+        .print-subtitle { font-size:10px; color:#555; margin:0; }
+        .print-filters { display:grid !important; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; padding:8px; border:1px solid #bbb; }
+        .print-filter-label { display:block; font-size:8px; text-transform:uppercase; color:#666; margin-bottom:2px; }
+        .print-filter-value { font-size:10px; font-weight:700; }
+        .stock-material-page .tableWrap { border:1px solid #777 !important; overflow:visible !important; }
+        .stock-material-page table { font-size:10px !important; }
+        .stock-material-page th { background:#eee !important; color:#111 !important; border:1px solid #aaa !important; padding:7px 8px !important; }
+        .stock-material-page td { color:#111 !important; border:1px solid #bbb !important; padding:7px 8px !important; background:#fff !important; }
+        .print-footer { display:flex !important; justify-content:space-between; border-top:1px solid #aaa; margin-top:12px; padding-top:6px; font-size:8px; color:#555; }
       }
-      @media screen { .print-only { display: none; } }
+      @media screen { .print-only { display:none; } }
     `}</style>
 
     <header style={styles.header} className="screen-only">
@@ -243,11 +182,7 @@ export default function AlmoxarifadoPage() {
     </header>
 
     <div className="print-only print-report-header">
-      <div>
-        <div className="print-logo">ProdOS</div>
-        <h1 className="print-title">Relatório de Estoque de Materiais</h1>
-        <p className="print-subtitle">Posição de estoque por almoxarifado e localização</p>
-      </div>
+      <div><div className="print-logo">ProdOS</div><h1 className="print-title">Relatório de Estoque de Materiais</h1><p className="print-subtitle">Posição de estoque por almoxarifado e localização</p></div>
       <div className="print-meta"><strong>{company?.name || "Empresa"}</strong><br />Emissão: {printDate}</div>
     </div>
 
@@ -273,7 +208,7 @@ export default function AlmoxarifadoPage() {
         <label style={styles.field}><span style={styles.fieldLabel}>{adjustType === "entrada" ? "Localização destino" : "Localização origem"}</span><select style={styles.input} value={adjustLocationId} onChange={(e) => setAdjustLocationId(e.target.value)} required><option value="">Selecione...</option>{locations.map((l) => <option key={l.id} value={l.id}>{l.code}</option>)}</select></label>
         {adjustType === "entrada" && <><label style={styles.field}><span style={styles.fieldLabel}>Nº do lote</span><input style={styles.input} value={adjustBatchNumber} onChange={(e) => setAdjustBatchNumber(e.target.value)} placeholder="Opcional" /></label><label style={styles.field}><span style={styles.fieldLabel}>Validade</span><input style={styles.input} type="date" value={adjustExpiryDate} onChange={(e) => setAdjustExpiryDate(e.target.value)} disabled={!adjustBatchNumber} /></label></>}
         {adjustType === "saida" && batchesForProduct.length > 0 && <label style={styles.field}><span style={styles.fieldLabel}>Lote</span><select style={styles.input} value={adjustBatchId} onChange={(e) => setAdjustBatchId(e.target.value)} required><option value="">Selecione...</option>{batchesForProduct.map((b) => <option key={b.id} value={b.id}>{b.batch_number} — {Number(b.quantity).toLocaleString("pt-BR")} disp.</option>)}</select></label>}
-        <button style={styles.addBtn} type="submit">Aplicar movimento</button>
+        <div style={styles.actionRow}><button style={styles.addBtn} type="submit">Inserir movimento</button></div>
       </form>
 
       {error && <div style={styles.error} className="error-box">{error}</div>}
@@ -296,12 +231,14 @@ const styles = {
   field: { display: "flex", flexDirection: "column", gap: 6 },
   fieldLabel: { fontSize: 12, fontWeight: 700, color: "var(--text-dim)" },
   input: { width: "100%", minHeight: 40, boxSizing: "border-box", padding: "8px 10px", border: "1px solid var(--line)", borderRadius: 8, background: "var(--field)", color: "var(--text)" },
-  addBtn: { alignSelf: "end", minHeight: 40, padding: "0 16px", border: 0, borderRadius: 8, background: "var(--blue)", color: "#fff", fontWeight: 700, cursor: "pointer" },
-  printBtn: { minHeight: 40, padding: "0 16px", border: "1px solid var(--line)", borderRadius: 8, background: "var(--panel)", color: "var(--text)", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" },
+  actionRow: { gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", marginTop: 2 },
+  addBtn: { minHeight: 42, minWidth: 190, padding: "0 20px", border: 0, borderRadius: 8, background: "#2563EB", color: "#FFFFFF", fontWeight: 700, cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,.08)" },
+  printBtn: { minHeight: 40, padding: "0 16px", border: 0, borderRadius: 8, background: "#2563EB", color: "#FFFFFF", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" },
   error: { padding: 12, marginBottom: 16, borderRadius: 8, border: "1px solid var(--red)", color: "var(--red)", background: "var(--panel)" },
   dim: { color: "var(--text-dim)" },
   expiryBox: { padding: 14, marginBottom: 16, background: "var(--panel)", border: "1px solid var(--amber)", borderRadius: "var(--radius)" },
   expiryRow: { display: "grid", gridTemplateColumns: "2fr 1fr 120px", gap: 12, paddingTop: 8, fontSize: 13 },
+  printHeader: { paddingBottom: 16, marginBottom: 16, borderBottom: "2px solid #222", fontSize: 12, lineHeight: 1.6 },
   tableWrap: { overflowX: "auto", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "var(--radius)" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: 13 },
   th: { textAlign: "left", padding: 12, borderBottom: "1px solid var(--line)", color: "var(--text-dim)" },
