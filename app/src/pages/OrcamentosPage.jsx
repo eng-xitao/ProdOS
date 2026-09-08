@@ -114,7 +114,7 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
     const [{ data: q, error: qe }, { data: it, error: ie }, { data: p, error: pe }] = await Promise.all([
       supabase.from("quotes").select("id, code, status, valid_until, notes, created_at, customer_id, opportunity_id, payment_term_id, customers:customer_id (name, document, email, phone, address), payment_terms:payment_term_id (name)").eq("id", quoteId).single(),
       supabase.from("quote_items").select("id, quantity, unit_price, discount_percent, product_id, products:product_id (sku, name, unit)").eq("quote_id", quoteId),
-      supabase.from("products").select("id, sku, name, unit, sale_price").order("name"),
+      supabase.from("products").select("id, sku, name, unit, sale_price").eq("company_id", company.id).eq("active", true).eq("type", "acabado").order("name"),
     ]);
     if (qe) setError(qe.message); else if (ie || pe) setError((ie || pe).message); else {
       setQuote(q); setItems(it ?? []); setProducts(p ?? []);

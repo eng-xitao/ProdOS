@@ -16,7 +16,7 @@ export default function CRMPage(){
   supabase.from("opportunity_stages").select("id,name,sort_order").eq("company_id",company.id).order("sort_order"),
   supabase.from("opportunities").select("id,opportunity_number,title,customer_id,stage_id,estimated_value,expected_close_date,status,created_at,owner_profile_id,source,priority,notes,qualification_need,qualification_delivery_date,qualification_payment_terms,qualification_next_action,qualification_next_action_date,qualification_observations,customers:customer_id(name,condicao_pagamento),profiles:owner_profile_id(full_name)").eq("company_id",company.id).order("created_at",{ascending:false}),
   supabase.from("customers").select("id,name,condicao_pagamento").eq("company_id",company.id).order("name"),
-  supabase.from("products").select("id,sku,name,unit,sale_price,active").eq("company_id",company.id).eq("active",true).order("name")
+  supabase.from("products").select("id,sku,name,unit,sale_price,active,type").eq("company_id",company.id).eq("active",true).eq("type","acabado").order("name")
  ]);const firstError=s.error||o.error||c.error||p.error;if(firstError)setError(firstError.message);setStages(s.data||[]);setOpportunities(o.data||[]);setCustomers(c.data||[]);setProducts(p.data||[]);setLoading(false)}
  useEffect(()=>{load()},[company?.id]);
  const visible=useMemo(()=>{const q=search.trim().toLowerCase();return opportunities.filter(o=>o.status===filter&&(!q||`${o.title} ${o.customers?.name||""} ${o.opportunity_number||""}`.toLowerCase().includes(q)))},[opportunities,filter,search]);
