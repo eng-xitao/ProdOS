@@ -12,7 +12,7 @@ const NAV_SECTIONS = [
     {to:"/orcamentos",label:"Orçamentos",icon:"▤"},{to:"/pedidos-venda",label:"Pedidos de Venda",icon:"◆"},{to:"/cronograma-entregas",label:"Cronograma de Entregas",icon:"📅"},{to:"/sac",label:"SAC — Atendimento",icon:"◈",planFeature:"CRM"}
   ]},
   { label:"Estoque", icon:"▥", items:[
-    {to:"/estoque",label:"Estoque de Produtos",icon:"▤"},{to:"/almoxarifado",label:"Estoque de Materiais",icon:"▥"},{to:"/transferencias",label:"Transferências",icon:"⇄"},{to:"/historico-movimentacoes",label:"Movimentações",icon:"◷"},{to:"/recebimento-producao",label:"Recebimento da Produção",icon:"◆"},{to:"/localizacoes-almoxarifado",label:"Localizações",icon:"▦"}
+    {to:"/estoque",label:"Estoque de Produtos",icon:"▤"},{to:"/almoxarifado",label:"Estoque de Materiais",icon:"▥"},{to:"/transferencias",label:"Transferências",icon:"⇄"},{to:"/historico-movimentacoes",label:"Movimentações",icon:"◷"},{to:"/recebimento-producao",label:"Recebimento da Produção",icon:"◆"}
   ]},
   { label:"Compras", icon:"◇", items:[
     {to:"/sugestoes-compra",label:"Sugestões de Compra",icon:"💡"},{to:"/requisicao-material",label:"Solicitações de Material",icon:"📋"},{to:"/cotacoes",label:"Cotações",icon:"◐"},{to:"/pedidos-compra",label:"Pedidos de Compra",icon:"▼"},{to:"/importar-xml-nfe",label:"Recebimento / XML NF-e",icon:"📄"}
@@ -37,7 +37,7 @@ const NAV_SECTIONS = [
     {to:"/relatorio-vendas",label:"Comercial / Vendas",icon:"▲"},{to:"/relatorio-compras",label:"Compras",icon:"▼"},{to:"/relatorio-estoque-acabado",label:"Estoque de Produtos",icon:"▤"},{to:"/relatorio-estoque-materiais",label:"Materiais",icon:"▥"},{to:"/relatorio-producao",label:"Produção",icon:"⚙"},{to:"/relatorio-qualidade",label:"Qualidade e Refugo",icon:"☑"},{to:"/relatorio-financeiro",label:"Financeiro",icon:"◑"},{to:"/analise-centro-custo",label:"Centros de Custo",icon:"◑"},{to:"/dre",label:"DRE Gerencial",icon:"▦"},{to:"/curva-abc",label:"Curva ABC",icon:"%"},{to:"/relatorio-fiscal",label:"Fiscal",icon:"🧾"}
   ]},
   { label:"Cadastros", icon:"▣", items:[
-    {to:"/empresa",label:"Empresa",icon:"▣"},{to:"/fornecedores",label:"Fornecedores",icon:"◇"},{to:"/produtos",label:"Produtos",icon:"◆"},{to:"/estrutura-produto",label:"Estrutura do Produto (BOM)",icon:"▤"},{to:"/etapas",label:"Etapas de Produção",icon:"→"},{to:"/centros-trabalho",label:"Centros de Trabalho",icon:"▣"},{to:"/almoxarifados",label:"Almoxarifados",icon:"▥"},{to:"/unidades-medida",label:"Unidades de Medida",icon:"%"},{to:"/condicoes-pagamento",label:"Condições de Pagamento",icon:"◐"},{to:"/centros-custo",label:"Centros de Custo",icon:"◑"},{to:"/transportadoras",label:"Transportadoras",icon:"▶"},{to:"/tipos-ordem",label:"Tipos de Ordem",icon:"▦"}
+    {to:"/empresa",label:"Empresa",icon:"▣"},{to:"/fornecedores",label:"Fornecedores",icon:"◇"},{to:"/produtos",label:"Produtos",icon:"◆"},{to:"/estrutura-produto",label:"Estrutura do Produto (BOM)",icon:"▤"},{to:"/etapas",label:"Etapas de Produção",icon:"→"},{to:"/centros-trabalho",label:"Centros de Trabalho",icon:"▣"},{to:"/almoxarifados",label:"Almoxarifados",icon:"▥"},{to:"/localizacoes-almoxarifado",label:"Localizações",icon:"▦"},{to:"/unidades-medida",label:"Unidades de Medida",icon:"%"},{to:"/condicoes-pagamento",label:"Condições de Pagamento",icon:"◐"},{to:"/centros-custo",label:"Centros de Custo",icon:"◑"},{to:"/transportadoras",label:"Transportadoras",icon:"▶"},{to:"/tipos-ordem",label:"Tipos de Ordem",icon:"▦"}
   ]},
 ];
 
