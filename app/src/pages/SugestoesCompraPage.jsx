@@ -18,6 +18,7 @@ export default function SugestoesCompraPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [creatingId, setCreatingId] = useState(null);
+  const [editedQty, setEditedQty] = useState({});
 
   async function load() {
     setLoading(true);
@@ -27,6 +28,9 @@ export default function SugestoesCompraPage() {
       .eq("status", "pendente")
       .order("created_at", { ascending: false });
     setSuggestions(data ?? []);
+    const initialQty = {};
+    (data ?? []).forEach((s) => { initialQty[s.id] = s.suggested_quantity; });
+    setEditedQty(initialQty);
     setLoading(false);
   }
 
@@ -36,6 +40,9 @@ export default function SugestoesCompraPage() {
   }, [company?.id]);
 
   async function createQuote(s) {
+    const qty = Number(editedQty[s.id] ?? s.suggested_quantity);
+    if (!qty || qty <= 0) { setError("Informe uma quantidade maior que zero antes de iniciar a cotação."); return; }
+
     setCreatingId(s.id);
     setError("");
 
@@ -59,10 +66,10 @@ export default function SugestoesCompraPage() {
       company_id: company.id,
       quote_id: quote.id,
       product_id: s.products.id,
-      quantity: s.suggested_quantity,
+      quantity: qty,
     });
 
-    await supabase.from("purchase_suggestions").update({ status: "atendida" }).eq("id", s.id);
+    await supabase.from("purchase_suggestions").update({ status: "atendida", suggested_quantity: qty }).eq("id", s.id);
 
     setCreatingId(null);
     navigate("/cotacoes");
@@ -112,9 +119,23 @@ export default function SugestoesCompraPage() {
                   </p>
                 )}
                 {s.notes && <p style={styles.notes}>{s.notes}</p>}
-                <p style={styles.suggestedQty}>
-                  Sugestão: comprar {Number(s.suggested_quantity).toLocaleString("pt-BR")} {s.products?.unit}
-                </p>
+                <label style={styles.qtyLabel}>
+                  Quantidade a cotar
+                  <div style={styles.qtyRow}>
+                    <input
+                      style={styles.qtyInput}
+                      type="number"
+                      min="0.001"
+                      step="any"
+                      value={editedQty[s.id] ?? s.suggested_quantity}
+                      onChange={(e) => setEditedQty((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                    />
+                    <span style={styles.dim}>{s.products?.unit}</span>
+                  </div>
+                  {Number(editedQty[s.id]) !== Number(s.suggested_quantity) && (
+                    <span style={styles.originalQty}>Sugestão original do sistema: {Number(s.suggested_quantity).toLocaleString("pt-BR")} {s.products?.unit}</span>
+                  )}
+                </label>
               </div>
               <div style={styles.actions}>
                 <button style={styles.createBtn} onClick={() => createQuote(s)} disabled={creatingId === s.id} type="button">
@@ -143,7 +164,10 @@ const styles = {
   badgeMrp: { fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.03em", color: "var(--amber)", border: "1px solid var(--amber)", borderRadius: 999, padding: "2px 8px" },
   badgeStock: { fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.03em", color: "var(--text-dim)", border: "1px solid var(--line)", borderRadius: 999, padding: "2px 8px" },
   notes: { fontSize: 12, color: "var(--text-dim)", margin: "4px 0 0", fontStyle: "italic" },
-  suggestedQty: { fontSize: 13, fontWeight: 700, color: "var(--amber)", margin: "6px 0 0" },
+  qtyLabel: { display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-dim)", marginTop: 8 },
+  qtyRow: { display: "flex", alignItems: "center", gap: 6, marginTop: 4 },
+  qtyInput: { width: 110, background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)", padding: "6px 8px", color: "var(--text)", fontSize: 13, fontWeight: 700 },
+  originalQty: { display: "block", fontSize: 11, color: "var(--text-dim)", marginTop: 4 },
   actions: { display: "flex", flexDirection: "column", gap: 6 },
   createBtn: {
     background: "var(--amber)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
