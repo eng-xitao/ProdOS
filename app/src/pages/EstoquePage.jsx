@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
+import logoFull from "../assets/logo-full.png";
 
 function abcClass(products, product) {
   const values = products.map((p) => Number(p.stock_quantity ?? 0) * Number(p.sale_price ?? 0));
@@ -43,45 +44,46 @@ export default function EstoquePage() {
     <div className="stock-page">
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 12mm 10mm 15mm; }
-          body { background:#fff !important; color:#17202a !important; }
+          @page { size: A4 landscape; margin: 12mm 12mm 15mm; }
+          body { background:#fff !important; color:#111 !important; font-family:Arial, Helvetica, sans-serif !important; }
           .app-sidebar, nav, aside, header button, .no-print { display:none !important; }
-          .stock-page { padding:0 !important; }
+          .stock-page { padding:0 !important; width:100% !important; }
           .print-only { display:block !important; }
-          .print-report-header { display:flex !important; justify-content:space-between; align-items:center; border-bottom:2px solid #17202a; padding-bottom:12px; margin-bottom:14px; }
-          .brand { display:flex; align-items:center; gap:10px; }
-          .brand-mark { width:34px; height:34px; border-radius:9px; background:#17202a; color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:900; }
-          .brand-name { font-size:20px; font-weight:900; letter-spacing:-.7px; }
-          .brand-sub { font-size:9px; color:#68717d; margin-top:2px; }
-          .print-title { margin:0; font-size:18px; }
-          .print-meta { text-align:right; font-size:9px; line-height:1.55; color:#59636f; }
-          .print-summary { display:grid !important; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
-          .print-card { border:1px solid #c7cdd4; padding:8px 10px; border-radius:6px; }
-          .print-card-label { display:block; font-size:8px; text-transform:uppercase; color:#68717d; }
-          .print-card-value { display:block; font-size:13px; font-weight:800; margin-top:2px; }
-          .stock-table { border:1px solid #8e969f !important; overflow:visible !important; }
-          .stock-table table { font-size:9px !important; }
-          .stock-table th { background:#eef1f4 !important; color:#17202a !important; border:1px solid #aeb5bc !important; padding:7px 8px !important; }
-          .stock-table td { color:#17202a !important; background:#fff !important; border:1px solid #c6cbd1 !important; padding:7px 8px !important; }
-          .print-footer { display:flex !important; justify-content:space-between; border-top:1px solid #aeb5bc; margin-top:12px; padding-top:6px; font-size:8px; color:#68717d; }
+          .print-report-header { display:grid !important; grid-template-columns:150px 1fr 210px; align-items:center; gap:18px; border-bottom:2px solid #222; padding-bottom:10px; margin-bottom:12px; }
+          .print-logo { width:135px; max-height:52px; object-fit:contain; object-position:left center; }
+          .print-title { margin:0; text-align:center; font-size:16px; font-weight:700; letter-spacing:.2px; text-transform:uppercase; }
+          .print-subtitle { margin:4px 0 0; text-align:center; font-size:9px; color:#444; }
+          .print-meta { text-align:right; font-size:9px; line-height:1.5; }
+          .print-identification { display:grid !important; grid-template-columns:1.4fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+          .print-field { border:1px solid #999; padding:6px 8px; min-height:28px; }
+          .print-label { display:block; font-size:7px; font-weight:700; text-transform:uppercase; color:#555; margin-bottom:2px; }
+          .print-value { font-size:9px; font-weight:600; }
+          .stock-table { border:1px solid #777 !important; overflow:visible !important; border-radius:0 !important; }
+          .stock-table table { table-layout:fixed; width:100%; }
+          .stock-table th, .stock-table td { color:#111 !important; background:#fff !important; border:1px solid #aaa !important; }
+          .stock-table th { background:#eee !important; font-size:8px !important; padding:6px 5px !important; text-transform:uppercase; }
+          .stock-table td { font-size:9px !important; padding:6px 5px !important; }
+          .stock-table th:nth-child(1),.stock-table td:nth-child(1){width:9%}.stock-table th:nth-child(2),.stock-table td:nth-child(2){width:24%}.stock-table th:nth-child(3),.stock-table td:nth-child(3){width:8%}.stock-table th:nth-child(4),.stock-table td:nth-child(4){width:12%}.stock-table th:nth-child(5),.stock-table td:nth-child(5){width:12%}.stock-table th:nth-child(6),.stock-table td:nth-child(6){width:12%}.stock-table th:nth-child(7),.stock-table td:nth-child(7){width:8%;text-align:center}.stock-table th:nth-child(8),.stock-table td:nth-child(8){width:15%}
+          .print-footer { display:flex !important; justify-content:space-between; border-top:1px solid #999; margin-top:10px; padding-top:5px; font-size:7.5px; color:#555; }
         }
         .print-only { display:none; }
       `}</style>
 
       <header style={styles.header} className="no-print">
         <div><h1 style={styles.title}>Estoque — Produto Acabado</h1><p style={styles.subtitle}>Controle de produto acabado com estoque mínimo, ponto de pedido, estoque máximo e classificação ABC.</p></div>
-        <button type="button" onClick={() => window.print()} style={styles.printBtn}>🖨 Imprimir relatório</button>
+        <button type="button" onClick={() => window.print()} style={styles.printBtn}>Imprimir relatório</button>
       </header>
 
       <div className="print-only print-report-header">
-        <div className="brand"><div className="brand-mark">P</div><div><div className="brand-name">ProdOS</div><div className="brand-sub">Gestão integrada da produção</div></div></div>
-        <div><h1 className="print-title">Relatório de Estoque — Produto Acabado</h1><div className="print-meta"><strong>{company?.name || "Empresa"}</strong><br/>Emissão: {new Date().toLocaleString("pt-BR")}</div></div>
+        <img className="print-logo" src={logoFull} alt="Logomarca ProdOS" />
+        <div><h1 className="print-title">Relatório de Estoque de Produto Acabado</h1><p className="print-subtitle">Controle de disponibilidade, parâmetros de reposição e classificação ABC</p></div>
+        <div className="print-meta"><strong>{company?.name || "Empresa"}</strong><br />Emissão: {new Date().toLocaleString("pt-BR")}</div>
       </div>
 
-      <div className="print-only print-summary">
-        <div className="print-card"><span className="print-card-label">Produtos ativos</span><span className="print-card-value">{products.length}</span></div>
-        <div className="print-card"><span className="print-card-label">Valor em estoque</span><span className="print-card-value">R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
-        <div className="print-card"><span className="print-card-label">Critério ABC</span><span className="print-card-value">Valor do estoque</span></div>
+      <div className="print-only print-identification">
+        <div className="print-field"><span className="print-label">Empresa</span><span className="print-value">{company?.name || "Não informado"}</span></div>
+        <div className="print-field"><span className="print-label">Quantidade de itens</span><span className="print-value">{products.length} produto(s) ativo(s)</span></div>
+        <div className="print-field"><span className="print-label">Valor estimado em estoque</span><span className="print-value">R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
       </div>
 
       <div className="no-print" style={styles.summary}><span><strong>{products.length}</strong> produtos ativos</span><span>Valor em estoque: <strong>R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span></div>
@@ -98,7 +100,7 @@ export default function EstoquePage() {
           })}</tbody></table>
         </div>
       )}
-      <div className="print-only print-footer"><span>ProdOS · Relatório de Estoque — Produto Acabado</span><span>Documento gerado pelo sistema · Página impressa</span></div>
+      <div className="print-only print-footer"><span>ProdOS — Relatório de Estoque de Produto Acabado</span><span>Documento emitido pelo sistema</span></div>
       <p className="no-print" style={styles.note}>A classificação ABC é calculada pelo valor atualmente mantido em estoque (quantidade × preço de venda).</p>
     </div>
   );
@@ -106,8 +108,4 @@ export default function EstoquePage() {
 
 function situationStyle(s) { if(s==="zerado") return {background:"rgba(217,105,95,.15)",color:"var(--red)"}; if(s==="baixo") return {background:"rgba(232,163,61,.15)",color:"var(--amber)"}; return {background:"rgba(79,174,126,.15)",color:"var(--green)"}; }
 
-const styles={
-  header:{marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16}, title:{fontFamily:"var(--font-display)",fontSize:22,margin:0}, subtitle:{color:"var(--text-dim)",fontSize:13,margin:"6px 0 0",maxWidth:820,lineHeight:1.5},
-  printBtn:{minHeight:42,padding:"0 18px",border:0,borderRadius:8,background:"#2563EB",color:"#fff",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap",boxShadow:"0 2px 5px rgba(37,99,235,.22)"},
-  summary:{display:"flex",gap:24,marginBottom:16,padding:"12px 14px",background:"var(--panel)",border:"1px solid var(--line)",borderRadius:"var(--radius)",fontSize:13}, dim:{color:"var(--text-dim)",fontSize:14}, error:{background:"rgba(217,105,95,.12)",border:"1px solid var(--red)",color:"var(--red)",borderRadius:"var(--radius)",padding:"10px 12px",fontSize:13,marginBottom:12}, tableWrap:{border:"1px solid var(--line)",borderRadius:"var(--radius)",overflow:"hidden",overflowX:"auto"}, table:{width:"100%",borderCollapse:"collapse"}, th:{textAlign:"left",fontSize:11,textTransform:"uppercase",letterSpacing:".04em",color:"var(--text-dim)",padding:"10px 12px",background:"var(--panel)",borderBottom:"1px solid var(--line)"}, td:{padding:"10px 12px",fontSize:13,background:"var(--panel)",borderBottom:"1px solid var(--line)"}, badge:{padding:"3px 10px",borderRadius:20,fontSize:11.5,fontWeight:700}, note:{marginTop:10,color:"var(--text-dim)",fontSize:11.5}
-};
+const styles={header:{marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16},title:{fontFamily:"var(--font-display)",fontSize:22,margin:0},subtitle:{color:"var(--text-dim)",fontSize:13,margin:"6px 0 0",maxWidth:820,lineHeight:1.5},printBtn:{minHeight:42,padding:"0 18px",border:0,borderRadius:8,background:"#2563EB",color:"#fff",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap",boxShadow:"0 2px 5px rgba(37,99,235,.22)"},summary:{display:"flex",gap:24,marginBottom:16,padding:"12px 14px",background:"var(--panel)",border:"1px solid var(--line)",borderRadius:"var(--radius)",fontSize:13},dim:{color:"var(--text-dim)",fontSize:14},error:{background:"rgba(217,105,95,.12)",border:"1px solid var(--red)",color:"var(--red)",borderRadius:"var(--radius)",padding:"10px 12px",fontSize:13,marginBottom:12},tableWrap:{border:"1px solid var(--line)",borderRadius:"var(--radius)",overflow:"hidden",overflowX:"auto"},table:{width:"100%",borderCollapse:"collapse"},th:{textAlign:"left",fontSize:11,textTransform:"uppercase",letterSpacing:".04em",color:"var(--text-dim)",padding:"10px 12px",background:"var(--panel)",borderBottom:"1px solid var(--line)"},td:{padding:"10px 12px",fontSize:13,background:"var(--panel)",borderBottom:"1px solid var(--line)"},badge:{padding:"3px 10px",borderRadius:20,fontSize:11.5,fontWeight:700},note:{marginTop:10,color:"var(--text-dim)",fontSize:11.5}};
