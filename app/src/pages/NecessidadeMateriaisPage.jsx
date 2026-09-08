@@ -1,20 +1,22 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 /**
  * MRP I — explode a estrutura (BOM) de cada ordem de produção aberta,
  * soma a necessidade por componente, e compara com o estoque atual
  * de cada componente para sugerir o que falta comprar/produzir.
+ * "Solicitar Compra" não cria a cotação direto — manda a sugestão pro
+ * Compras revisar em Sugestões de Compra, junto com as sugestões por
+ * ponto de pedido. Compras decide o que vira cotação de fato.
  */
 export default function NecessidadeMateriaisPage() {
   const { company } = useAuth();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [ordersWithoutBom, setOrdersWithoutBom] = useState(0);
   const [generating, setGenerating] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (company?.id) calculate();
@@ -85,33 +87,38 @@ export default function NecessidadeMateriaisPage() {
     setLoading(false);
   }
 
-  async function generateQuote() {
+  async function sendToPurchasing() {
     const toBuyRows = rows.filter((r) => r.toBuy > 0);
     if (toBuyRows.length === 0 || !company?.id) return;
     setGenerating(true);
+    setMessage("");
 
-    const code = `COT-MRP-${new Date().toISOString().slice(0, 10)}`;
-    const { data: quote, error: quoteError } = await supabase
-      .from("purchase_quotes")
-      .insert({ company_id: company.id, code, notes: "Gerada a partir da Necessidade de Materiais (MRP I)" })
-      .select("id")
-      .single();
+    const productIds = toBuyRows.map((r) => r.id);
+    // Remove sugestões MRP pendentes antigas desses mesmos produtos antes de recriar,
+    // pra não acumular sugestões duplicadas/desatualizadas cada vez que recalcula.
+    await supabase
+      .from("purchase_suggestions")
+      .delete()
+      .eq("company_id", company.id)
+      .eq("source", "mrp")
+      .eq("status", "pendente")
+      .in("product_id", productIds);
 
-    if (quoteError) {
-      setGenerating(false);
-      return;
-    }
-
-    const items = toBuyRows.map((r) => ({
+    const rowsToInsert = toBuyRows.map((r) => ({
       company_id: company.id,
-      quote_id: quote.id,
       product_id: r.id,
-      quantity: r.toBuy,
+      current_stock: r.stock,
+      threshold: null,
+      suggested_quantity: r.toBuy,
+      source: "mrp",
+      due_date: r.dueDate || null,
+      notes: `Necessário ${r.needed.toLocaleString("pt-BR")} ${r.unit} para atender ordens de produção em aberto.`,
     }));
-    await supabase.from("purchase_quote_items").insert(items);
 
+    const { error } = await supabase.from("purchase_suggestions").insert(rowsToInsert);
     setGenerating(false);
-    navigate("/cotacoes");
+    if (error) { setMessage(`Erro ao enviar: ${error.message}`); return; }
+    setMessage(`${rowsToInsert.length} sugestão(ões) enviada(s) para o Compras — acompanhe em Compras → Sugestões de Compra.`);
   }
 
   return (
@@ -125,11 +132,13 @@ export default function NecessidadeMateriaisPage() {
           </p>
         </div>
         {rows.some((r) => r.toBuy > 0) && (
-          <button style={styles.generateBtn} onClick={generateQuote} disabled={generating} type="button">
-            {generating ? "Gerando..." : "Gerar Cotação com itens sugeridos"}
+          <button style={styles.generateBtn} onClick={sendToPurchasing} disabled={generating} type="button">
+            {generating ? "Enviando..." : "Solicitar Compra dos itens sugeridos"}
           </button>
         )}
       </header>
+
+      {message && <div style={styles.success}>{message}</div>}
 
       {ordersWithoutBom > 0 && (
         <div style={styles.notice}>
@@ -191,6 +200,17 @@ const styles = {
   notice: {
     background: "rgba(232,163,61,0.1)",
     border: "1px solid var(--amber)",
+    color: "var(--text)",
+    borderRadius: "var(--radius)",
+    padding: "12px 16px",
+    fontSize: 13,
+    lineHeight: 1.5,
+    marginBottom: 20,
+    maxWidth: 640,
+  },
+  success: {
+    background: "rgba(34,197,94,0.1)",
+    border: "1px solid var(--green)",
     color: "var(--text)",
     borderRadius: "var(--radius)",
     padding: "12px 16px",
