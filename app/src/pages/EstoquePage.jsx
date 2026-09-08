@@ -2,31 +2,28 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 
-/**
- * Estoque de Produto Acabado: mostra a quantidade disponível de cada
- * produto acabado (o que já saiu de PCP e está pronto pra vender/
- * expedir). Só leitura — a quantidade muda automaticamente pela
- * Produção (entrada) e pela Expedição (saída), nunca é editada aqui.
- * Matéria-prima/insumos/máquinas ficam em Logística → Almoxarifado.
- */
 export default function EstoquePage() {
   const { company } = useAuth();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (company?.id) load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id]);
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase
+    setError("");
+    const { data, error: e } = await supabase
       .from("products")
-      .select("id, sku, name, unit, stock_quantity, min_stock, sale_price")
+      .select("id, sku, name, unit, stock_quantity, min_stock, sale_price, active")
+      .eq("company_id", company.id)
       .eq("type", "acabado")
+      .eq("active", true)
       .order("name");
-    setProducts(data ?? []);
+    if (e) setError(e.message);
+    else setProducts(data ?? []);
     setLoading(false);
   }
 
@@ -37,16 +34,16 @@ export default function EstoquePage() {
       <header style={{ marginBottom: 20 }}>
         <h1 style={styles.title}>Estoque — Produto Acabado</h1>
         <p style={styles.subtitle}>
-          Disponível para venda ou expedição. Aumenta com Recebimento de Produção e diminui na
-          saída de um romaneio em Expedição — não é editado aqui. Valor em estoque (a preço de
-          venda): <strong style={{ color: "var(--amber)" }}>R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+          Todos os produtos acabados cadastrados aparecem aqui. O saldo disponível é atualizado pelos movimentos de estoque.
+          Valor em estoque (a preço de venda): <strong style={{ color: "var(--amber)" }}>R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
         </p>
       </header>
 
+      {error && <div style={styles.error}>{error}</div>}
       {loading ? (
         <p style={styles.dim}>Carregando...</p>
       ) : products.length === 0 ? (
-        <p style={styles.dim}>Nenhum produto acabado cadastrado ainda.</p>
+        <p style={styles.dim}>Nenhum produto acabado ativo cadastrado.</p>
       ) : (
         <div style={styles.tableWrap}>
           <table style={styles.table}>
@@ -94,14 +91,12 @@ function situationStyle(s) {
 
 const styles = {
   title: { fontFamily: "var(--font-display)", fontSize: 22, margin: 0 },
-  subtitle: { color: "var(--text-dim)", fontSize: 13, margin: "6px 0 0", maxWidth: 680, lineHeight: 1.5 },
+  subtitle: { color: "var(--text-dim)", fontSize: 13, margin: "6px 0 0", maxWidth: 760, lineHeight: 1.5 },
   dim: { color: "var(--text-dim)", fontSize: 14 },
+  error: { background: "rgba(217,105,95,0.12)", border: "1px solid var(--red)", color: "var(--red)", borderRadius: "var(--radius)", padding: "10px 12px", fontSize: 13, marginBottom: 12 },
   tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse" },
-  th: {
-    textAlign: "left", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em",
-    color: "var(--text-dim)", padding: "10px 14px", background: "var(--panel)", borderBottom: "1px solid var(--line)",
-  },
+  th: { textAlign: "left", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-dim)", padding: "10px 14px", background: "var(--panel)", borderBottom: "1px solid var(--line)" },
   td: { padding: "10px 14px", fontSize: 13.5, background: "var(--panel)", borderBottom: "1px solid var(--line)" },
   badge: { padding: "3px 10px", borderRadius: 20, fontSize: 11.5, fontWeight: 700 },
 };
