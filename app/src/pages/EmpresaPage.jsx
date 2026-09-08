@@ -20,6 +20,10 @@ export default function EmpresaPage() {
         email: company.email ?? "",
         logo_url: company.logo_url ?? "",
         delete_pin: company.delete_pin ?? "",
+        cost_method: company.cost_method ?? "medio_ponderado",
+        cost_method_window_days: company.cost_method_window_days ?? 180,
+        sale_price_mode: company.sale_price_mode ?? "manual",
+        default_sale_margin_percent: company.default_sale_margin_percent ?? "",
       });
     }
   }, [company]);
@@ -35,7 +39,16 @@ export default function EmpresaPage() {
     setError("");
     setSuccess(false);
 
-    const { error } = await supabase.from("companies").update(form).eq("id", company.id);
+    const payload = {
+      ...form,
+      cost_method_window_days: Number(form.cost_method_window_days || 180),
+      default_sale_margin_percent:
+        form.default_sale_margin_percent === "" || form.default_sale_margin_percent === null
+          ? null
+          : Number(form.default_sale_margin_percent),
+    };
+
+    const { error } = await supabase.from("companies").update(payload).eq("id", company.id);
     if (error) {
       setError(error.message);
     } else {
@@ -106,6 +119,58 @@ export default function EmpresaPage() {
           </label>
         </div>
 
+        <div style={styles.sectionBreak}>
+          <h2 style={styles.sectionTitle}>Custos e Precificação</h2>
+          <p style={styles.sectionSubtitle}>
+            Define como o ProdOS calcula automaticamente o custo dos seus materiais e, se desejar,
+            sugere o preço de venda dos produtos acabados. Isso vale pra toda a empresa — o cadastro
+            de produto continua o mesmo, só a regra por trás muda.
+          </p>
+        </div>
+
+        <label style={styles.field}>
+          <span style={styles.fieldLabel}>Método de custo dos materiais</span>
+          <select style={styles.input} value={form.cost_method ?? "medio_ponderado"} onChange={(e) => updateField("cost_method", e.target.value)}>
+            <option value="medio_ponderado">Custo médio ponderado (todas as compras)</option>
+            <option value="ultima_compra">Última compra recebida</option>
+            <option value="media_movel">Média móvel (últimos X dias)</option>
+          </select>
+          <span style={styles.fieldHint}>
+            {form.cost_method === "ultima_compra" && "O custo passa a ser sempre o preço da compra mais recente recebida — reage rápido a mudanças de mercado."}
+            {form.cost_method === "media_movel" && "A média considera só as compras dentro da janela de dias definida abaixo, evitando que preços muito antigos distorçam o custo atual."}
+            {(form.cost_method === "medio_ponderado" || !form.cost_method) && "Padrão recomendado: estável e usado pela maioria dos ERPs no Brasil. Considera todas as compras já recebidas."}
+          </span>
+        </label>
+
+        {form.cost_method === "media_movel" && (
+          <label style={styles.field}>
+            <span style={styles.fieldLabel}>Janela da média móvel (dias)</span>
+            <input style={styles.input} type="number" min="1" step="1" value={form.cost_method_window_days ?? 180} onChange={(e) => updateField("cost_method_window_days", e.target.value)} />
+            <span style={styles.fieldHint}>Ex.: 180 considera só compras dos últimos 6 meses.</span>
+          </label>
+        )}
+
+        <label style={styles.field}>
+          <span style={styles.fieldLabel}>Preço de venda de produtos acabados</span>
+          <select style={styles.input} value={form.sale_price_mode ?? "manual"} onChange={(e) => updateField("sale_price_mode", e.target.value)}>
+            <option value="manual">Sempre manual</option>
+            <option value="sugestao_automatica">Sugerir automaticamente por margem</option>
+          </select>
+          <span style={styles.fieldHint}>
+            {form.sale_price_mode === "sugestao_automatica"
+              ? "O sistema pré-calcula o preço com base no custo + margem sempre que o custo for atualizado. Você continua podendo editar o valor final a qualquer momento."
+              : "Quem cadastra o produto define o preço de venda manualmente, sem sugestão automática."}
+          </span>
+        </label>
+
+        {form.sale_price_mode === "sugestao_automatica" && (
+          <label style={styles.field}>
+            <span style={styles.fieldLabel}>Margem padrão (%)</span>
+            <input style={styles.input} type="number" min="0" max="99.99" step="0.01" value={form.default_sale_margin_percent ?? ""} onChange={(e) => updateField("default_sale_margin_percent", e.target.value)} placeholder="Ex.: 35" />
+            <span style={styles.fieldHint}>Usada como ponto de partida quando o produto não tem uma margem própria definida no cadastro.</span>
+          </label>
+        )}
+
         <button style={styles.saveBtn} type="submit" disabled={saving}>
           {saving ? "Salvando..." : "Salvar"}
         </button>
@@ -125,6 +190,9 @@ const styles = {
   field: { display: "flex", flexDirection: "column", gap: 6 },
   fieldLabel: { fontSize: 11, color: "var(--text-dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" },
   fieldHint: { fontSize: 11.5, color: "var(--text-dim)", lineHeight: 1.4 },
+  sectionBreak: { gridColumn: "1 / -1", marginTop: 10, paddingTop: 18, borderTop: "1px solid var(--line)" },
+  sectionTitle: { fontFamily: "var(--font-display)", fontSize: 16, margin: 0 },
+  sectionSubtitle: { color: "var(--text-dim)", fontSize: 12.5, margin: "6px 0 0", lineHeight: 1.5 },
   pinBox: {
     marginTop: 8, padding: 14, background: "rgba(232,163,61,0.08)",
     border: "1px dashed var(--amber)", borderRadius: "var(--radius)",

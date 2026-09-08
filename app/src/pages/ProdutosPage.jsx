@@ -72,14 +72,31 @@ export default function ProdutosPage() {
       active: true,
     };
     if (!payload.sku || !payload.name) { setError("Informe SKU e Nome."); setSaving(false); return; }
-    const { error: e } = await supabase.from("products").insert(payload);
-    if (e) setError(e.message); else { setOpen(false); await load(); }
+    const { error: insertErr } = await supabase.from("products").insert(payload);
+    if (insertErr) setError(insertErr.message); else { setOpen(false); await load(); }
     setSaving(false);
   }
 
   async function refreshCost(id) {
-    const { error: e } = await supabase.rpc("refresh_product_cost", { p_product_id: id });
-    if (e) setError(e.message); else await load();
+    const { data: newCost, error: e } = await supabase.rpc("refresh_product_cost", { p_product_id: id });
+    if (e) { setError(e.message); return; }
+
+    const product = rows.find((r) => r.id === id);
+    const autoPricing = company?.sale_price_mode === "sugestao_automatica";
+    if (product?.type === "acabado" && autoPricing) {
+      const margin = Number(product.sale_margin_percent ?? company?.default_sale_margin_percent ?? 0);
+      if (margin > 0 && margin < 100 && Number(newCost) > 0) {
+        const suggested = Number(newCost) / (1 - margin / 100);
+        await supabase.from("products").update({ sale_price: Number(suggested.toFixed(2)), sale_price_source: "sugestao_automatica" }).eq("id", id);
+      }
+    }
+    await load();
+  }
+
+  function daysAgo(iso) {
+    if (!iso) return null;
+    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    return diff;
   }
 
   return (
@@ -123,7 +140,13 @@ export default function ProdutosPage() {
 
       <section style={styles.card}>
         <div style={styles.listTitle}>Itens cadastrados <span>{rows.length}</span></div>
-        {rows.length === 0 ? <div style={styles.empty}>Nenhum produto cadastrado ainda.</div> : <div style={styles.tableWrap}><table style={styles.table}><thead><tr><th>SKU</th><th>Produto</th><th>Classe</th><th>Un.</th><th>Estoque</th><th>Custo</th><th>Preço venda</th><th>Endereço</th><th></th></tr></thead><tbody>{rows.map((r) => <tr key={r.id}><td><strong>{r.sku}</strong></td><td>{r.name}</td><td>{CLASS_OPTIONS.find((o) => o.value === r.type)?.label ?? r.type}</td><td>{r.unit}</td><td>{Number(r.stock_quantity ?? 0).toLocaleString("pt-BR")}</td><td>{r.cost_source === "automatico" ? <><strong>{money(r.cost)}</strong><small style={styles.auto}> automático</small></> : money(r.cost)}</td><td>{r.type === "acabado" ? money(r.sale_price) : "—"}</td><td>{locationOptions.find((l) => l.value === r.default_location_id)?.label ?? "—"}</td><td><button style={styles.refresh} onClick={() => refreshCost(r.id)}>Atualizar custo</button></td></tr>)}</tbody></table></div>}
+        {rows.length === 0 ? <div style={styles.empty}>Nenhum produto cadastrado ainda.</div> : <div style={styles.tableWrap}><table style={styles.table}><thead><tr><th>SKU</th><th>Produto</th><th>Classe</th><th>Un.</th><th>Estoque</th><th>Custo</th><th>Preço venda</th><th>Endereço</th><th></th></tr></thead><tbody>{rows.map((r) => <tr key={r.id}><td><strong>{r.sku}</strong></td><td>{r.name}</td><td>{CLASS_OPTIONS.find((o) => o.value === r.type)?.label ?? r.type}</td><td>{r.unit}</td><td>{Number(r.stock_quantity ?? 0).toLocaleString("pt-BR")}</td><td>
+              {r.cost_source === "automatico" ? <><strong>{money(r.cost)}</strong><small style={styles.auto}> automático</small></> : money(r.cost)}
+              {r.cost_calculated_at && (() => { const d = daysAgo(r.cost_calculated_at); return d !== null && d > 60 ? <div style={styles.staleWarning}>⚠️ há {d} dias</div> : null; })()}
+            </td>
+            <td>
+              {r.type === "acabado" ? <>{money(r.sale_price)}{r.sale_price_source === "sugestao_automatica" && <small style={styles.auto}> sugerido</small>}</> : "—"}
+            </td><td>{locationOptions.find((l) => l.value === r.default_location_id)?.label ?? "—"}</td><td><button style={styles.refresh} onClick={() => refreshCost(r.id)}>Atualizar custo</button></td></tr>)}</tbody></table></div>}
       </section>
       <div style={styles.note}><strong>Regra:</strong> o cadastro é único. A classificação detalhada continua no banco para que Compras, Estoque, MRP, PCP, Produção, Fiscal e BOM saibam exatamente que tipo de item estão tratando. A <strong>Estrutura do Produto (BOM)</strong> continua sendo a tela própria para montar a receita.</div>
     </div>
@@ -140,5 +163,5 @@ const styles = {
   typeSwitch:{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}, typeBtn:{background:"var(--panel-2)",border:"1px solid var(--line)",borderRadius:10,padding:"10px 14px",fontWeight:700,cursor:"pointer",color:"var(--text)"}, typeActive:{border:"2px solid var(--blue,#2563EB)",padding:"9px 13px"}, helper:{fontSize:12,color:"var(--text-dim)",marginBottom:14},
   grid:{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12}, field:{display:"flex",flexDirection:"column",gap:5}, label:{fontSize:12,fontWeight:700}, input:{width:"100%",boxSizing:"border-box",background:"var(--field,#F7F9FB)",color:"var(--text)",border:"1px solid var(--line)",borderRadius:"var(--radius)",padding:"10px 11px",fontSize:13}, help:{fontSize:10.5,color:"var(--text-dim)",lineHeight:1.35},
   readonlyBox:{border:"1px solid var(--line)",borderRadius:"var(--radius)",padding:10,background:"var(--panel-2)",display:"flex",flexDirection:"column",gap:3}, destination:{marginTop:14,padding:"10px 12px",border:"1px solid var(--line)",borderRadius:8,color:"var(--text-dim)",fontSize:12}, actions:{display:"flex",justifyContent:"flex-end",gap:8,marginTop:14}, error:{marginBottom:14,padding:11,border:"1px solid #e4b5b5",background:"#fff5f5",borderRadius:8,color:"#9b2c2c",fontSize:12},
-  listTitle:{fontSize:14,fontWeight:800,marginBottom:12}, listTitleSpan:{}, empty:{padding:24,textAlign:"center",color:"var(--text-dim)"}, tableWrap:{overflowX:"auto"}, table:{width:"100%",borderCollapse:"collapse",fontSize:12}, auto:{color:"var(--green,#16835A)",fontSize:9}, refresh:{background:"transparent",border:"1px solid var(--line)",borderRadius:7,padding:"6px 8px",fontSize:11,cursor:"pointer"}, note:{fontSize:12,color:"var(--text-dim)",lineHeight:1.5,padding:"10px 12px",background:"var(--panel)",border:"1px solid var(--line)",borderRadius:"var(--radius)"}
+  listTitle:{fontSize:14,fontWeight:800,marginBottom:12}, listTitleSpan:{}, empty:{padding:24,textAlign:"center",color:"var(--text-dim)"}, tableWrap:{overflowX:"auto"}, table:{width:"100%",borderCollapse:"collapse",fontSize:12}, auto:{color:"var(--green,#16835A)",fontSize:9}, staleWarning:{color:"var(--amber,#B7791F)",fontSize:9.5,marginTop:2}, refresh:{background:"transparent",border:"1px solid var(--line)",borderRadius:7,padding:"6px 8px",fontSize:11,cursor:"pointer"}, note:{fontSize:12,color:"var(--text-dim)",lineHeight:1.5,padding:"10px 12px",background:"var(--panel)",border:"1px solid var(--line)",borderRadius:"var(--radius)"}
 };
