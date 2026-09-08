@@ -111,6 +111,7 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
   const [newProductId, setNewProductId] = useState(""); const [newQuantity, setNewQuantity] = useState("1"); const [newUnitPrice, setNewUnitPrice] = useState(""); const [newDiscount, setNewDiscount] = useState("0");
   const [customerContacts, setCustomerContacts] = useState([]); const [selectedContactId, setSelectedContactId] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false); const [showManualSend, setShowManualSend] = useState(false);
+  const [linkedOrder, setLinkedOrder] = useState(null);
 
   async function load() {
     setLoading(true); setError("");
@@ -123,6 +124,7 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
       setQuote(q); setItems(it ?? []); setProducts(p ?? []);
       setForm({ customer_id: q.customer_id ?? "", opportunity_id: q.opportunity_id ?? "", payment_term_id: q.payment_term_id ?? "", valid_until: q.valid_until ?? "", notes: q.notes ?? "" });
       if (q.customer_id) { const { data: contacts } = await supabase.from("contacts").select("id, name, department, email").eq("customer_id", q.customer_id); setCustomerContacts(contacts ?? []); }
+      if (q.status === "convertido") { const { data: ord } = await supabase.from("sales_orders").select("id, code").eq("quote_id", quoteId).maybeSingle(); setLinkedOrder(ord ?? null); }
     }
     setLoading(false);
   }
@@ -174,7 +176,9 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
   async function convertToOrder() {
     if (!items.length) { setError("Adicione pelo menos um produto ao orçamento antes de converter."); return; }
     setConverting(true); setError("");
-    const { data: order, error: oe } = await supabase.from("sales_orders").insert({ company_id: company.id, code: `PV-${quote.code}`, customer_id: quote.customer_id, quote_id: quoteId, status: "aberto", order_date: new Date().toISOString().slice(0, 10), total_value: total }).select("id").single();
+    const { count } = await supabase.from("sales_orders").select("id", { count: "exact", head: true }).eq("company_id", company.id);
+    const code = `PV-${String((count ?? 0) + 1).padStart(4, "0")}`;
+    const { data: order, error: oe } = await supabase.from("sales_orders").insert({ company_id: company.id, code, customer_id: quote.customer_id, quote_id: quoteId, status: "aberto", order_date: new Date().toISOString().slice(0, 10), total_value: total }).select("id").single();
     if (oe) { setError(oe.message); setConverting(false); return; }
     const { error: ie } = await supabase.from("sales_order_items").insert(items.map((it) => ({ company_id: company.id, sales_order_id: order.id, product_id: it.product_id, quantity: it.quantity, unit_price: it.unit_price, discount_percent: it.discount_percent })));
     if (ie) { setError(ie.message); setConverting(false); return; }
@@ -246,7 +250,7 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
           <button style={styles.outlineBtn} onClick={printQuote} type="button">🖨 Imprimir</button>
           {quote.status === "enviado" && <button style={styles.primaryBtn} onClick={() => updateStatus("aprovado")}>✓ Marcar como aprovado pelo cliente</button>}
           {quote.status === "aprovado" && !isConverted && <button style={styles.primaryBtn} disabled={converting} onClick={convertToOrder}>{converting ? "Convertendo..." : "Converter em pedido de venda"}</button>}
-          {isConverted && <span style={styles.helper}>Este orçamento já foi convertido em pedido de venda.</span>}
+          {isConverted && <span style={styles.helper}>Este orçamento já foi convertido{linkedOrder ? <> no pedido <button type="button" style={styles.linkBtn} onClick={() => navigate(`/pedidos-venda?abrir=${linkedOrder.id}`)}>{linkedOrder.code}</button></> : " em pedido de venda"}.</span>}
           {!isConverted && <button style={styles.dangerBtn} onClick={deleteQuote}>Excluir</button>}
         </div>
       </section>
@@ -279,4 +283,5 @@ const styles = {
   stepper:{display:"flex",gap:6,flexWrap:"wrap",margin:"14px 0"}, step:{border:"1px solid var(--line)",background:"var(--field)",color:"var(--text-dim)",borderRadius:8,padding:"7px 11px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}, stepCurrent:{background:"var(--blue)",color:"#fff",borderColor:"var(--blue)"}, stepDone:{borderColor:"var(--green)",color:"var(--text)"},
   sentInfo:{fontSize:12,color:"var(--green)",background:"rgba(34,197,94,.1)",border:"1px solid rgba(34,197,94,.25)",borderRadius:8,padding:"9px 11px",marginBottom:14},
   sendBox:{display:"grid",gap:10}, sendRow:{display:"flex",gap:8,flexWrap:"wrap"},
+  linkBtn:{border:0,background:"transparent",color:"var(--blue)",fontWeight:800,cursor:"pointer",padding:0,textDecoration:"underline"},
 };

@@ -161,7 +161,7 @@ function OrderDrawer({ orderId, company, profile, onClose, onRefresh }) {
   async function load() {
     setLoading(true); setError("");
     const [{ data: o, error: oe }, { data: it }, { data: p }, { data: terms }, { data: prodOrders }] = await Promise.all([
-      supabase.from("sales_orders").select("id, code, status, order_date, total_value, customer_id, receivable_generated, customers:customer_id (name, document, email, phone, address)").eq("id", orderId).single(),
+      supabase.from("sales_orders").select("id, code, status, order_date, total_value, customer_id, receivable_generated, quote_id, quotes:quote_id (code), customers:customer_id (name, document, email, phone, address)").eq("id", orderId).single(),
       supabase.from("sales_order_items").select("id, quantity, unit_price, discount_percent, product_id, products:product_id (sku, name, stock_quantity)").eq("sales_order_id", orderId),
       supabase.from("products").select("id, sku, name, sale_price").order("name"),
       supabase.from("payment_terms").select("id, name, installments, days_between").order("name"),
@@ -337,6 +337,7 @@ function OrderDrawer({ orderId, company, profile, onClose, onRefresh }) {
               <div>
                 <span style={styles.codeLarge}>{order.code}</span>
                 <h2 style={styles.drawerTitle}>{order.customers?.name ?? "Sem cliente"}</h2>
+                {order.quotes?.code && <span style={styles.quoteRef}>Originado do orçamento {order.quotes.code}</span>}
               </div>
               <button style={styles.closeBtn} onClick={onClose} type="button">✕</button>
             </div>
@@ -454,6 +455,7 @@ const styles = {
   drawer: { width: "min(680px,96vw)", height: "100vh", boxSizing: "border-box", background: "var(--panel)", color: "var(--text)", boxShadow: "-10px 0 30px rgba(0,0,0,.18)", padding: "22px 24px", overflowY: "auto" },
   drawerHead: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, gap: 12 },
   codeLarge: { display: "block", fontSize: 11, fontWeight: 800, color: "var(--text-dim)" },
+  quoteRef: { display: "block", fontSize: 11.5, color: "var(--amber)", fontWeight: 600, marginTop: 2 },
   drawerTitle: { fontFamily: "var(--font-display)", fontSize: 20, margin: "2px 0" },
   closeBtn: { width: 34, height: 34, flex: "0 0 34px", border: "1px solid var(--line)", background: "var(--bg)", color: "var(--text)", borderRadius: 8, cursor: "pointer", fontSize: 16 },
   statusRow: { display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" },
