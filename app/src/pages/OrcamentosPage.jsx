@@ -3,10 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { confirmDelete } from "../lib/deleteGuard";
-import { openPrintWindow, brandHeader, currency, formatDate } from "../lib/printDocument";
+import { openPrintWindow, brandHeader, currency, formatDate, sendDocumentEmail } from "../lib/printDocument";
 
 const STATUS_LABEL = { rascunho: "Rascunho", enviado: "Enviado", aprovado: "Aprovado", rejeitado: "Rejeitado", convertido: "Convertido em pedido" };
 const STATUS_COLOR = { rascunho: "var(--text-dim)", enviado: "#2563EB", aprovado: "var(--green)", rejeitado: "var(--danger)", convertido: "var(--amber)" };
+const FLOW_STEPS = ["rascunho", "enviado", "aprovado", "convertido"];
 
 export default function OrcamentosPage() {
   const { company } = useAuth();
@@ -108,17 +109,20 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
   const [editing, setEditing] = useState(false); const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ customer_id: "", opportunity_id: "", payment_term_id: "", valid_until: "", notes: "" });
   const [newProductId, setNewProductId] = useState(""); const [newQuantity, setNewQuantity] = useState("1"); const [newUnitPrice, setNewUnitPrice] = useState(""); const [newDiscount, setNewDiscount] = useState("0");
+  const [customerContacts, setCustomerContacts] = useState([]); const [selectedContactId, setSelectedContactId] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false); const [showManualSend, setShowManualSend] = useState(false);
 
   async function load() {
     setLoading(true); setError("");
     const [{ data: q, error: qe }, { data: it, error: ie }, { data: p, error: pe }] = await Promise.all([
-      supabase.from("quotes").select("id, code, status, valid_until, notes, created_at, customer_id, opportunity_id, payment_term_id, customers:customer_id (name, document, email, phone, address), payment_terms:payment_term_id (name)").eq("id", quoteId).single(),
+      supabase.from("quotes").select("id, code, status, valid_until, notes, created_at, customer_id, opportunity_id, payment_term_id, sent_at, sent_to, sent_channel, customers:customer_id (name, document, email, phone, address), payment_terms:payment_term_id (name)").eq("id", quoteId).single(),
       supabase.from("quote_items").select("id, quantity, unit_price, discount_percent, product_id, products:product_id (sku, name, unit)").eq("quote_id", quoteId),
       supabase.from("products").select("id, sku, name, unit, sale_price").eq("company_id", company.id).eq("active", true).eq("type", "acabado").order("name"),
     ]);
     if (qe) setError(qe.message); else if (ie || pe) setError((ie || pe).message); else {
       setQuote(q); setItems(it ?? []); setProducts(p ?? []);
       setForm({ customer_id: q.customer_id ?? "", opportunity_id: q.opportunity_id ?? "", payment_term_id: q.payment_term_id ?? "", valid_until: q.valid_until ?? "", notes: q.notes ?? "" });
+      if (q.customer_id) { const { data: contacts } = await supabase.from("contacts").select("id, name, department, email").eq("customer_id", q.customer_id); setCustomerContacts(contacts ?? []); }
     }
     setLoading(false);
   }
@@ -144,6 +148,28 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
     setSaving(false);
   }
   async function updateStatus(status) { const { error: err } = await supabase.from("quotes").update({ status }).eq("id", quoteId); if (err) setError(err.message); else { await load(); await onRefresh(); } }
+  function buildQuoteHtml() {
+    const rows = items.map((it) => `<tr><td>${it.products?.sku ?? ""}</td><td>${it.products?.name ?? ""}</td><td>${it.quantity}</td><td>${currency(it.unit_price)}</td><td>${it.discount_percent ?? 0}%</td><td>${currency(Number(it.quantity) * Number(it.unit_price) * (1 - Number(it.discount_percent || 0) / 100))}</td></tr>`).join("");
+    return `${brandHeader(company, "ORÇAMENTO", [["Nº", quote.code], ["Emitido em", formatDate(quote.created_at)], ["Válido até", formatDate(quote.valid_until)]])}<div class="section-title">Dados do Cliente</div><div class="info-grid"><div><strong>Cliente:</strong> ${quote.customers?.name ?? "—"}</div><div><strong>CPF/CNPJ:</strong> ${quote.customers?.document ?? "—"}</div><div><strong>E-mail:</strong> ${quote.customers?.email ?? "—"}</div><div><strong>Telefone:</strong> ${quote.customers?.phone ?? "—"}</div><div style="grid-column:1/-1"><strong>Endereço:</strong> ${quote.customers?.address ?? "—"}</div></div><div class="section-title">Produtos e serviços</div><table><thead><tr><th>SKU</th><th>Produto</th><th>Qtd.</th><th>Preço unit.</th><th>Desc.</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><div class="totals-box"><div class="totals-inner"><div class="total-row-final"><span>Total do orçamento</span><span>${currency(total)}</span></div></div></div>${quote.notes ? `<div class="section-title">Observações</div><p>${quote.notes}</p>` : ""}`;
+  }
+  function printQuote() { if (!quote) return; openPrintWindow(`Orçamento ${quote.code}`, buildQuoteHtml()); }
+  async function sendEmail() {
+    const contact = customerContacts.find((c) => c.id === selectedContactId);
+    if (!contact?.email || !quote) return;
+    setSendingEmail(true); setError("");
+    const { error: sendError } = await sendDocumentEmail({
+      to: contact.email, subject: `Orçamento ${quote.code} — ${company?.name ?? ""}`,
+      message: `<p>Olá ${contact.name},</p><p>Segue em anexo o Orçamento ${quote.code}.</p><p>Atenciosamente,<br/>${company?.name ?? ""}</p>`,
+      bodyHtml: buildQuoteHtml(), filename: `orcamento-${quote.code}.pdf`,
+    });
+    if (sendError) setError("Não foi possível enviar o e-mail agora. Tente novamente em instantes.");
+    else { await supabase.from("quotes").update({ status: "enviado", sent_at: new Date().toISOString(), sent_to: contact.email, sent_channel: "email" }).eq("id", quoteId); await load(); await onRefresh(); }
+    setSendingEmail(false);
+  }
+  async function markSentManually(channel, destinatario) {
+    const { error: err } = await supabase.from("quotes").update({ status: "enviado", sent_at: new Date().toISOString(), sent_to: destinatario || null, sent_channel: channel }).eq("id", quoteId);
+    if (err) setError(err.message); else { setShowManualSend(false); await load(); await onRefresh(); }
+  }
   async function deleteQuote() { if (isConverted || !(await confirmDelete(company))) return; await supabase.from("quote_items").delete().eq("quote_id", quoteId); const { error: err } = await supabase.from("quotes").delete().eq("id", quoteId); if (err) setError(err.message); else { await onRefresh(); onClose(); } }
   async function convertToOrder() {
     if (!items.length) { setError("Adicione pelo menos um produto ao orçamento antes de converter."); return; }
@@ -154,12 +180,6 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
     if (ie) { setError(ie.message); setConverting(false); return; }
     await supabase.from("quotes").update({ status: "convertido" }).eq("id", quoteId); setConverting(false); await onRefresh(); navigate(`/pedidos-venda?abrir=${order.id}`);
   }
-  function printQuote() {
-    if (!quote) return;
-    const rows = items.map((it) => `<tr><td>${it.products?.sku ?? ""}</td><td>${it.products?.name ?? ""}</td><td>${it.quantity}</td><td>${currency(it.unit_price)}</td><td>${it.discount_percent ?? 0}%</td><td>${currency(Number(it.quantity) * Number(it.unit_price) * (1 - Number(it.discount_percent || 0) / 100))}</td></tr>`).join("");
-    const html = `${brandHeader(company, "ORÇAMENTO", [["Nº", quote.code], ["Emitido em", formatDate(quote.created_at)], ["Válido até", formatDate(quote.valid_until)]])}<div class="section-title">Dados do Cliente</div><div class="info-grid"><div><strong>Cliente:</strong> ${quote.customers?.name ?? "—"}</div><div><strong>CPF/CNPJ:</strong> ${quote.customers?.document ?? "—"}</div><div><strong>E-mail:</strong> ${quote.customers?.email ?? "—"}</div><div><strong>Telefone:</strong> ${quote.customers?.phone ?? "—"}</div><div style="grid-column:1/-1"><strong>Endereço:</strong> ${quote.customers?.address ?? "—"}</div></div><div class="section-title">Produtos e serviços</div><table><thead><tr><th>SKU</th><th>Produto</th><th>Qtd.</th><th>Preço unit.</th><th>Desc.</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><div class="total-box"><strong>Total do orçamento: ${currency(total)}</strong></div>${quote.notes ? `<div class="section-title">Observações</div><p>${quote.notes}</p>` : ""}`;
-    openPrintWindow(html, "Orçamento");
-  }
 
   if (loading) return <div style={styles.drawerOverlay}><aside style={styles.drawer}><p style={styles.dim}>Carregando orçamento...</p></aside></div>;
   if (!quote) return <div style={styles.drawerOverlay}><aside style={styles.drawer}><p style={styles.error}>Orçamento não encontrado.</p><button style={styles.secondaryBtn} onClick={onClose}>Fechar</button></aside></div>;
@@ -167,6 +187,8 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
   return <div style={styles.drawerOverlay} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
     <aside style={styles.drawer}>
       <div style={styles.drawerHead}><div><div style={styles.eyebrow}>ORÇAMENTO</div><h2 style={styles.drawerTitle}>{quote.code}</h2><span style={{ ...styles.badge, color: STATUS_COLOR[quote.status] }}>{STATUS_LABEL[quote.status] ?? quote.status}</span></div><button style={styles.closeBtn} onClick={onClose} type="button">✕</button></div>
+      <div style={styles.stepper}>{FLOW_STEPS.map((s, i) => { const currentIdx = FLOW_STEPS.indexOf(quote.status === "rejeitado" ? "enviado" : quote.status); return <div key={s} style={{ ...styles.step, ...(s === quote.status ? styles.stepCurrent : {}), ...(i < currentIdx ? styles.stepDone : {}) }}>{i < currentIdx ? "✓" : i + 1} {STATUS_LABEL[s]}</div>; })}</div>
+      {quote.sent_at && <div style={styles.sentInfo}>Enviado {quote.sent_channel === "email" ? "por e-mail" : quote.sent_channel ? `via ${quote.sent_channel}` : ""}{quote.sent_to ? ` para ${quote.sent_to}` : ""} em {formatDate(quote.sent_at)}</div>}
       {error && <div style={styles.error}>{error}</div>}
 
       <section style={styles.section}>
@@ -199,16 +221,51 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
       </section>
 
       <section style={styles.section}>
+        <h3 style={styles.sectionTitle}>Enviar orçamento</h3>
+        {quote.status !== "rascunho" ? null : (
+          <div style={styles.sendBox}>
+            {customerContacts.length > 0 ? <>
+              <p style={styles.helper}>Escolha o contato do cliente para enviar o PDF do orçamento por e-mail.</p>
+              <div style={styles.sendRow}>
+                <select style={styles.input} value={selectedContactId} onChange={(e) => setSelectedContactId(e.target.value)}>
+                  <option value="">Escolha o contato...</option>
+                  {customerContacts.map((c) => <option key={c.id} value={c.id}>{c.name}{c.department ? ` — ${c.department}` : ""}{c.email ? ` (${c.email})` : " — sem e-mail"}</option>)}
+                </select>
+                <button style={styles.primaryBtn} onClick={sendEmail} type="button" disabled={!selectedContactId || sendingEmail || !customerContacts.find((c) => c.id === selectedContactId)?.email}>{sendingEmail ? "Enviando..." : "✉ Enviar por e-mail"}</button>
+              </div>
+            </> : <p style={styles.helper}>Este cliente não tem contatos com e-mail cadastrados. Cadastre um contato em Clientes, ou registre abaixo que o orçamento foi enviado por outro canal (WhatsApp, telefone etc.).</p>}
+            <button type="button" style={styles.outlineBtn} onClick={() => setShowManualSend(true)}>Registrar envio manual (WhatsApp, telefone, presencial...)</button>
+          </div>
+        )}
+        {showManualSend && <ManualSendModal onClose={() => setShowManualSend(false)} onConfirm={markSentManually} />}
+      </section>
+
+      <section style={styles.section}>
         <h3 style={styles.sectionTitle}>Ações</h3>
         <div style={styles.actionsWrap}>
-          {quote.status === "rascunho" && <button style={styles.outlineBtn} onClick={() => updateStatus("enviado")}>Marcar como enviado</button>}
-          {quote.status === "enviado" && <button style={styles.primaryBtn} onClick={() => updateStatus("aprovado")}>Aprovar orçamento</button>}
-          {quote.status === "aprovado" && !isConverted && <button style={styles.primaryBtn} disabled={converting} onClick={convertToOrder}>{converting ? "Convertendo..." : "Converter em pedido"}</button>}
-          <button style={styles.outlineBtn} onClick={printQuote}>Imprimir</button>
+          <button style={styles.outlineBtn} onClick={printQuote} type="button">🖨 Imprimir</button>
+          {quote.status === "enviado" && <button style={styles.primaryBtn} onClick={() => updateStatus("aprovado")}>✓ Marcar como aprovado pelo cliente</button>}
+          {quote.status === "aprovado" && !isConverted && <button style={styles.primaryBtn} disabled={converting} onClick={convertToOrder}>{converting ? "Convertendo..." : "Converter em pedido de venda"}</button>}
+          {isConverted && <span style={styles.helper}>Este orçamento já foi convertido em pedido de venda.</span>}
           {!isConverted && <button style={styles.dangerBtn} onClick={deleteQuote}>Excluir</button>}
         </div>
       </section>
     </aside>
+  </div>;
+}
+
+function ManualSendModal({ onClose, onConfirm }) {
+  const [channel, setChannel] = useState("whatsapp"); const [destinatario, setDestinatario] = useState("");
+  return <div style={styles.overlay} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div style={{ ...styles.modal, width: "min(420px,100%)" }}>
+      <div style={styles.modalHead}><h2 style={styles.modalTitle}>Registrar envio manual</h2><button style={styles.closeBtn} onClick={onClose} type="button">✕</button></div>
+      <p style={styles.helper}>Use isso quando o orçamento foi enviado fora do sistema — por WhatsApp, telefone ou pessoalmente.</p>
+      <div style={styles.formGrid}>
+        <Field label="Canal usado"><select style={styles.input} value={channel} onChange={(e) => setChannel(e.target.value)}><option value="whatsapp">WhatsApp</option><option value="telefone">Telefone</option><option value="presencial">Presencial</option><option value="outro">Outro</option></select></Field>
+        <Field label="Para quem (opcional)"><input style={styles.input} value={destinatario} onChange={(e) => setDestinatario(e.target.value)} placeholder="Nome ou número de contato" /></Field>
+        <div style={styles.actions}><button type="button" style={styles.secondaryBtn} onClick={onClose}>Cancelar</button><button type="button" style={styles.primaryBtn} onClick={() => onConfirm(channel, destinatario)}>Confirmar envio</button></div>
+      </div>
+    </div>
   </div>;
 }
 
@@ -218,5 +275,8 @@ const styles = {
   header:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,marginBottom:20}, title:{margin:0,fontSize:28}, subtitle:{margin:"6px 0 0",color:"var(--text-dim)"}, addBtn:{border:0,borderRadius:9,padding:"11px 16px",background:"var(--blue)",color:"white",fontWeight:700,cursor:"pointer"},
   toolbar:{display:"flex",gap:10,marginBottom:18}, search:{flex:1,minWidth:220}, filterSelect:{minWidth:180}, list:{display:"grid",gap:8}, row:{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",gap:16,padding:"15px 16px",background:"var(--panel)",border:"1px solid var(--line)",borderRadius:10,textAlign:"left",cursor:"pointer"}, rowMain:{display:"flex",flexDirection:"column",gap:4}, rowRight:{display:"flex",alignItems:"center",gap:18}, dateHint:{color:"var(--text-dim)",fontSize:13}, badge:{fontWeight:700,fontSize:13}, dim:{color:"var(--text-dim)"},
   overlay:{position:"fixed",inset:0,background:"rgba(0,0,0,.38)",display:"grid",placeItems:"center",zIndex:1000,padding:20}, modal:{width:"min(680px,100%)",background:"var(--panel)",borderRadius:14,padding:22,boxShadow:"0 20px 60px rgba(0,0,0,.25)"}, modalHead:{display:"flex",justifyContent:"space-between",gap:15,marginBottom:16}, modalTitle:{margin:0}, helper:{margin:"4px 0 0",fontSize:12,color:"var(--text-dim)"}, closeBtn:{border:0,background:"transparent",fontSize:20,cursor:"pointer",height:36}, formGrid:{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:14}, field:{display:"flex",flexDirection:"column",gap:6}, fieldLabel:{fontWeight:600,fontSize:13}, input:{width:"100%",boxSizing:"border-box",padding:"10px 11px",border:"1px solid var(--line)",borderRadius:8,background:"var(--field)",color:"var(--text)"}, actions:{gridColumn:"1/-1",display:"flex",justifyContent:"flex-end",gap:10,marginTop:5}, primaryBtn:{border:0,borderRadius:8,padding:"10px 14px",background:"var(--blue)",color:"white",fontWeight:700,cursor:"pointer"}, secondaryBtn:{border:"1px solid var(--line)",borderRadius:8,padding:"10px 14px",background:"var(--panel)",color:"var(--text)",fontWeight:600,cursor:"pointer"}, outlineBtn:{border:"1px solid var(--line)",borderRadius:8,padding:"9px 13px",background:"var(--panel)",color:"var(--text)",fontWeight:600,cursor:"pointer"}, dangerBtn:{border:"1px solid var(--danger)",borderRadius:8,padding:"9px 13px",background:"transparent",color:"var(--danger)",fontWeight:700,cursor:"pointer"}, error:{padding:11,marginBottom:14,borderRadius:8,background:"rgba(192,57,43,.08)",color:"var(--danger)",fontSize:13},
-  drawerOverlay:{position:"fixed",inset:0,background:"rgba(0,0,0,.38)",display:"flex",justifyContent:"flex-end",zIndex:1000}, drawer:{height:"100%",width:"min(920px,100%)",background:"var(--panel)",overflowY:"auto",padding:22,boxSizing:"border-box",boxShadow:"-10px 0 40px rgba(0,0,0,.2)"}, drawerHead:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,borderBottom:"1px solid var(--line)",paddingBottom:16}, drawerTitle:{margin:"3px 0 7px",fontSize:25}, eyebrow:{fontSize:11,fontWeight:800,letterSpacing:1,color:"var(--text-dim)"}, section:{padding:"20px 0",borderBottom:"1px solid var(--line)"}, sectionHead:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:13}, sectionTitle:{margin:0,fontSize:17}, infoGrid:{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:10}, infoGridItem:{}, productAdd:{display:"grid",gridTemplateColumns:"2fr .8fr 1fr .7fr auto",gap:8,alignItems:"end",padding:12,border:"1px solid var(--line)",borderRadius:10,background:"var(--field)",marginBottom:14}, productPicker:{minWidth:0}, smallLabel:{display:"block",fontSize:11,fontWeight:700,marginBottom:5}, addProductBtn:{height:40,border:0,borderRadius:8,padding:"0 13px",background:"var(--green)",color:"white",fontWeight:700,cursor:"pointer"}, emptyProduct:{padding:18,textAlign:"center",border:"1px dashed var(--line)",borderRadius:9,color:"var(--text-dim)"}, itemsTable:{border:"1px solid var(--line)",borderRadius:10,overflow:"hidden"}, itemHeader:{display:"grid",gridTemplateColumns:"2fr .7fr 1fr 1fr .7fr",gap:8,padding:"9px 11px",background:"var(--panel-2)",fontSize:11,fontWeight:800}, itemRow:{display:"grid",gridTemplateColumns:"2fr .7fr 1fr 1fr .7fr",gap:8,alignItems:"center",padding:"11px",borderTop:"1px solid var(--line)",fontSize:13}, itemRowSmall:{}, removeBtn:{border:0,background:"transparent",color:"var(--danger)",cursor:"pointer",fontSize:11,textAlign:"right"}, totalRow:{display:"flex",justifyContent:"flex-end",gap:35,padding:"13px 11px",background:"var(--panel-2)",fontSize:16}, actionsWrap:{display:"flex",flexWrap:"wrap",gap:8}
+  drawerOverlay:{position:"fixed",inset:0,background:"rgba(0,0,0,.38)",display:"flex",justifyContent:"flex-end",zIndex:1000}, drawer:{height:"100%",width:"min(920px,100%)",background:"var(--panel)",overflowY:"auto",padding:22,boxSizing:"border-box",boxShadow:"-10px 0 40px rgba(0,0,0,.2)"}, drawerHead:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,borderBottom:"1px solid var(--line)",paddingBottom:16}, drawerTitle:{margin:"3px 0 7px",fontSize:25}, eyebrow:{fontSize:11,fontWeight:800,letterSpacing:1,color:"var(--text-dim)"}, section:{padding:"20px 0",borderBottom:"1px solid var(--line)"}, sectionHead:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:13}, sectionTitle:{margin:0,fontSize:17}, infoGrid:{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:10}, infoGridItem:{}, productAdd:{display:"grid",gridTemplateColumns:"2fr .8fr 1fr .7fr auto",gap:8,alignItems:"end",padding:12,border:"1px solid var(--line)",borderRadius:10,background:"var(--field)",marginBottom:14}, productPicker:{minWidth:0}, smallLabel:{display:"block",fontSize:11,fontWeight:700,marginBottom:5}, addProductBtn:{height:40,border:0,borderRadius:8,padding:"0 13px",background:"var(--green)",color:"white",fontWeight:700,cursor:"pointer"}, emptyProduct:{padding:18,textAlign:"center",border:"1px dashed var(--line)",borderRadius:9,color:"var(--text-dim)"}, itemsTable:{border:"1px solid var(--line)",borderRadius:10,overflow:"hidden"}, itemHeader:{display:"grid",gridTemplateColumns:"2fr .7fr 1fr 1fr .7fr",gap:8,padding:"9px 11px",background:"var(--panel-2)",fontSize:11,fontWeight:800}, itemRow:{display:"grid",gridTemplateColumns:"2fr .7fr 1fr 1fr .7fr",gap:8,alignItems:"center",padding:"11px",borderTop:"1px solid var(--line)",fontSize:13}, itemRowSmall:{}, removeBtn:{border:0,background:"transparent",color:"var(--danger)",cursor:"pointer",fontSize:11,textAlign:"right"}, totalRow:{display:"flex",justifyContent:"flex-end",gap:35,padding:"13px 11px",background:"var(--panel-2)",fontSize:16}, actionsWrap:{display:"flex",flexWrap:"wrap",gap:8},
+  stepper:{display:"flex",gap:6,flexWrap:"wrap",margin:"14px 0"}, step:{border:"1px solid var(--line)",background:"var(--field)",color:"var(--text-dim)",borderRadius:8,padding:"7px 11px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}, stepCurrent:{background:"var(--blue)",color:"#fff",borderColor:"var(--blue)"}, stepDone:{borderColor:"var(--green)",color:"var(--text)"},
+  sentInfo:{fontSize:12,color:"var(--green)",background:"rgba(34,197,94,.1)",border:"1px solid rgba(34,197,94,.25)",borderRadius:8,padding:"9px 11px",marginBottom:14},
+  sendBox:{display:"grid",gap:10}, sendRow:{display:"flex",gap:8,flexWrap:"wrap"},
 };
