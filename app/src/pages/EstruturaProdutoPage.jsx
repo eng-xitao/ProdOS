@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthContext";
 import { confirmDelete } from "../lib/deleteGuard";
-import { openPrintWindow, brandHeader } from "../lib/printDocument";
+import { openPrintWindow, brandHeader, currency, formatDate } from "../lib/printDocument";
 
 const TYPE_LABEL = {
   acabado: "Produto acabado",
@@ -71,7 +71,7 @@ export default function EstruturaProdutoPage() {
     setLoading(true);
     const { data, error: loadError } = await supabase
       .from("product_components")
-      .select("id, quantity, component_id, products:component_id (sku, name, type, unit)")
+      .select("id, quantity, component_id, products:component_id (sku, name, type, unit, cost, cost_source)")
       .eq("parent_product_id", pid);
     if (loadError) setError(loadError.message);
     setComponents(data ?? []);
@@ -138,15 +138,46 @@ export default function EstruturaProdutoPage() {
         <td>${c.products?.name ?? ""}</td>
         <td>${TYPE_LABEL[c.products?.type] ?? c.products?.type ?? ""}</td>
         <td>${c.quantity} ${c.products?.unit ?? ""}</td>
+        <td style="text-align:right">${c.products?.cost != null ? currency(c.products.cost) : "—"}</td>
+        <td style="text-align:right">${c.products?.cost != null ? currency(c.quantity * c.products.cost) : "—"}</td>
       </tr>
     `).join("");
+
+    const hasAnyCost = components.some((c) => c.products?.cost != null && Number(c.products.cost) > 0);
+    const totalCusto = components.reduce((sum, c) => sum + (Number(c.products?.cost ?? 0) * Number(c.quantity ?? 0)), 0);
+
     const html = `
       ${brandHeader(company, "ESTRUTURA DO PRODUTO (BOM)", [
         ["Produto pai", `${selectedParent.sku} — ${selectedParent.name}`],
         ["Classe", TYPE_LABEL[selectedParent.type] ?? selectedParent.type],
+        ["Itens na estrutura", String(components.length)],
+        ["Emitido em", formatDate(new Date().toISOString())],
       ])}
       <div class="section-title">Materiais e componentes da estrutura</div>
-      ${rows ? `<table><thead><tr><th>SKU</th><th>Item</th><th>Tipo</th><th>Qtd. por unidade</th></tr></thead><tbody>${rows}</tbody></table>` : `<div class="notes-box">Nenhum item cadastrado ainda para este produto.</div>`}
+      ${rows ? `
+        <table>
+          <thead>
+            <tr>
+              <th>SKU</th><th>Item</th><th>Tipo</th><th>Qtd. por unidade</th>
+              <th style="text-align:right">Custo unit.</th><th style="text-align:right">Custo na receita</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="totals-box">
+          <div class="totals-inner">
+            <div class="total-row-final">
+              <span>Custo total estimado (via BOM)</span>
+              <span>${hasAnyCost ? currency(totalCusto) : "—"}</span>
+            </div>
+          </div>
+        </div>
+        ${!hasAnyCost ? `<div class="notes-box">Custo total não disponível: nenhum componente desta estrutura ainda tem custo calculado (é preciso ter compras recebidas registradas para materiais/insumos, ou BOM própria calculada para componentes/semiacabados).</div>` : ""}
+      ` : `<div class="notes-box">Nenhum item cadastrado ainda para este produto.</div>`}
+      <div class="signatures">
+        <div class="signature-line">Elaborado por</div>
+        <div class="signature-line">Aprovado por (Engenharia/PCP)</div>
+      </div>
     `;
     openPrintWindow(`Estrutura do Produto — ${selectedParent.sku}`, html);
   }
