@@ -123,7 +123,7 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
     if (qe) setError(qe.message); else if (ie || pe) setError((ie || pe).message); else {
       setQuote(q); setItems(it ?? []); setProducts(p ?? []);
       setForm({ customer_id: q.customer_id ?? "", opportunity_id: q.opportunity_id ?? "", payment_term_id: q.payment_term_id ?? "", valid_until: q.valid_until ?? "", notes: q.notes ?? "" });
-      if (q.customer_id) { const { data: contacts } = await supabase.from("contacts").select("id, name, department, email").eq("customer_id", q.customer_id); setCustomerContacts(contacts ?? []); }
+      if (q.customer_id) { const { data: contacts } = await supabase.from("contacts").select("id, name, department, email, phone").eq("customer_id", q.customer_id); setCustomerContacts(contacts ?? []); }
       if (q.status === "convertido") { const { data: ord } = await supabase.from("sales_orders").select("id, code").eq("quote_id", quoteId).maybeSingle(); setLinkedOrder(ord ?? null); }
     }
     setLoading(false);
@@ -226,7 +226,7 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
 
       <section style={styles.section}>
         <h3 style={styles.sectionTitle}>Enviar orçamento</h3>
-        {quote.status !== "rascunho" ? null : (
+        {isConverted ? <p style={styles.helper}>Orçamento já convertido em pedido — não é mais necessário enviar.</p> : (
           <div style={styles.sendBox}>
             {customerContacts.length > 0 ? <>
               <p style={styles.helper}>Escolha o contato do cliente para enviar o PDF do orçamento por e-mail.</p>
@@ -235,39 +235,44 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
                   <option value="">Escolha o contato...</option>
                   {customerContacts.map((c) => <option key={c.id} value={c.id}>{c.name}{c.department ? ` — ${c.department}` : ""}{c.email ? ` (${c.email})` : " — sem e-mail"}</option>)}
                 </select>
-                <button style={styles.primaryBtn} onClick={sendEmail} type="button" disabled={!selectedContactId || sendingEmail || !customerContacts.find((c) => c.id === selectedContactId)?.email}>{sendingEmail ? "Enviando..." : "✉ Enviar por e-mail"}</button>
+                <button style={styles.primaryBtn} onClick={sendEmail} type="button" disabled={!selectedContactId || sendingEmail || !customerContacts.find((c) => c.id === selectedContactId)?.email}>{sendingEmail ? "Enviando..." : quote.sent_at ? "✉ Reenviar por e-mail" : "✉ Enviar por e-mail"}</button>
               </div>
-            </> : <p style={styles.helper}>Este cliente não tem contatos com e-mail cadastrados. Cadastre um contato em Clientes, ou registre abaixo que o orçamento foi enviado por outro canal (WhatsApp, telefone etc.).</p>}
-            <button type="button" style={styles.outlineBtn} onClick={() => setShowManualSend(true)}>Registrar envio manual (WhatsApp, telefone, presencial...)</button>
+            </> : <p style={styles.helper}>Este cliente não tem contatos com e-mail cadastrados. Cadastre um contato em Clientes, ou registre abaixo que o orçamento foi enviado por outro canal.</p>}
+            <button type="button" style={styles.outlineBtn} onClick={() => setShowManualSend(true)}>{quote.sent_at ? "Registrar novo envio manual" : "Registrar envio manual (WhatsApp, ligação, presencial...)"}</button>
           </div>
         )}
-        {showManualSend && <ManualSendModal onClose={() => setShowManualSend(false)} onConfirm={markSentManually} />}
+        {showManualSend && <ManualSendModal contacts={customerContacts} onClose={() => setShowManualSend(false)} onConfirm={markSentManually} />}
       </section>
 
       <section style={styles.section}>
         <h3 style={styles.sectionTitle}>Ações</h3>
+        <p style={styles.helper}>Enviar e aprovar são só pra registro/histórico — não é preciso fazer isso pra converter. Você pode converter direto em pedido de venda a qualquer momento.</p>
         <div style={styles.actionsWrap}>
           <button style={styles.outlineBtn} onClick={printQuote} type="button">🖨 Imprimir</button>
-          {quote.status === "enviado" && <button style={styles.primaryBtn} onClick={() => updateStatus("aprovado")}>✓ Marcar como aprovado pelo cliente</button>}
-          {quote.status === "aprovado" && !isConverted && <button style={styles.primaryBtn} disabled={converting} onClick={convertToOrder}>{converting ? "Convertendo..." : "Converter em pedido de venda"}</button>}
+          {!isConverted && quote.status !== "aprovado" && <button style={styles.outlineBtn} onClick={() => updateStatus("aprovado")}>✓ Marcar como aprovado pelo cliente</button>}
+          {!isConverted && <button style={styles.primaryBtn} disabled={converting || items.length === 0} onClick={convertToOrder} title={items.length === 0 ? "Adicione ao menos um produto" : ""}>{converting ? "Convertendo..." : "Converter em pedido de venda"}</button>}
           {isConverted && <span style={styles.helper}>Este orçamento já foi convertido{linkedOrder ? <> no pedido <button type="button" style={styles.linkBtn} onClick={() => navigate(`/pedidos-venda?abrir=${linkedOrder.id}`)}>{linkedOrder.code}</button></> : " em pedido de venda"}.</span>}
           {!isConverted && <button style={styles.dangerBtn} onClick={deleteQuote}>Excluir</button>}
         </div>
       </section>
+
     </aside>
   </div>;
 }
 
-function ManualSendModal({ onClose, onConfirm }) {
-  const [channel, setChannel] = useState("whatsapp"); const [destinatario, setDestinatario] = useState("");
+function ManualSendModal({ contacts, onClose, onConfirm }) {
+  const [channel, setChannel] = useState("whatsapp"); const [contactId, setContactId] = useState(""); const [destinatario, setDestinatario] = useState("");
+  const contactsWithPhone = contacts.filter((c) => c.phone);
+  function pickContact(id) { setContactId(id); const c = contacts.find((x) => x.id === id); if (c) setDestinatario(c.phone || c.name || ""); }
   return <div style={styles.overlay} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
     <div style={{ ...styles.modal, width: "min(420px,100%)" }}>
       <div style={styles.modalHead}><h2 style={styles.modalTitle}>Registrar envio manual</h2><button style={styles.closeBtn} onClick={onClose} type="button">✕</button></div>
-      <p style={styles.helper}>Use isso quando o orçamento foi enviado fora do sistema — por WhatsApp, telefone ou pessoalmente.</p>
+      <p style={styles.helper}>Isto não envia nada automaticamente — é só um registro de que você mandou o orçamento por fora do sistema (você mesmo, pelo seu WhatsApp/telefone). Use quando não tiver e-mail cadastrado do cliente, ou tiver enviado por outro canal.</p>
       <div style={styles.formGrid}>
-        <Field label="Canal usado"><select style={styles.input} value={channel} onChange={(e) => setChannel(e.target.value)}><option value="whatsapp">WhatsApp</option><option value="telefone">Telefone</option><option value="presencial">Presencial</option><option value="outro">Outro</option></select></Field>
-        <Field label="Para quem (opcional)"><input style={styles.input} value={destinatario} onChange={(e) => setDestinatario(e.target.value)} placeholder="Nome ou número de contato" /></Field>
-        <div style={styles.actions}><button type="button" style={styles.secondaryBtn} onClick={onClose}>Cancelar</button><button type="button" style={styles.primaryBtn} onClick={() => onConfirm(channel, destinatario)}>Confirmar envio</button></div>
+        <Field label="Canal usado"><select style={styles.input} value={channel} onChange={(e) => setChannel(e.target.value)}><option value="whatsapp">WhatsApp</option><option value="telefone">Ligação</option><option value="presencial">Presencial</option><option value="outro">Outro</option></select></Field>
+        {contactsWithPhone.length > 0 && <Field label="Contato (opcional)"><select style={styles.input} value={contactId} onChange={(e) => pickContact(e.target.value)}><option value="">Selecionar da lista...</option>{contactsWithPhone.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>)}</select></Field>}
+        <Field label="Para quem (opcional)" full={contactsWithPhone.length === 0}><input style={styles.input} value={destinatario} onChange={(e) => setDestinatario(e.target.value)} placeholder="Nome, número ou deixe em branco" /></Field>
+        <div style={styles.actions}><button type="button" style={styles.secondaryBtn} onClick={onClose}>Cancelar</button><button type="button" style={styles.primaryBtn} onClick={() => onConfirm(channel, destinatario)}>Confirmar que enviei</button></div>
       </div>
     </div>
   </div>;
