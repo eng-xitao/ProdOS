@@ -172,5 +172,5 @@ const styles = {
   pendingDetail: { display: "block", fontSize: 12, color: "var(--text-dim)", marginTop: 3 },
   pendingActions: { display: "flex", gap: 8 },
   approveBtn: { background: "var(--green)", color: "#fff", border: "none", borderRadius: 7, padding: "7px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer" },
-  rejectBtn: { background: "transparent", border: "1px solid var(--danger)", color: "var(--danger)", borderRadius: 7, padding: "7px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer" },
+  rejectBtn: { background: "transparent", border: "1px solid var(--red)", color: "var(--red)", borderRadius: 7, padding: "7px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer" },
 };

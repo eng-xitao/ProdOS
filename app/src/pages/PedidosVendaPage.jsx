@@ -6,7 +6,7 @@ import { confirmDelete } from "../lib/deleteGuard";
 import { openPrintWindow, brandHeader, currency, formatDate, sendDocumentEmail } from "../lib/printDocument";
 
 const STATUS_LABEL = { aberto: "Aberto", faturado: "Faturado", entregue: "Entregue", cancelado: "Cancelado" };
-const STATUS_COLOR = { aberto: "var(--text-dim)", faturado: "#2563EB", entregue: "var(--green)", cancelado: "var(--danger)" };
+const STATUS_COLOR = { aberto: "var(--text-dim)", faturado: "#2563EB", entregue: "var(--green)", cancelado: "var(--red)" };
 
 export default function PedidosVendaPage() {
   const { company, profile } = useAuth();
@@ -466,14 +466,14 @@ const styles = {
   printBtn: { background: "var(--bg)", color: "var(--text)", border: "1px solid var(--line)", borderRadius: 8, padding: "9px 12px", fontWeight: 700, cursor: "pointer", fontSize: 12.5 },
   contactSelect: { background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 8, padding: "9px 10px", color: "var(--text)", fontSize: 12.5 },
   emailSentTag: { fontSize: 12, color: "var(--green)", fontWeight: 600 },
-  deleteBtn: { background: "transparent", color: "var(--danger)", border: "1px solid var(--danger)", borderRadius: 8, padding: "9px 12px", fontWeight: 700, cursor: "pointer", fontSize: 12.5 },
+  deleteBtn: { background: "transparent", color: "var(--red)", border: "1px solid var(--red)", borderRadius: 8, padding: "9px 12px", fontWeight: 700, cursor: "pointer", fontSize: 12.5 },
   itemForm: { display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 8, marginBottom: 14, alignItems: "center" },
   addBtn: { background: "var(--green)", color: "#fff", border: "none", borderRadius: 8, padding: "9px 14px", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" },
   itemList: { display: "flex", flexDirection: "column", gap: 6 },
   itemRow: { display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: 10, alignItems: "center", padding: "9px 0", borderTop: "1px solid var(--line)", fontSize: 12.5 },
-  removeMini: { background: "transparent", border: 0, color: "var(--danger)", cursor: "pointer", fontSize: 13 },
+  removeMini: { background: "transparent", border: 0, color: "var(--red)", cursor: "pointer", fontSize: 13 },
   totalLine: { display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--line)", fontSize: 15 },
-  stockWarning: { color: "var(--danger)", fontSize: 11.5, fontWeight: 700 },
+  stockWarning: { color: "var(--red)", fontSize: 11.5, fontWeight: 700 },
   stockPending: { color: "var(--amber)", fontSize: 11.5, fontWeight: 700 },
   stockOk: { color: "var(--green)", fontSize: 11.5, fontWeight: 700 },
   opsBox: { marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--line)", background: "rgba(232,163,61,0.06)", border: "1px solid var(--amber)", borderRadius: 8, padding: 14 },
