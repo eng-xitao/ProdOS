@@ -170,7 +170,11 @@ function OrderDrawer({ orderId, company, profile, onClose, onRefresh }) {
     if (oe) { setError(oe.message); setLoading(false); return; }
     setOrder(o); setItems(it ?? []); setProducts(p ?? []); setPaymentTerms(terms ?? []); setLinkedOrders(prodOrders ?? []);
     const stockMap = {};
-    (it ?? []).forEach((line) => { stockMap[line.product_id] = Number(line.products?.stock_quantity ?? 0); });
+    for (const line of it ?? []) {
+      const { data: reservedByOthers } = await supabase.rpc("reserved_quantity", { p_product_id: line.product_id, p_exclude_order_id: orderId });
+      const available = Number(line.products?.stock_quantity ?? 0) - Number(reservedByOthers ?? 0);
+      stockMap[line.product_id] = available;
+    }
     setStockByProduct(stockMap);
     if (o?.customer_id) {
       const { data: contacts } = await supabase.from("contacts").select("id, name, department, email").eq("customer_id", o.customer_id);
@@ -388,7 +392,7 @@ function OrderDrawer({ orderId, company, profile, onClose, onRefresh }) {
                     <div key={it.id} style={styles.itemRow}>
                       <span>
                         {it.products?.sku} — {it.products?.name}
-                        {short && !linkedOrder && <span style={styles.stockWarning}> · ⚠ estoque {stock}, faltam {Number(it.quantity) - stock}</span>}
+                        {short && !linkedOrder && <span style={styles.stockWarning}> · ⚠ disponível {stock}, faltam {Number(it.quantity) - stock}</span>}
                         {linkedOrder?.status === "solicitada" && <span style={styles.stockPending}> · ⏳ aguardando aprovação do PCP</span>}
                         {linkedOrder && ["planejada", "em_andamento"].includes(linkedOrder.status) && <span style={styles.stockOk}> · ✓ em produção</span>}
                         {linkedOrder?.status === "concluida" && <span style={styles.stockOk}> · ✓ produção concluída</span>}
