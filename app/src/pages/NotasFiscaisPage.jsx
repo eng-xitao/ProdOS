@@ -214,7 +214,7 @@ export default function NotasFiscaisPage() {
               <button
                 style={styles.reviewBtn}
                 onClick={() => setReviewing(true)}
-                disabled={items.length === 0 || customerAddressIncomplete || fiscalIncomplete}
+                disabled={items.length === 0 || customerAddressIncomplete}
                 type="button"
               >
                 Revisar e emitir
@@ -253,10 +253,11 @@ export default function NotasFiscaisPage() {
             <button style={styles.simulateBtn} onClick={() => emit(true)} disabled={emitting || missingNcm.length > 0 || !sourceOrderId} type="button" title={!sourceOrderId ? "Simulação exige um pedido de venda de origem" : ""}>
               {emitting ? "Processando..." : "🧪 Simular emissão (teste, não envia à SEFAZ)"}
             </button>
-            <button style={styles.emitBtn} onClick={() => emit(false)} disabled={emitting || missingNcm.length > 0} type="button">
+            <button style={styles.emitBtn} onClick={() => emit(false)} disabled={emitting || missingNcm.length > 0 || fiscalIncomplete} type="button" title={fiscalIncomplete ? "Complete a Configuração Fiscal antes de emitir de verdade" : ""}>
               {emitting ? "Emitindo..." : "Confirmar e emitir NF-e"}
             </button>
           </div>
+          {fiscalIncomplete && <p style={styles.hint}>Emissão real bloqueada até completar a <Link to="/fiscal" style={styles.link}>Configuração Fiscal</Link> — a simulação continua disponível pra testes.</p>}
         </div>
       )}
 
@@ -318,6 +319,7 @@ const styles = {
     borderRadius: "var(--radius)", padding: "10px 14px", fontSize: 12.5, lineHeight: 1.5, marginBottom: 12, maxWidth: 720,
   },
   link: { color: "var(--amber)", fontWeight: 600 },
+  hint: { fontSize: 11.5, color: "var(--text-dim)", marginTop: 8, lineHeight: 1.4 },
   builder: {
     background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "var(--radius)",
     padding: 20, marginBottom: 24, maxWidth: 800, display: "flex", flexDirection: "column", gap: 14,
