@@ -28,7 +28,7 @@ const NAV_SECTIONS = [
   ]},
   { label:"Frotas", icon:"🚛", items:[{to:"/frotas",label:"Bens e Ativos / Frotas",icon:"▶"}]},
   { label:"Fiscal", icon:"🧾", items:[
-    {to:"/notas-fiscais",label:"Notas Fiscais",icon:"🧾"},{to:"/fiscal",label:"Configuração Fiscal",icon:"⚙"}
+    {to:"/notas-fiscais",label:"Faturamento",icon:"🧾"},{to:"/fiscal",label:"Configuração Fiscal",icon:"⚙"}
   ]},
   { label:"Financeiro", icon:"$", items:[
     {to:"/contas-receber",label:"Contas a Receber",icon:"◈"},{to:"/contas-pagar",label:"Contas a Pagar",icon:"◑"},{to:"/fluxo-caixa",label:"Fluxo de Caixa",icon:"≈"},{to:"/tesouraria",label:"Tesouraria",icon:"▣"},{to:"/credito-cobranca",label:"Crédito e Cobrança",icon:"◐"},{to:"/lancamentos",label:"Lançamentos",icon:"$"},{to:"/plano-contas",label:"Plano de Contas",icon:"☰"}
