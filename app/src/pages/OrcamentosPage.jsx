@@ -182,7 +182,16 @@ function QuoteDrawer({ quoteId, company, navigate, customers, opportunities, pay
     if (oe) { setError(oe.message); setConverting(false); return; }
     const { error: ie } = await supabase.from("sales_order_items").insert(items.map((it) => ({ company_id: company.id, sales_order_id: order.id, product_id: it.product_id, quantity: it.quantity, unit_price: it.unit_price, discount_percent: it.discount_percent })));
     if (ie) { setError(ie.message); setConverting(false); return; }
-    await supabase.from("quotes").update({ status: "convertido" }).eq("id", quoteId); setConverting(false); await onRefresh(); navigate(`/pedidos-venda?abrir=${order.id}`);
+    await supabase.from("quotes").update({ status: "convertido" }).eq("id", quoteId);
+    if (quote.opportunity_id) {
+      const { data: closedStage } = await supabase.from("opportunity_stages").select("id").eq("company_id", company.id).eq("name", "Fechado").maybeSingle();
+      const { data: opp } = await supabase.from("opportunities").select("stage_id, status").eq("id", quote.opportunity_id).single();
+      if (opp && opp.status !== "ganha") {
+        await supabase.from("opportunities").update({ status: "ganha", stage_id: closedStage?.id || opp.stage_id }).eq("id", quote.opportunity_id);
+        if (closedStage) await supabase.from("opportunity_stage_history").insert({ company_id: company.id, opportunity_id: quote.opportunity_id, from_stage_id: opp.stage_id, to_stage_id: closedStage.id });
+      }
+    }
+    setConverting(false); await onRefresh(); navigate(`/pedidos-venda?abrir=${order.id}`);
   }
 
   if (loading) return <div style={styles.drawerOverlay}><aside style={styles.drawer}><p style={styles.dim}>Carregando orçamento...</p></aside></div>;
