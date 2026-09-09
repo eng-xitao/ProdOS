@@ -113,9 +113,20 @@ serve(async (req) => {
     const productIds = itemsToInvoiceRaw.map((it: any) => it.productId);
     const { data: productsData } = await supabase
       .from("products")
-      .select("id, name, sku, ncm, cfop_padrao, unit")
+      .select("id, name, sku, ncm, cfop_padrao, unit, stock_quantity")
       .in("id", productIds);
     const productById = new Map((productsData ?? []).map((p: any) => [p.id, p]));
+
+    // Trava de estoque: nao deixa faturar mais do que o disponivel de verdade
+    // (estoque fisico menos o que ja esta reservado por OUTROS pedidos em aberto).
+    for (const it of itemsToInvoiceRaw) {
+      const product = productById.get(it.productId);
+      const { data: reservedByOthers } = await supabase.rpc("reserved_quantity", { p_product_id: it.productId, p_exclude_order_id: salesOrderId });
+      const available = Number(product?.stock_quantity ?? 0) - Number(reservedByOthers ?? 0);
+      if (it.quantity > available + 0.0001) {
+        return jsonResponse({ error: `Estoque insuficiente para "${product?.name ?? it.productId}". Disponível: ${available} ${product?.unit ?? ""} (estoque físico menos o que já está reservado por outros pedidos). Solicitado: ${it.quantity}.` }, 400);
+      }
+    }
 
     const missingNcm = itemsToInvoiceRaw.find((it: any) => !productById.get(it.productId)?.ncm);
     if (!simulate && missingNcm) {
