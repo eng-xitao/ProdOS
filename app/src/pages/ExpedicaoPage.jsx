@@ -36,7 +36,7 @@ export default function ExpedicaoPage() {
 
   async function loadBaseData() {
     const [orders, carr, wh] = await Promise.all([
-      supabase.from("sales_orders").select("id, code").eq("status", "faturado"),
+      supabase.from("sales_orders").select("id, code").in("status", ["faturado", "parcialmente_faturado"]),
       supabase.from("carriers").select("id, name").order("name"),
       supabase.from("warehouses").select("id, name").order("name"),
     ]);
@@ -120,15 +120,36 @@ export default function ExpedicaoPage() {
 
     const { data: orderItems } = await supabase
       .from("sales_order_items")
-      .select("product_id, quantity")
+      .select("product_id, quantity, invoiced_quantity")
       .eq("sales_order_id", newOrderId);
 
-    if (orderItems && orderItems.length > 0) {
-      const rows = orderItems.map((it) => ({
-        company_id: company.id, shipment_id: shipment.id, product_id: it.product_id, quantity: it.quantity,
-      }));
-      await supabase.from("shipment_items").insert(rows);
+    const { data: existingShipmentItems } = await supabase
+      .from("shipment_items")
+      .select("product_id, quantity, shipments:shipment_id!inner(sales_order_id)")
+      .eq("shipments.sales_order_id", newOrderId);
+
+    const alreadyAllocated = {};
+    (existingShipmentItems ?? []).forEach((it) => {
+      alreadyAllocated[it.product_id] = (alreadyAllocated[it.product_id] ?? 0) + Number(it.quantity);
+    });
+
+    const shippable = (orderItems ?? [])
+      .map((it) => ({
+        product_id: it.product_id,
+        quantity: Math.max(0, Number(it.invoiced_quantity) - (alreadyAllocated[it.product_id] ?? 0)),
+      }))
+      .filter((it) => it.quantity > 0.0001);
+
+    if (shippable.length === 0) {
+      setError("Este pedido não tem saldo faturado pendente de expedição — os itens já foram faturados totalmente e expedidos, ou ainda não foram faturados.");
+      setCreating(false);
+      return;
     }
+
+    const rows = shippable.map((it) => ({
+      company_id: company.id, shipment_id: shipment.id, product_id: it.product_id, quantity: it.quantity,
+    }));
+    await supabase.from("shipment_items").insert(rows);
 
     setNewCode(""); setNewOrderId(""); setNewCarrierId(""); setNewWarehouseId(""); setNewDriver(""); setNewPlate("");
     setCreating(false);
@@ -252,8 +273,11 @@ export default function ExpedicaoPage() {
       <header style={{ marginBottom: 20 }}>
         <h1 style={styles.title}>Expedição</h1>
         <p style={styles.subtitle}>
-          Monte o romaneio de saída a partir de um Pedido de Venda faturado, confirme a saída
-          (baixa o estoque do almoxarifado escolhido) e marque como entregue ao final.
+          Monte o romaneio de saída a partir de um Pedido de Venda faturado (total ou parcialmente),
+          confirme a saída (baixa o estoque do almoxarifado escolhido) e marque como entregue ao
+          final. O romaneio só inclui o que já tem NF-e emitida — se o pedido foi faturado em
+          partes, o romaneio traz só o que está coberto pela nota; o restante entra em um novo
+          romaneio quando for faturado.
         </p>
       </header>
 

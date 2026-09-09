@@ -3,6 +3,20 @@
 // token proprio da empresa (Configuracoes -> Fiscal), monta o payload
 // no formato esperado pela API e registra o resultado em `invoices`.
 // Doc oficial: https://doc.focusnfe.com.br/reference/emitir_nfe
+//
+// Suporta faturamento PARCIAL: o chamador manda `items` com a
+// quantidade que quer faturar agora (pode ser menor que o total do
+// pedido, quando o estoque ainda nao cobre tudo). A funcao valida
+// contra o saldo pendente de cada item (quantity - invoiced_quantity),
+// registra o que foi faturado em `invoice_items`, atualiza
+// sales_order_items.invoiced_quantity, e recalcula o status do pedido
+// (parcialmente_faturado / faturado).
+//
+// Suporta modo `simulate: true` para testes: pula a chamada real pra
+// API do Focus NFe e fabrica uma resposta "autorizada" na hora, mas
+// passa pelo MESMO caminho de codigo depois (grava invoice, atualiza
+// saldo por item, recalcula status do pedido) -- assim testar a
+// simulacao valida o mesmo fluxo que a emissao real usaria.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -21,21 +35,27 @@ function onlyDigits(v: string | null | undefined) {
   return (v ?? "").replace(/\D/g, "");
 }
 
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { companyId, salesOrderId } = await req.json();
+    const { companyId, salesOrderId, items: requestedItems, simulate } = await req.json();
     if (!companyId || !salesOrderId) {
-      return new Response(JSON.stringify({ error: "Dados invalidos" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return jsonResponse({ error: "Dados invalidos" }, 400);
     }
 
     const { data: company } = await supabase.from("companies").select("*").eq("id", companyId).single();
-    if (!company?.focus_nfe_token) {
-      return new Response(JSON.stringify({ error: "Configure o token do Focus NFe em Configuracoes > Fiscal antes de emitir." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    if (!company.logradouro || !company.municipio || !company.uf || !company.cep) {
-      return new Response(JSON.stringify({ error: "Complete o endereco da empresa em Configuracoes > Fiscal antes de emitir." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!simulate) {
+      if (!company?.focus_nfe_token) {
+        return jsonResponse({ error: "Configure o token do Focus NFe em Configuracoes > Fiscal antes de emitir." }, 400);
+      }
+      if (!company.logradouro || !company.municipio || !company.uf || !company.cep) {
+        return jsonResponse({ error: "Complete o endereco da empresa em Configuracoes > Fiscal antes de emitir." }, 400);
+      }
     }
 
     const { data: order } = await supabase
@@ -43,48 +63,86 @@ serve(async (req) => {
       .select("id, code, total_value, customer_id, customers:customer_id (*)")
       .eq("id", salesOrderId).single();
     if (!order) {
-      return new Response(JSON.stringify({ error: "Pedido de venda nao encontrado" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return jsonResponse({ error: "Pedido de venda nao encontrado" }, 404);
     }
 
     const customer = order.customers;
-    if (!customer?.logradouro || !customer?.municipio || !customer?.uf || !customer?.cep) {
-      return new Response(JSON.stringify({ error: "Complete o endereco estruturado do cliente (Cadastro > Clientes) antes de emitir." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!simulate && (!customer?.logradouro || !customer?.municipio || !customer?.uf || !customer?.cep)) {
+      return jsonResponse({ error: "Complete o endereco estruturado do cliente (Cadastro > Clientes) antes de emitir." }, 400);
     }
 
-    const { data: items } = await supabase
+    // Saldo pendente de cada item do pedido (fonte da verdade pra validar o que pode ser faturado agora)
+    const { data: orderItems } = await supabase
       .from("sales_order_items")
-      .select("quantity, unit_price, discount_percent, products:product_id (name, sku, ncm, cfop_padrao, unit)")
+      .select("id, product_id, quantity, invoiced_quantity, unit_price, discount_percent")
       .eq("sales_order_id", salesOrderId);
 
-    if (!items || items.length === 0) {
-      return new Response(JSON.stringify({ error: "Pedido sem itens" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!orderItems || orderItems.length === 0) {
+      return jsonResponse({ error: "Pedido sem itens" }, 400);
     }
 
-    const missingNcm = items.find((it: any) => !it.products?.ncm);
-    if (missingNcm) {
-      return new Response(JSON.stringify({ error: `Produto "${missingNcm.products?.name}" sem NCM cadastrado. Complete em Cadastro > Produtos.` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const balanceByProduct = new Map(orderItems.map((it: any) => [it.product_id, it]));
+
+    // Se o chamador nao mandou items customizados, fatura o saldo pendente inteiro (comportamento padrao).
+    const itemsToInvoiceRaw = (requestedItems && requestedItems.length > 0)
+      ? requestedItems.map((it: any) => ({ productId: it.productId, quantity: Number(it.quantity), unitPrice: Number(it.unitPrice) }))
+      : orderItems
+          .filter((it: any) => Number(it.quantity) - Number(it.invoiced_quantity) > 0)
+          .map((it: any) => ({ productId: it.product_id, quantity: Number(it.quantity) - Number(it.invoiced_quantity), unitPrice: Number(it.unit_price) }));
+
+    if (itemsToInvoiceRaw.length === 0) {
+      return jsonResponse({ error: "Nenhum item com saldo pendente para faturar." }, 400);
     }
 
-    const isInterestadual = customer.uf && company.uf && customer.uf !== company.uf;
+    // Valida cada item contra o saldo pendente real do pedido
+    for (const it of itemsToInvoiceRaw) {
+      const orderItem = balanceByProduct.get(it.productId);
+      if (!orderItem) {
+        return jsonResponse({ error: `Item nao pertence a este pedido (product_id ${it.productId}).` }, 400);
+      }
+      const pending = Number(orderItem.quantity) - Number(orderItem.invoiced_quantity);
+      if (it.quantity <= 0) {
+        return jsonResponse({ error: "Quantidade a faturar precisa ser maior que zero." }, 400);
+      }
+      if (it.quantity > pending + 0.0001) {
+        return jsonResponse({ error: `Quantidade maior que o saldo pendente. Pendente: ${pending}.` }, 400);
+      }
+    }
 
-    const nfeItems = items.map((it: any, index: number) => {
-      const valorBruto = round2(Number(it.quantity) * Number(it.unit_price));
+    // Dados fiscais dos produtos (nao vem do payload do front)
+    const productIds = itemsToInvoiceRaw.map((it: any) => it.productId);
+    const { data: productsData } = await supabase
+      .from("products")
+      .select("id, name, sku, ncm, cfop_padrao, unit")
+      .in("id", productIds);
+    const productById = new Map((productsData ?? []).map((p: any) => [p.id, p]));
+
+    const missingNcm = itemsToInvoiceRaw.find((it: any) => !productById.get(it.productId)?.ncm);
+    if (!simulate && missingNcm) {
+      return jsonResponse({ error: `Produto "${productById.get(missingNcm.productId)?.name}" sem NCM cadastrado. Complete em Cadastro > Produtos.` }, 400);
+    }
+
+    const isInterestadual = customer?.uf && company?.uf && customer.uf !== company.uf;
+
+    const nfeItems = itemsToInvoiceRaw.map((it: any, index: number) => {
+      const product = productById.get(it.productId);
+      const valorBruto = round2(it.quantity * it.unitPrice);
       return {
         numero_item: index + 1,
-        codigo_produto: it.products?.sku ?? String(index + 1),
-        descricao: it.products?.name ?? "Produto",
-        cfop: isInterestadual ? "6102" : (it.products?.cfop_padrao ?? "5102"),
-        quantidade_comercial: Number(it.quantity),
-        quantidade_tributavel: Number(it.quantity),
-        valor_unitario_comercial: Number(it.unit_price),
-        valor_unitario_tributavel: Number(it.unit_price),
-        unidade_comercial: it.products?.unit ?? "UN",
-        unidade_tributavel: it.products?.unit ?? "UN",
+        codigo_produto: product?.sku ?? String(index + 1),
+        descricao: product?.name ?? "Produto",
+        cfop: isInterestadual ? "6102" : (product?.cfop_padrao ?? "5102"),
+        quantidade_comercial: it.quantity,
+        quantidade_tributavel: it.quantity,
+        valor_unitario_comercial: it.unitPrice,
+        valor_unitario_tributavel: it.unitPrice,
+        unidade_comercial: product?.unit ?? "UN",
+        unidade_tributavel: product?.unit ?? "UN",
         valor_bruto: valorBruto,
-        codigo_ncm: it.products.ncm,
+        codigo_ncm: product?.ncm,
         inclui_no_total: 1,
         icms_origem: 0,
-        icms_situacao_tributaria: company.regime_tributario === 1 ? "102" : "40", // simplificado: Simples Nacional x Regime Normal isento (ajustar conforme o caso real)
+        icms_situacao_tributaria: company?.regime_tributario === 1 ? "102" : "40", // simplificado: Simples Nacional x Regime Normal isento (ajustar conforme o caso real)
         pis_situacao_tributaria: "07",
         cofins_situacao_tributaria: "07",
       };
@@ -93,63 +151,82 @@ serve(async (req) => {
     const valorTotal = round2(nfeItems.reduce((sum: number, it: any) => sum + it.valor_bruto, 0));
     const ref = `pedido_${order.code}_${Date.now()}`;
 
-    const payload: Record<string, unknown> = {
-      natureza_operacao: "Venda de mercadoria",
-      data_emissao: new Date().toISOString(),
-      tipo_documento: 1, // saida
-      finalidade_emissao: 1, // normal
-      consumidor_final: 1,
-      presenca_comprador: 9,
-      local_destino: isInterestadual ? 2 : 1,
+    let data: Record<string, unknown>;
+    let status: string;
 
-      cnpj_emitente: onlyDigits(company.cnpj),
-      nome_emitente: company.name,
-      logradouro_emitente: company.logradouro,
-      numero_emitente: company.numero ?? "S/N",
-      bairro_emitente: company.bairro,
-      municipio_emitente: company.municipio,
-      uf_emitente: company.uf,
-      cep_emitente: onlyDigits(company.cep),
-      inscricao_estadual_emitente: company.inscricao_estadual,
-      regime_tributario_emitente: company.regime_tributario ?? 1,
+    if (simulate) {
+      const fakeSuffix = Math.random().toString(36).slice(2, 10).toUpperCase();
+      data = {
+        status: "autorizado",
+        chave_nfe: `SIMULADO-${fakeSuffix}`,
+        numero: String(Math.floor(Math.random() * 900000) + 100000),
+        serie: "1",
+        caminho_danfe: null,
+        caminho_xml_nota_fiscal: null,
+      };
+      status = "autorizado";
+    } else {
+      const payload: Record<string, unknown> = {
+        natureza_operacao: "Venda de mercadoria",
+        data_emissao: new Date().toISOString(),
+        tipo_documento: 1, // saida
+        finalidade_emissao: 1, // normal
+        consumidor_final: 1,
+        presenca_comprador: 9,
+        local_destino: isInterestadual ? 2 : 1,
 
-      nome_destinatario: customer.name,
-      ...(onlyDigits(customer.document).length === 14
-        ? { cnpj_destinatario: onlyDigits(customer.document) }
-        : { cpf_destinatario: onlyDigits(customer.document) }),
-      indicador_inscricao_estadual_destinatario: Number(customer.indicador_ie ?? 9),
-      logradouro_destinatario: customer.logradouro,
-      numero_destinatario: customer.numero ?? "S/N",
-      bairro_destinatario: customer.bairro,
-      municipio_destinatario: customer.municipio,
-      uf_destinatario: customer.uf,
-      cep_destinatario: onlyDigits(customer.cep),
-      pais_destinatario: "Brasil",
-      telefone_destinatario: onlyDigits(customer.phone),
+        cnpj_emitente: onlyDigits(company.cnpj),
+        nome_emitente: company.name,
+        logradouro_emitente: company.logradouro,
+        numero_emitente: company.numero ?? "S/N",
+        bairro_emitente: company.bairro,
+        municipio_emitente: company.municipio,
+        uf_emitente: company.uf,
+        cep_emitente: onlyDigits(company.cep),
+        inscricao_estadual_emitente: company.inscricao_estadual,
+        regime_tributario_emitente: company.regime_tributario ?? 1,
 
-      valor_produtos: valorTotal,
-      valor_total: valorTotal,
-      modalidade_frete: 9,
-      items: nfeItems,
-    };
+        nome_destinatario: customer.name,
+        ...(onlyDigits(customer.document).length === 14
+          ? { cnpj_destinatario: onlyDigits(customer.document) }
+          : { cpf_destinatario: onlyDigits(customer.document) }),
+        indicador_inscricao_estadual_destinatario: Number(customer.indicador_ie ?? 9),
+        logradouro_destinatario: customer.logradouro,
+        numero_destinatario: customer.numero ?? "S/N",
+        bairro_destinatario: customer.bairro,
+        municipio_destinatario: customer.municipio,
+        uf_destinatario: customer.uf,
+        cep_destinatario: onlyDigits(customer.cep),
+        pais_destinatario: "Brasil",
+        telefone_destinatario: onlyDigits(customer.phone),
 
-    const baseUrl = company.focus_nfe_ambiente === "producao"
-      ? "https://api.focusnfe.com.br/v2"
-      : "https://homologacao.focusnfe.com.br/v2";
+        valor_produtos: valorTotal,
+        valor_total: valorTotal,
+        modalidade_frete: 9,
+        items: nfeItems,
+      };
 
-    const authHeader = "Basic " + btoa(`${company.focus_nfe_token}:`);
+      const baseUrl = company.focus_nfe_ambiente === "producao"
+        ? "https://api.focusnfe.com.br/v2"
+        : "https://homologacao.focusnfe.com.br/v2";
 
-    const res = await fetch(`${baseUrl}/nfe?ref=${encodeURIComponent(ref)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": authHeader },
-      body: JSON.stringify(payload),
-    });
+      const authHeader = "Basic " + btoa(`${company.focus_nfe_token}:`);
 
-    const data = await res.json();
+      const res = await fetch(`${baseUrl}/nfe?ref=${encodeURIComponent(ref)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": authHeader },
+        body: JSON.stringify(payload),
+      });
 
-    let status = "processando";
-    if (data.status === "autorizado") status = "autorizado";
-    else if (res.status >= 400) status = "erro";
+      data = await res.json();
+      status = "processando";
+      if (data.status === "autorizado") status = "autorizado";
+      else if (res.status >= 400) status = "erro";
+    }
+
+    const baseUrlForLinks = company?.focus_nfe_ambiente === "producao"
+      ? "https://api.focusnfe.com.br"
+      : "https://homologacao.focusnfe.com.br";
 
     const { data: invoice, error: invoiceError } = await supabase.from("invoices").insert({
       company_id: companyId,
@@ -157,27 +234,56 @@ serve(async (req) => {
       customer_id: order.customer_id,
       ref,
       status,
+      simulated: !!simulate,
       chave_nfe: data.chave_nfe ?? null,
       numero: data.numero ?? null,
       serie: data.serie ?? null,
       valor_total: valorTotal,
-      danfe_url: data.caminho_danfe ? `${baseUrl.replace("/v2", "")}${data.caminho_danfe}` : null,
-      xml_url: data.caminho_xml_nota_fiscal ? `${baseUrl.replace("/v2", "")}${data.caminho_xml_nota_fiscal}` : null,
+      danfe_url: data.caminho_danfe ? `${baseUrlForLinks}${data.caminho_danfe}` : null,
+      xml_url: data.caminho_xml_nota_fiscal ? `${baseUrlForLinks}${data.caminho_xml_nota_fiscal}` : null,
       error_message: status === "erro" ? (data.mensagem ?? JSON.stringify(data.erros ?? data)) : null,
       raw_response: data,
     }).select().single();
 
     if (invoiceError) {
-      return new Response(JSON.stringify({ error: invoiceError.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return jsonResponse({ error: invoiceError.message }, 500);
     }
 
     if (status === "erro") {
-      return new Response(JSON.stringify({ error: invoice.error_message, invoice }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return jsonResponse({ error: invoice.error_message, invoice }, 422);
     }
 
-    return new Response(JSON.stringify({ invoice }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Nota efetivamente saiu (autorizada ou em processamento) -- registra o que foi
+    // faturado e atualiza o saldo pendente do pedido.
+    await supabase.from("invoice_items").insert(
+      itemsToInvoiceRaw.map((it: any) => ({
+        company_id: companyId,
+        invoice_id: invoice.id,
+        product_id: it.productId,
+        quantity: it.quantity,
+        unit_price: it.unitPrice,
+      }))
+    );
+
+    for (const it of itemsToInvoiceRaw) {
+      const orderItem = balanceByProduct.get(it.productId);
+      await supabase.from("sales_order_items")
+        .update({ invoiced_quantity: Number(orderItem.invoiced_quantity) + it.quantity })
+        .eq("id", orderItem.id);
+    }
+
+    const { data: refreshedItems } = await supabase
+      .from("sales_order_items")
+      .select("quantity, invoiced_quantity")
+      .eq("sales_order_id", salesOrderId);
+    const allInvoiced = (refreshedItems ?? []).every((it: any) => Number(it.invoiced_quantity) >= Number(it.quantity) - 0.0001);
+    const anyInvoiced = (refreshedItems ?? []).some((it: any) => Number(it.invoiced_quantity) > 0);
+    const newOrderStatus = allInvoiced ? "faturado" : anyInvoiced ? "parcialmente_faturado" : "aberto";
+    await supabase.from("sales_orders").update({ status: newOrderStatus }).eq("id", salesOrderId);
+
+    return jsonResponse({ invoice, orderStatus: newOrderStatus });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return jsonResponse({ error: String(e) }, 500);
   }
 });
 

@@ -39,7 +39,7 @@ export default function NotasFiscaisPage() {
     setLoading(true);
     const { data } = await supabase
       .from("invoices")
-      .select("id, status, chave_nfe, numero, serie, valor_total, danfe_url, error_message, created_at, customers:customer_id (name)")
+      .select("id, status, chave_nfe, numero, serie, valor_total, danfe_url, error_message, simulated, created_at, customers:customer_id (name)")
       .order("created_at", { ascending: false });
     setInvoices(data ?? []);
     setLoading(false);
@@ -60,9 +60,12 @@ export default function NotasFiscaisPage() {
     if (!orderId) return;
     const { data } = await supabase
       .from("sales_order_items")
-      .select("product_id, quantity, unit_price")
+      .select("product_id, quantity, unit_price, invoiced_quantity")
       .eq("sales_order_id", orderId);
-    setItems((data ?? []).map((it) => ({ productId: it.product_id, quantity: Number(it.quantity), unitPrice: Number(it.unit_price) })));
+    const pending = (data ?? [])
+      .map((it) => ({ productId: it.product_id, quantity: Number(it.quantity) - Number(it.invoiced_quantity), unitPrice: Number(it.unit_price), alreadyInvoiced: Number(it.invoiced_quantity), orderQty: Number(it.quantity) }))
+      .filter((it) => it.quantity > 0.0001);
+    setItems(pending);
   }
 
   function addItem() {
@@ -91,7 +94,7 @@ export default function NotasFiscaisPage() {
     .map((it) => products.find((p) => p.id === it.productId))
     .filter((p) => p && !p.ncm);
 
-  async function emit() {
+  async function emit(simulate = false) {
     if (!company?.id || !customerId || items.length === 0) return;
     setEmitting(true);
     setError("");
@@ -102,6 +105,7 @@ export default function NotasFiscaisPage() {
         customerId,
         salesOrderId: sourceOrderId || null,
         items: items.map((it) => ({ productId: it.productId, quantity: it.quantity, unitPrice: it.unitPrice })),
+        simulate,
       },
     });
 
@@ -180,6 +184,7 @@ export default function NotasFiscaisPage() {
                             <td style={styles.td}>
                               {product?.sku} — {product?.name}
                               {!product?.ncm && <div style={styles.ncmWarning}>Sem NCM cadastrado</div>}
+                              {it.alreadyInvoiced > 0 && <div style={styles.pendingNote}>Já faturado: {it.alreadyInvoiced} de {it.orderQty} — mostrando só o saldo pendente</div>}
                             </td>
                             <td style={styles.td}>
                               <input style={styles.smallInput} type="number" min="0.01" step="any" value={it.quantity} onChange={(e) => updateItem(it.productId, "quantity", Number(e.target.value))} />
@@ -245,7 +250,10 @@ export default function NotasFiscaisPage() {
 
           <div style={styles.reviewActions}>
             <button style={styles.backBtn} onClick={() => setReviewing(false)} type="button">Voltar e ajustar</button>
-            <button style={styles.emitBtn} onClick={emit} disabled={emitting || missingNcm.length > 0} type="button">
+            <button style={styles.simulateBtn} onClick={() => emit(true)} disabled={emitting || missingNcm.length > 0 || !sourceOrderId} type="button" title={!sourceOrderId ? "Simulação exige um pedido de venda de origem" : ""}>
+              {emitting ? "Processando..." : "🧪 Simular emissão (teste, não envia à SEFAZ)"}
+            </button>
+            <button style={styles.emitBtn} onClick={() => emit(false)} disabled={emitting || missingNcm.length > 0} type="button">
               {emitting ? "Emitindo..." : "Confirmar e emitir NF-e"}
             </button>
           </div>
@@ -272,6 +280,7 @@ export default function NotasFiscaisPage() {
                     <td style={styles.td}>R$ {Number(inv.valor_total ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
                     <td style={styles.td}>
                       <span style={{ ...styles.badge, ...statusStyle(inv.status) }}>{STATUS_LABEL[inv.status]}</span>
+                      {inv.simulated && <span style={styles.simulatedBadge}>SIMULADA</span>}
                       {inv.status === "erro" && inv.error_message && <div style={styles.errorDetail}>{inv.error_message}</div>}
                     </td>
                     <td style={styles.td}>{new Date(inv.created_at).toLocaleString("pt-BR")}</td>
@@ -360,6 +369,15 @@ const styles = {
   emitBtn: {
     flex: 2, background: "var(--amber)", color: "#FFFFFF", border: "none", borderRadius: "var(--radius)",
     padding: "11px 0", fontWeight: 700, fontSize: 13.5, cursor: "pointer",
+  },
+  simulateBtn: {
+    flex: 2, background: "transparent", color: "var(--amber)", border: "1px dashed var(--amber)", borderRadius: "var(--radius)",
+    padding: "11px 0", fontWeight: 700, fontSize: 12.5, cursor: "pointer",
+  },
+  pendingNote: { fontSize: 10.5, color: "var(--green)", marginTop: 2 },
+  simulatedBadge: {
+    fontSize: 9.5, fontWeight: 800, letterSpacing: "0.04em", color: "var(--text-dim)",
+    border: "1px solid var(--line)", borderRadius: 20, padding: "2px 7px", marginLeft: 6,
   },
   tableWrap: { border: "1px solid var(--line)", borderRadius: "var(--radius)", overflow: "hidden", overflowX: "auto", maxWidth: 900 },
   table: { width: "100%", borderCollapse: "collapse" },
